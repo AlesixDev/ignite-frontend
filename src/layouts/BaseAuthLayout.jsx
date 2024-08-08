@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { Compass, Fire, Plant, Plus } from '@phosphor-icons/react';
+import { useNavigate } from 'react-router-dom';
+import { Compass, Fire, Plus } from '@phosphor-icons/react';
 import useStore from '../hooks/useStore';
 import CreateGuildDialog from '../components/CreateGuildDialog';
 
@@ -17,6 +18,7 @@ const SidebarIcon = ({ icon = '', onClick, isActive = false, isServerIcon = fals
 
 const Sidebar = () => {
   const store = useStore();
+  const navigate = useNavigate();
 
   const [isCreateGuildDialogOpen, setIsCreateGuildDialogOpen] = useState(false);
   
@@ -26,7 +28,7 @@ const Sidebar = () => {
         <SidebarIcon icon={<Fire className="size-6" />} isServerIcon={true} text="Direct Messages" />
         <hr className="mx-auto mb-2 w-8 rounded-full border border-gray-800 bg-gray-800" />
         {store.guilds.map((guild) => (
-          <SidebarIcon key={guild.id} text={guild.name} />
+          <SidebarIcon key={guild.id} text={guild.name} onClick={() => navigate(`/channels/${guild.id}/1`)} />
         ))}
         <SidebarIcon icon={<Plus className="size-6" />} text="Add a Server" onClick={() => setIsCreateGuildDialogOpen(true)} />
         <SidebarIcon icon={<Compass className="size-6" />} text="Explore Public Servers" />

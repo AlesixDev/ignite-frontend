@@ -14,12 +14,12 @@ const voiceChannels = [
   { id: 2, name: 'Games', active: false },
 ];
 
-const GuildSidebarHeader = ({ serverName = '' }) => {
+const GuildSidebarHeader = ({ guildName = '' }) => {
   return (
     <div className="w-full cursor-pointer py-3 px-4 transition-colors duration-100 hover:bg-gray-700">
       <div className="flex h-6 items-center">
         <div className="flex-1 overflow-hidden text-ellipsis whitespace-nowrap text-base font-semibold">
-          {serverName}
+          {guildName}
         </div>
         <CaretDown className="size-5" />
       </div>
@@ -57,10 +57,10 @@ const GuildSidebarSection = ({ sectionName = 'Text Channels', channels }) => {
   );
 };
 
-const GuildSidebar = () => {
+const GuildSidebar = ({ guild }) => {
   return (
     <div className="relative top-0 flex h-full min-w-[240px] flex-col items-center bg-gray-800 text-gray-100">
-      <GuildSidebarHeader serverName="Ignite" />
+      <GuildSidebarHeader guildName={guild.name} />
       <hr className="m-0 w-full border border-gray-900 bg-gray-900 p-0" />
       <GuildSidebarSection sectionName="Text Channels" channels={textChannels} />
       <GuildSidebarSection sectionName="Voice Channels" channels={voiceChannels} />
@@ -68,11 +68,11 @@ const GuildSidebar = () => {
   );
 };
 
-const GuildLayout = ({ children }) => {
+const GuildLayout = ({ children, guild }) => {
   return (
     <BaseAuthLayout>
       <div className="flex flex-col">
-        <GuildSidebar />
+        <GuildSidebar guild={guild} />
         <UserBar />
       </div>
       {children}
