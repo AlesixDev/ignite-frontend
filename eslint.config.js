@@ -3,6 +3,7 @@ import globals from 'globals'
 import react from 'eslint-plugin-react'
 import reactHooks from 'eslint-plugin-react-hooks'
 import reactRefresh from 'eslint-plugin-react-refresh'
+import tailwind from 'eslint-plugin-tailwindcss'
 
 export default [
   {
@@ -34,5 +35,12 @@ export default [
         { allowConstantExport: true },
       ],
     },
+    overrides: [
+      {
+        files: ['*.ts', '*.tsx', '*.js'],
+        parser: '@typescript-eslint/parser',
+      },
+    ],
   },
+  ...tailwind.configs['flat/recommended']
 ]
