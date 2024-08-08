@@ -1,8 +1,9 @@
-import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { Compass, Fire, Plus } from '@phosphor-icons/react';
+import { useEffect, useState } from 'react';
+import { Compass, Fire, Plant, Plus } from '@phosphor-icons/react';
 import useStore from '../hooks/useStore';
 import CreateGuildDialog from '../components/CreateGuildDialog';
+import useGuildStore from '../hooks/useGuildStore';
+import GuildDialog from '../components/GuildDialog';
 
 const SidebarIcon = ({ icon = '', onClick, isActive = false, isServerIcon = false, text = 'tooltip' }) => (
   <button className="group relative mb-2 min-w-min px-3" type="button" onClick={onClick}>
@@ -17,23 +18,38 @@ const SidebarIcon = ({ icon = '', onClick, isActive = false, isServerIcon = fals
 );
 
 const Sidebar = () => {
-  const store = useStore();
+  const { guilds, selectedGuildId, setSelectedGuildId } =
+    useGuildStore((state) => ({
+      guilds: state.guilds,
+      selectedGuildId: state.selectedGuildId,
+      setSelectedGuildId: state.setSelectedGuildId
+    }));
+
   const navigate = useNavigate();
 
-  const [isCreateGuildDialogOpen, setIsCreateGuildDialogOpen] = useState(false);
-  
+  const [isGuildDialogOpen, setIsGuildDialogOpen] = useState(false);
+
+  useEffect(() => {
+    console.log(selectedGuildId);
+  }, [selectedGuildId]);
+
+  const handleGuildClick = (guildId) => {
+    setSelectedGuildId(guildId);
+    navigate(`/channels/${guildId}`);
+  }
+
   return (
     <>
       <div className="relative left-0 top-0 m-0 flex h-screen min-w-min flex-col items-center bg-gray-900 pt-3 text-white shadow">
         <SidebarIcon icon={<Fire className="size-6" />} isServerIcon={true} text="Direct Messages" />
         <hr className="mx-auto mb-2 w-8 rounded-full border border-gray-800 bg-gray-800" />
-        {store.guilds.map((guild) => (
-          <SidebarIcon key={guild.id} text={guild.name} onClick={() => navigate(`/channels/${guild.id}/1`)} />
+        {guilds.map((guild) => (
+          <SidebarIcon key={guild.id} text={guild.name} onClick={() => handleGuildClick(guild.id)} />
         ))}
-        <SidebarIcon icon={<Plus className="size-6" />} text="Add a Server" onClick={() => setIsCreateGuildDialogOpen(true)} />
+        <SidebarIcon icon={<Plus className="size-6" />} text="Add a Server" onClick={() => setIsGuildDialogOpen(true)} />
         <SidebarIcon icon={<Compass className="size-6" />} text="Explore Public Servers" />
       </div>
-      <CreateGuildDialog isOpen={isCreateGuildDialogOpen} setIsOpen={setIsCreateGuildDialogOpen} />
+      <GuildDialog isOpen={isGuildDialogOpen} setIsOpen={setIsGuildDialogOpen} />
     </>
   );
 };

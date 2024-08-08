@@ -7,13 +7,17 @@ import Dialog from './Dialog';
 import FormInput from './Form/FormInput';
 import FormError from './Form/FormError';
 import FormSubmit from './Form/FormSubmit';
+import useGuildStore from '../hooks/useGuildStore';
 
 const CreateGuildDialog = ({ isOpen, setIsOpen }) => {
+  const { addGuild } = useGuildStore();
   const form = useForm();
 
   const onSubmit = useCallback(async (data) => {
     try {
-      await api.post('guilds', data);
+      const response = await api.post('guilds', data);
+      addGuild(response.data);
+
       toast.success('Server created successfully.');
       setIsOpen(false);
       form.reset();

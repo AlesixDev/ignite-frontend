@@ -7,9 +7,11 @@ import LoginPage from './pages/Login/Login';
 import RegisterPage from './pages/Register/Register';
 import DashboardPage from './pages/Dashboard/Dashboard';
 import GuildChannelPage from './pages/GuildChannel/GuildChannel';
+import useGuildStore from './hooks/useGuildStore';
 
 const AuthRoute = ({ children }) => {
   const store = useStore();
+  const { setGuilds } = useGuildStore();
 
   const [initialized, setInitialized] = useState(false);
 
@@ -26,7 +28,7 @@ const AuthRoute = ({ children }) => {
             store.login(user, localToken);
 
             const { data: guilds } = await api.get('guilds');
-            store.setGuilds(guilds);
+            setGuilds(guilds);
           } else {
             localStorage.removeItem('token');
           }

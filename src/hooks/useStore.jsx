@@ -19,6 +19,10 @@ const useStore = create((set) => ({
   guilds: [],
 
   setGuilds: (guilds) => set({ guilds }),
+
+  selectedGuildId: null,
+
+  setSelectedGuildId: (guildId) => set({ selectedGuildId: guildId }),
 }));
 
 export default useStore;
