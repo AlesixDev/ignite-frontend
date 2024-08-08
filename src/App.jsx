@@ -17,7 +17,7 @@ const AuthRoute = ({ children }) => {
       try {
         const localToken = localStorage.getItem('token');
         if (localToken) {
-          const { data: user } = await api.get('user', {
+          const { data: user } = await api.get('@me', {
             headers: { Authorization: `Bearer ${localToken}` }
           });
 

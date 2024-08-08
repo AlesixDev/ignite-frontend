@@ -1,10 +1,13 @@
+import useStore from '../../hooks/useStore';
 import DefaultLayout from '../../layouts/DefaultLayout';
 
 const DashboardPage = () => {
+  const store = useStore();
+
   return (
     <DefaultLayout>
       <h1 class="text-primary-500">
-        Hi
+        Hi, {store.user?.username}!
       </h1>
     </DefaultLayout>
   );
