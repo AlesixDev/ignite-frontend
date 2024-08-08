@@ -114,7 +114,7 @@ function App() {
         }
       />
       <Route
-        path="/channels/:guildId/:channelId"
+        path="/channels/:guildId/:channelId?"
         element={
           <>
             <PageTitle title="Guild Channel" />

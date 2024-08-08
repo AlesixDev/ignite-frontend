@@ -45,7 +45,7 @@ const Sidebar = () => {
         <SidebarIcon icon={<Fire className="size-6" />} isServerIcon={true} text="Direct Messages" />
         <hr className="mx-auto mb-2 w-8 rounded-full border border-gray-800 bg-gray-800" />
         {guilds.map((guild) => (
-          <SidebarIcon key={guild.id} text={guild.name} onClick={() => handleGuildClick(guild.id)} />
+          <SidebarIcon key={guild.id} text={guild.name} onClick={() => handleGuildClick(guild.id)} isActive={selectedGuildId == guild.id} />
         ))}
         <SidebarIcon icon={<Plus className="size-6" />} text="Add a Server" onClick={() => setIsGuildDialogOpen(true)} />
         <SidebarIcon icon={<Compass className="size-6" />} text="Explore Public Servers" />
