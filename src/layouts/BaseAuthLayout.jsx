@@ -4,6 +4,7 @@ import useStore from '../hooks/useStore';
 import CreateGuildDialog from '../components/CreateGuildDialog';
 import useGuildStore from '../hooks/useGuildStore';
 import GuildDialog from '../components/GuildDialog';
+import { useNavigate } from 'react-router-dom';
 
 const SidebarIcon = ({ icon = '', onClick, isActive = false, isServerIcon = false, text = 'tooltip' }) => (
   <button className="group relative mb-2 min-w-min px-3" type="button" onClick={onClick}>
