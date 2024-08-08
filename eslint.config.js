@@ -34,13 +34,7 @@ export default [
         'warn',
         { allowConstantExport: true },
       ],
-    },
-    overrides: [
-      {
-        files: ['*.ts', '*.tsx', '*.js'],
-        parser: '@typescript-eslint/parser',
-      },
-    ],
+    }
   },
   ...tailwind.configs['flat/recommended']
 ]
