@@ -1,15 +1,15 @@
 import useStore from '../../hooks/useStore';
-import DefaultLayout from '../../layouts/DefaultLayout';
+import BaseAuthLayout from '../../layouts/BaseAuthLayout';
 
 const DashboardPage = () => {
   const store = useStore();
 
   return (
-    <DefaultLayout>
-      <h1 class="text-primary-500">
+    <BaseAuthLayout>
+      <h1 className="text-primary-500">
         Hi, {store.user?.username}!
       </h1>
-    </DefaultLayout>
+    </BaseAuthLayout>
   );
 };
 

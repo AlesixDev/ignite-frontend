@@ -1,4 +1,4 @@
-const AuthLayout = ({ children }) => {
+const BaseGuestLayout = ({ children }) => {
   return (
     <div>
       <div className="flex h-screen items-center justify-center overflow-hidden">
@@ -10,4 +10,4 @@ const AuthLayout = ({ children }) => {
   );
 };
 
-export default AuthLayout;
+export default BaseGuestLayout;

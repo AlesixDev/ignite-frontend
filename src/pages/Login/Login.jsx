@@ -5,7 +5,7 @@ import { toast } from 'react-toastify';
 import { ArrowRight } from '@phosphor-icons/react';
 import useStore from '../../hooks/useStore';
 import api from '../../api';
-import AuthLayout from '../../layouts/AuthLayout';
+import BaseGuestLayout from '../../layouts/BaseGuestLayout';
 import FormLabel from '../../components/Form/FormLabel';
 import FormError from '../../components/Form/FormError';
 import FormInput from '../../components/Form/FormInput';
@@ -22,7 +22,7 @@ const LoginPage = () => {
 
       if (response.data.user && response.data.token) {
         store.login(response.data.user, response.data.token);
-        navigate('/dashboard');
+        navigate('/channels/1/1');
         toast.success('Logged in successfully.');
       } else {
         toast.error('Failed to login.');
@@ -34,7 +34,7 @@ const LoginPage = () => {
   }, [navigate, store]);
 
   return (
-    <AuthLayout>
+    <BaseGuestLayout>
       <FormProvider {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)}>
           <div className="mx-auto w-full rounded-lg border border-white/5 bg-dark-bg sm:w-[32rem]">
@@ -68,7 +68,7 @@ const LoginPage = () => {
           </div>
         </form>
       </FormProvider>
-    </AuthLayout>
+    </BaseGuestLayout>
   );
 };
 

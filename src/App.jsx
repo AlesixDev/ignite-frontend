@@ -6,6 +6,7 @@ import PageTitle from './components/PageTitle';
 import LoginPage from './pages/Login/Login';
 import RegisterPage from './pages/Register/Register';
 import DashboardPage from './pages/Dashboard/Dashboard';
+import GuildChannelPage from './pages/GuildChannel/GuildChannel';
 
 const AuthRoute = ({ children }) => {
   const store = useStore();
@@ -41,7 +42,7 @@ const AuthRoute = ({ children }) => {
 
   if (!initialized) {
     return (
-      <div className="flex h-screen items-center justify-center bg-body-bg">
+      <div className="flex h-screen items-center justify-center bg-body">
         <div className="size-16 animate-spin rounded-full border-4 border-solid border-primary border-t-transparent"></div>
       </div>
     );
@@ -74,7 +75,7 @@ function App() {
     <Route
       index
       element={
-        store.user ? <Navigate to="/dashboard" replace /> : <Navigate to="/login" replace />
+        store.user ? <Navigate to="/channels/1/1" replace /> : <Navigate to="/login" replace />
       }
     />
     <Route element={<GuestRoute/>}>
@@ -104,6 +105,15 @@ function App() {
           <>
             <PageTitle title="Dashboard" />
             <DashboardPage />
+          </>
+        }
+      />
+      <Route
+        path="/channels/:guildId/:channelId"
+        element={
+          <>
+            <PageTitle title="Guild Channel" />
+            <GuildChannelPage />
           </>
         }
       />
