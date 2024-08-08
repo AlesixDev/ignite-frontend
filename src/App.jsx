@@ -24,6 +24,9 @@ const AuthRoute = ({ children }) => {
 
           if (user?.username) {
             store.login(user, localToken);
+
+            const { data: guilds } = await api.get('guilds');
+            store.setGuilds(guilds);
           } else {
             localStorage.removeItem('token');
           }

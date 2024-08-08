@@ -14,7 +14,11 @@ const useStore = create((set) => ({
     set({ user: null, token: null, shops: [], shopId: null });
   },
 
-  setUser: (user) => set({ user })
+  setUser: (user) => set({ user }),
+
+  guilds: [],
+
+  setGuilds: (guilds) => set({ guilds }),
 }));
 
 export default useStore;
