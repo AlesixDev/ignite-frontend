@@ -32,6 +32,7 @@ const guildStore = (set, get) => ({
     setGuilds: (guilds) => set({ guilds }),
     setSelectedGuildId: (guildId) => set({ selectedGuildId: guildId }),
     addGuild: (guild) => set({ guilds: [...get().guilds, guild] }),
+    editGuild: (guild) => set({ guilds: get().guilds.map((g) => g.id === guild.id ? guild : g) }),
 });
 
 const useGuildStore = create(guildStore);

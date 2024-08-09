@@ -1,24 +1,15 @@
 import { useState } from 'react';
+import { useParams, Link } from 'react-router-dom';
 import { Hash, Plus, CaretDown, CaretRight } from '@phosphor-icons/react';
 import BaseAuthLayout from './BaseAuthLayout';
 import UserBar from '../components/UserBar';
-
-const textChannels = [
-  { id: 1, name: 'general', active: true },
-  { id: 2, name: 'memes', active: false },
-  { id: 3, name: 'tech', active: false },
-  { id: 4, name: 'food', active: false },
-];
-const voiceChannels = [
-  { id: 1, name: 'Lounge', active: false },
-  { id: 2, name: 'Games', active: false },
-];
+import CreateGuildChannelDialog from '../components/CreateGuildChannelDialog';
 
 const GuildSidebarHeader = ({ guildName = '' }) => {
   return (
-    <div className="w-full cursor-pointer py-3 px-4 transition-colors duration-100 hover:bg-gray-700">
+    <div className="w-full cursor-pointer px-4 py-3 transition-colors duration-100 hover:bg-gray-700">
       <div className="flex h-6 items-center">
-        <div className="flex-1 overflow-hidden text-ellipsis whitespace-nowrap text-base font-semibold">
+        <div className="flex-1 truncate text-base font-semibold">
           {guildName}
         </div>
         <CaretDown className="size-5" />
@@ -27,7 +18,7 @@ const GuildSidebarHeader = ({ guildName = '' }) => {
   );
 };
   
-const GuildSidebarSection = ({ sectionName = 'Text Channels', channels }) => {
+const GuildSidebarSection = ({ sectionName = 'Text Channels', channels, activeChannelId, setIsCreateChannelDialogOpen }) => {
   const [expanded, setExpanded] = useState(true);
 
   return (
@@ -39,18 +30,20 @@ const GuildSidebarSection = ({ sectionName = 'Text Channels', channels }) => {
           </div>
           <span className="text-xs font-bold uppercase">{sectionName}</span>
         </div>
-        <Plus className="mr-2 text-gray-400 size-3" />
+        <button type="button" onClick={() => setIsCreateChannelDialogOpen(true)}>
+          <Plus className="mr-2 size-3 text-gray-400" />
+        </button>
       </div>
       {channels &&
         channels.map((channel) => (
-          <div key={channel.id} className={`${!expanded && !channel.active ? 'hidden' : ''}`}>
-            <div className={`mx-2 my-0.5 flex cursor-pointer items-center rounded px-2 py-1 hover:bg-gray-700 hover:text-gray-400 ${channel.active ? 'bg-gray-600 text-gray-100' : 'text-gray-500'}`}>
-              <Hash className="text-gray-500 size-6" />
-              <p className="ml-1 overflow-hidden text-ellipsis whitespace-nowrap text-base font-medium">
+          <Link key={channel.id} to={`/channels/${channel.guild_id}/${channel.channel_id}`} className={`${!expanded && channel.channel_id != activeChannelId ? 'hidden' : ''}`}>
+            <div className={`mx-2 my-0.5 flex cursor-pointer items-center rounded px-2 py-1 ${channel.channel_id == activeChannelId ? 'bg-gray-600 text-gray-100' : 'text-gray-500 hover:bg-gray-700 hover:text-gray-400'}`}>
+              <Hash className="size-6 text-gray-500" />
+              <p className="ml-1 truncate text-base font-medium">
                 {channel.name}
               </p>
             </div>
-          </div>
+          </Link>
         ))
       }
     </div>
@@ -58,12 +51,17 @@ const GuildSidebarSection = ({ sectionName = 'Text Channels', channels }) => {
 };
 
 const GuildSidebar = ({ guild }) => {
+  const { channelId } = useParams();
+
+  const [isCreateChannelDialogOpen, setIsCreateChannelDialogOpen] = useState(false);
+
   return (
     <div className="relative top-0 flex h-full min-w-[240px] flex-col items-center bg-gray-800 text-gray-100">
-      <GuildSidebarHeader guildName={guild.name} />
+      <GuildSidebarHeader guildName={guild?.name} />
       <hr className="m-0 w-full border border-gray-900 bg-gray-900 p-0" />
-      <GuildSidebarSection sectionName="Text Channels" channels={textChannels} />
-      <GuildSidebarSection sectionName="Voice Channels" channels={voiceChannels} />
+      <GuildSidebarSection sectionName="Text Channels" channels={guild?.channels || []} activeChannelId={channelId} setIsCreateChannelDialogOpen={setIsCreateChannelDialogOpen} />
+
+      <CreateGuildChannelDialog isOpen={isCreateChannelDialogOpen} setIsOpen={setIsCreateChannelDialogOpen} guild={guild} />
     </div>
   );
 };

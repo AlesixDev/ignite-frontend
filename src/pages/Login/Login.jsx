@@ -22,10 +22,8 @@ const LoginPage = () => {
 
       if (response.data.user && response.data.token) {
         store.login(response.data.user, response.data.token);
-        navigate('/channels/1/1');
+        navigate('/dashboard');
         toast.success('Logged in successfully.');
-      } else {
-        toast.error('Failed to login.');
       }
     } catch (error) {
       console.error(error);
@@ -46,9 +44,9 @@ const LoginPage = () => {
             </div>
             <div className="px-6 py-4">
               <div className="mb-3">
-                <FormLabel htmlFor="email">Email</FormLabel>
-                <FormInput type="text" id="email" name="email" validation={{ required: "Email is required.", pattern: { value: /\S+@\S+\.\S+/, message: "Invalid email address" } }} />
-                <FormError name="email" />
+                <FormLabel htmlFor="username">Username</FormLabel>
+                <FormInput type="text" id="username" name="username" validation={{ required: "Username is required." }} />
+                <FormError name="username" />
               </div>
               <div className="mb-1">
                 <FormLabel htmlFor="password">Password</FormLabel>

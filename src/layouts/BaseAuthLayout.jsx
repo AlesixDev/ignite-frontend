@@ -1,7 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Compass, Fire, Plant, Plus } from '@phosphor-icons/react';
-import useStore from '../hooks/useStore';
-import CreateGuildDialog from '../components/CreateGuildDialog';
+import { Compass, Fire, Plus } from '@phosphor-icons/react';
 import useGuildStore from '../hooks/useGuildStore';
 import GuildDialog from '../components/GuildDialog';
 import { useNavigate } from 'react-router-dom';

@@ -29,8 +29,8 @@ api.interceptors.response.use(
       const store = useStore.getState();
       store.logout();
       
-      const navigate = useNavigate();
-      navigate('/login');
+      // const navigate = useNavigate();
+      // navigate('/login');
     }
 
     return Promise.reject(error);

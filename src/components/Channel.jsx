@@ -23,17 +23,16 @@ const Post = ({ post }) => {
           <h6 className={`font-medium leading-none ${post.usernameColour}`}>
             {post.username}
           </h6>
-          <p className="ml-2 self-end text-xs font-medium leading-tight dark:text-gray-500 text-gray-600">
+          <p className="ml-2 self-end text-xs font-medium leading-tight text-gray-600 dark:text-gray-500">
             {formattedDate}
           </p>
         </div>
 
-        <div className="dark:text-gray-400 text-gray-900">{post.message}</div>
+        <div className=":text-gray-400">{post.message}</div>
       </div>
     </div>
   );
 };
-
 
 const Posts = () => {
   const userPosts = [].map((post) => <Post post={post} key={post.id} />);
@@ -41,7 +40,7 @@ const Posts = () => {
   return <div className="h-full">{userPosts}</div>;
 };
 
-const MessageInput = ({ channelName }) => {
+const MessageInput = ({ channel }) => {
   return (
     <div className="mx-4 my-6 flex items-center rounded-lg bg-gray-300 py-2 dark:bg-gray-600">
       <div>
@@ -53,9 +52,9 @@ const MessageInput = ({ channelName }) => {
       </div>
 
       <input
-        className="w-full bg-inherit text-white border-0 outline-none p-0 focus:ring-0 placeholder:text-gray-400"
+        className="w-full border-0 bg-inherit p-0 text-white outline-none placeholder:text-gray-400 focus:ring-0"
         type="text"
-        placeholder={`Message #${channelName}`}
+        placeholder={`Message #${channel?.name}`}
       />
 
       <div className="mr-1 flex">
@@ -84,13 +83,13 @@ const MessageInput = ({ channelName }) => {
   );
 };
 
-const Channel = ({ channelName }) => {
+const Channel = ({ channel }) => {
   return (
     <div className="relative flex w-full flex-col dark:bg-gray-700">
-      <ChannelBar channelName={channelName} />
-      <hr className="m-0 p-0 w-full border border-gray-800 bg-gray-800" />
+      <ChannelBar channel={channel} />
+      <hr className="m-0 w-full border border-gray-800 bg-gray-800 p-0" />
       <Posts />
-      <MessageInput channelName={channelName} />
+      <MessageInput channel={channel} />
     </div>
   );
 };
