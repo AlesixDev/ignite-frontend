@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import { toast } from 'react-toastify';
 import { Gif, Gift, PlusCircle, Smiley, Sticker } from '@phosphor-icons/react';
 import api from '../api';
@@ -17,12 +17,12 @@ const ChannelMessage = ({ message }) => {
     <div className="mt-4 flex">
       {message?.author.avatar ? (
         <img
-          className="mx-4 h-10 rounded-full bg-transparent"
+          className="h-10 rounded-full bg-transparent"
           src={message?.author.avatar}
           alt="User avatar"
         />
       ) : (
-        <div className="mx-4 flex size-10 items-center justify-center rounded-full bg-gray-800 text-gray-300">
+        <div className="mr-4 flex size-10 items-center justify-center rounded-full bg-gray-800 text-gray-300">
           {message?.author.nickname.slice(0, 1).toUpperCase()}
         </div>
       )}
@@ -43,9 +43,9 @@ const ChannelMessage = ({ message }) => {
   );
 };
 
-const ChannelMessages = ({ messages }) => {
+const ChannelMessages = ({ messages, messagesRef }) => {
   return (
-    <div className="h-full">
+    <div className="h-full max-h-[calc(100vh-9rem)] overflow-y-auto px-4" ref={messagesRef}>
       {messages.map((message) => (
         <ChannelMessage key={message.id} message={message} />
       ))}
@@ -53,7 +53,7 @@ const ChannelMessages = ({ messages }) => {
   );
 };
 
-const ChannelInput = ({ channel, fetchMessages }) => {
+const ChannelInput = ({ channel, fetchMessages, scrollToBottom }) => {
   const [message, setMessage] = useState('');
 
   const sendMessage = useCallback(async (event) => {
@@ -66,12 +66,14 @@ const ChannelInput = ({ channel, fetchMessages }) => {
     try {
       await api.post(`/channels/${channel.channel_id}/messages`, { content: message });
       setMessage('');
-      fetchMessages();
+      fetchMessages().then(() => {
+        scrollToBottom();
+      });
     } catch (error) {
       console.error(error);
       toast.error(error.response?.data?.message || 'Could not send message.');
     }
-  }, [channel, message, fetchMessages]);
+  }, [message, channel.channel_id, fetchMessages, scrollToBottom]);
 
   return (
     <div className="mx-4 my-6 flex items-center rounded-lg bg-gray-300 py-2 dark:bg-gray-600">
@@ -121,6 +123,13 @@ const ChannelInput = ({ channel, fetchMessages }) => {
 
 const Channel = ({ channel }) => {
   const [messages, setMessages] = useState([]);
+  const [firstLoad, setFirstLoad] = useState(true);
+
+  const messagesRef = useRef();
+
+  const scrollToBottom = useCallback(() => {
+    messagesRef.current.scrollTop = messagesRef.current.scrollHeight;
+  }, [messagesRef]);
 
   const fetchMessages = useCallback(async () => {
     try {
@@ -130,18 +139,30 @@ const Channel = ({ channel }) => {
       console.error(error);
       toast.error(error.response?.data?.message || 'Could not fetch messages.');
     }
-  }, [channel]);
+  }, [channel.channel_id]);
 
   useEffect(() => {
     fetchMessages();
-  }, [fetchMessages]);
+  }, [fetchMessages, firstLoad, scrollToBottom]);
+
+  useEffect(() => {
+    if (messages && messages.length && firstLoad) {
+      scrollToBottom();
+      setFirstLoad(false);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [messages]);
+
+  useEffect(() => {
+    setFirstLoad(true);
+  }, [channel]);
 
   return (
     <div className="relative flex w-full flex-col dark:bg-gray-700">
       <ChannelBar channel={channel} />
       <hr className="m-0 w-full border border-gray-800 bg-gray-800 p-0" />
-      <ChannelMessages messages={messages} />
-      <ChannelInput channel={channel} fetchMessages={fetchMessages} />
+      <ChannelMessages messages={messages} messagesRef={messagesRef} />
+      <ChannelInput channel={channel} fetchMessages={fetchMessages} scrollToBottom={scrollToBottom} />
     </div>
   );
 };
