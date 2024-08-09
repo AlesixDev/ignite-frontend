@@ -52,7 +52,7 @@ const ChannelMessage = ({ message, prevMessage }) => {
         </div>
       )}
 
-      <div className="flex flex-col items-start justify-start">
+      <div className="flex-1 flex flex-col items-start justify-start">
         <div className="mb-1 flex justify-start leading-none">
           <h6 className="font-semibold leading-none">
             {message?.author.nickname}
