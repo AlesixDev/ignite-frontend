@@ -190,6 +190,15 @@ const Channel = ({ channel }) => {
     setFirstLoad(true);
   }, [channel]);
 
+  // interval to fetch messages every 2 seconds
+  useEffect(() => {
+    const interval = setInterval(() => {
+      fetchMessages();
+    }, 2000);
+
+    return () => clearInterval(interval);
+  }, [fetchMessages]);
+
   return (
     <div className="relative flex w-full flex-col dark:bg-gray-700">
       <ChannelBar channel={channel} />
