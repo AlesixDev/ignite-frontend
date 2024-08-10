@@ -24,3 +24,5 @@ dist-ssr
 *.sw?
 
 deploy_production.sh
+
+.env

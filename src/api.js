@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import useStore from './hooks/useStore';
 
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_BASE_URL
+  baseURL: import.meta.env.VITE_API_BASE_URL + '/' + import.meta.env.VITE_API_VERSION + '/',
 });
 
 api.interceptors.request.use(

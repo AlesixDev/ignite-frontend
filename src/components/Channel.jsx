@@ -52,7 +52,7 @@ const ChannelMessage = ({ message, prevMessage }) => {
         </div>
       )}
 
-      <div className="flex-1 flex flex-col items-start justify-start">
+      <div className="flex flex-1 flex-col items-start justify-start">
         <div className="mb-1 flex justify-start leading-none">
           <h6 className="font-semibold leading-none">
             {message?.author.username}
@@ -190,14 +190,21 @@ const Channel = ({ channel }) => {
     setFirstLoad(true);
   }, [channel]);
 
-  // interval to fetch messages every 2 seconds
   useEffect(() => {
-    const interval = setInterval(() => {
-      fetchMessages();
-    }, 2000);
+    if (!channel) {
+      return;
+    }
 
-    return () => clearInterval(interval);
-  }, [fetchMessages]);
+    console.log(`Joining channel.${channel.channel_id}`);
+
+    window.Echo.private(`channel.${channel.channel_id}`).listen('message.created', (event) => {
+      console.log('Received event:', event);
+    });
+
+    return () => {
+      window.Echo.leave(`channel.${channel.channel_id}`);
+    };
+  }, [channel, scrollToBottom]);
 
   return (
     <div className="relative flex w-full flex-col dark:bg-gray-700">
