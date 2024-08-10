@@ -48,14 +48,14 @@ const ChannelMessage = ({ message, prevMessage }) => {
         />
       ) : (
         <div className="mr-4 flex size-10 items-center justify-center rounded-full bg-gray-800 text-gray-300">
-          {message?.author.nickname.slice(0, 1).toUpperCase()}
+          {message?.author.username.slice(0, 1).toUpperCase()}
         </div>
       )}
 
       <div className="flex-1 flex flex-col items-start justify-start">
         <div className="mb-1 flex justify-start leading-none">
           <h6 className="font-semibold leading-none">
-            {message?.author.nickname}
+            {message?.author.username}
           </h6>
           <p className="ml-2 self-end text-xs font-medium leading-tight text-gray-600 dark:text-gray-500">
             {formattedDateTime}
