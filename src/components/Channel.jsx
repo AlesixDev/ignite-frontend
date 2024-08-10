@@ -183,7 +183,7 @@ const Channel = ({ channel }) => {
       scrollToBottom();
       setFirstLoad(false);
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [messages]);
 
   useEffect(() => {
@@ -197,9 +197,13 @@ const Channel = ({ channel }) => {
 
     console.log(`Joining channel.${channel.channel_id}`);
 
-    window.Echo.private(`channel.${channel.channel_id}`).listen('message.created', (event) => {
-      console.log('Received event:', event);
-    });
+    window.Echo.channel(`channel.${channel.channel_id}`)
+      .listen('message.created', (event) => {
+        console.log('Received event:', event);
+      })
+
+    // Assuming successful subscription if no error is caught
+    console.log(`Successfully subscribed to channel.${channel.channel_id}`);
 
     return () => {
       window.Echo.leave(`channel.${channel.channel_id}`);
