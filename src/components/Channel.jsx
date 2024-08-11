@@ -82,7 +82,7 @@ const ChannelMessages = ({ messages, messagesRef }) => {
   );
 };
 
-const ChannelInput = ({ channel, fetchMessages, scrollToBottom }) => {
+const ChannelInput = ({ channel, scrollToBottom }) => {
   const [message, setMessage] = useState('');
 
   const sendMessage = useCallback(async (event) => {
@@ -95,14 +95,12 @@ const ChannelInput = ({ channel, fetchMessages, scrollToBottom }) => {
     try {
       await api.post(`/channels/${channel.channel_id}/messages`, { content: message });
       setMessage('');
-      fetchMessages().then(() => {
-        scrollToBottom();
-      });
+      scrollToBottom();
     } catch (error) {
       console.error(error);
       toast.error(error.response?.data?.message || 'Could not send message.');
     }
-  }, [message, channel?.channel_id, fetchMessages, scrollToBottom]);
+  }, [message, channel?.channel_id, scrollToBottom]);
 
   return (
     <div className="mx-4 my-6 flex items-center rounded-lg bg-gray-300 py-2 dark:bg-gray-600">
@@ -195,11 +193,12 @@ const Channel = ({ channel }) => {
       return;
     }
 
-    console.log(`Joining channel.${channel.channel_id}`);
-
-    window.Echo.channel(`channel.${channel.channel_id}`)
-      .listen('message.created', (event) => {
-        console.log('Received event:', event);
+    window.Echo.private(`channel.${channel.channel_id}`)
+      .listen('.message.created', (event) => {
+        if (event.channel.id == channel.channel_id) {
+          console.log('Received message:', event);
+          setMessages((messages) => [...messages, event.message]);
+        }
       })
 
     // Assuming successful subscription if no error is caught

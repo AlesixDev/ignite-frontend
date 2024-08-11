@@ -6,6 +6,7 @@ import { ToastContainer } from 'react-toastify';
 import Pusher from 'pusher-js';
 import Echo from 'laravel-echo';
 import App from './App';
+import api from './api';
 import 'react-toastify/dist/ReactToastify.css';
 import './css/style.css';
 
@@ -17,12 +18,22 @@ window.Echo = new Echo({
   wssPort: import.meta.env.VITE_REVERB_PORT,
   forceTLS: (import.meta.env.VITE_REVERB_SCHEME ?? 'https') === 'https',
   enabledTransports: ['ws', 'wss'],
-  authEndpoint: import.meta.env.VITE_API_BASE_URL + '/broadcasting/auth',
-  auth: {
-    headers: {
-      Authorization: 'Bearer ' + window.localStorage.getItem('token'),
-    }
-  }
+  authorizer: (channel) => {
+    return {
+      authorize: (socketId, callback) => {
+        api.post('broadcasting/auth', {
+          socket_id: socketId,
+          channel_name: channel.name
+        })
+        .then(response => {
+          callback(false, response.data);
+        })
+        .catch(error => {
+          callback(true, error);
+        });
+      }
+    };
+  },
 });
 
 ReactDOM.createRoot(document.getElementById('root')).render(
