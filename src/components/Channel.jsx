@@ -187,8 +187,6 @@ const ChannelMessages = ({ messagesRef }) => {
     };
   }, [setEditingId, setReplyingId]);
 
-  console.log('effect', messages, 'is array', Array.isArray(messages));
-
   return (
     <div className={`h-full overflow-y-auto ${replyingId ? ' max-h-[calc(100vh-11.5rem)]' : ' max-h-[calc(100vh-9rem)]'}`} ref={messagesRef}>
       {messages && messages.map((message, index) => {
