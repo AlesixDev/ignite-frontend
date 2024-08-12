@@ -226,7 +226,7 @@ const ChannelInput = ({ channel, scrollToBottom }) => {
       console.error(error);
       toast.error(error.response?.data?.message || 'Could not send message.');
     }
-  }, [channel.channel_id, message, messages, replyingId, scrollToBottom, setMessages, setReplyingId]);
+  }, [channel?.channel_id, message, messages, replyingId, scrollToBottom, setMessages, setReplyingId]);
 
   // autofocus when replying
   useEffect(() => {
@@ -341,7 +341,12 @@ const Channel = ({ channel }) => {
     window.Echo.private(`channel.${channel.channel_id}`)
       .listen('.message.created', (event) => {
         if (event.channel.id == channel.channel_id) {
-          setMessages([...messages, event.message]);
+          console.log(event.message);
+          if (messages.find((m) => m.id === event.message.id)) {
+            setMessages(messages.map((m) => m.id === event.message.id ? event.message : m));
+          } else {
+            setMessages([...messages, event.message]);
+          }
         }
       })
 
