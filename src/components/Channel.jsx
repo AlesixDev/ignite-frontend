@@ -11,13 +11,15 @@ const useChannelStore = create((set) => ({
   setChannel: (channel) => set({ channel }),
   messages: [],
   setMessages: (messages) => set({ messages }),
+  pendingMessages: [],
+  setPendingMessages: (pendingMessages) => set({ pendingMessages }),
   editingId: null,
   setEditingId: (editingId) => set({ editingId }),
   replyingId: null,
   setReplyingId: (replyingId) => set({ replyingId }),
 }));
 
-const ChannelMessage = ({ message, prevMessage }) => {
+const ChannelMessage = ({ message, prevMessage, pending }) => {
   const store = useStore();
 
   const { messages, setMessages, editingId, setEditingId, setReplyingId } = useChannelStore();
@@ -138,7 +140,7 @@ const ChannelMessage = ({ message, prevMessage }) => {
               </p>
             </div>
           ) : (
-            <div className={`text-gray-400 ${message?.pending ? 'opacity-50' : ''}`}>
+            <div className={`text-gray-400 ${pending ? 'opacity-50' : ''}`}>
               {message.content}
               {(message.updated_at && message.created_at !== message.updated_at) && (
                 <span className="ml-1 text-[0.65rem] text-gray-500">(edited)</span>
@@ -147,7 +149,7 @@ const ChannelMessage = ({ message, prevMessage }) => {
           )}
         </div>
       </div>
-      {!isEditing && (
+      {(!isEditing && !pending) && (
         <div className="absolute -top-4 right-4 hidden rounded-md border border-gray-800 bg-gray-700 group-hover:flex">
           {canEdit && (
             <button type="button" onClick={() => setEditingId(message.id)} className="rounded-md p-2 text-sm text-white/90 hover:bg-primary/10 hover:text-primary">
@@ -169,7 +171,7 @@ const ChannelMessage = ({ message, prevMessage }) => {
 };
 
 const ChannelMessages = ({ messagesRef }) => {
-  const { messages, setEditingId, replyingId, setReplyingId } = useChannelStore();
+  const { messages, pendingMessages, setEditingId, replyingId, setReplyingId } = useChannelStore();
 
   // attach escape key listener to cancel editing
   useEffect(() => {
@@ -196,12 +198,19 @@ const ChannelMessages = ({ messagesRef }) => {
           <ChannelMessage key={message.id} message={message} prevMessage={prevMessage} />
         );
       })}
+      {pendingMessages && pendingMessages.map((message, index) => {
+        const prevMessage = pendingMessages[index - 1] || messages[messages.length - 1] || null;
+
+        return (
+          <ChannelMessage key={message.id} message={message} prevMessage={prevMessage} pending={true} />
+        );
+      })}
     </div>
   );
 };
 
 const ChannelInput = ({ channel, scrollToBottom }) => {
-  const { messages, setMessages, replyingId, setReplyingId } = useChannelStore();
+  const { messages, setMessages, pendingMessages, setPendingMessages, replyingId, setReplyingId } = useChannelStore();
 
   const replyMessage = useMemo(() => replyingId ? messages.find((m) => m.id == replyingId) : null, [messages, replyingId]);
 
@@ -220,13 +229,13 @@ const ChannelInput = ({ channel, scrollToBottom }) => {
       const { data: newMessage } = await api.post(`/channels/${channel.channel_id}/messages`, { content: message, reply_to: replyingId });
       setMessage('');
       setReplyingId(null);
-      setMessages([...messages, { ...newMessage, pending: true }]);
+      setPendingMessages([...pendingMessages, { ...newMessage, pending: true }]);
       scrollToBottom();
     } catch (error) {
       console.error(error);
       toast.error(error.response?.data?.message || 'Could not send message.');
     }
-  }, [channel?.channel_id, message, messages, replyingId, scrollToBottom, setMessages, setReplyingId]);
+  }, [channel.channel_id, message, pendingMessages, replyingId, scrollToBottom, setPendingMessages, setReplyingId]);
 
   // autofocus when replying
   useEffect(() => {
@@ -293,7 +302,7 @@ const ChannelInput = ({ channel, scrollToBottom }) => {
 };
 
 const Channel = ({ channel }) => {
-  const { messages, setMessages } = useChannelStore();
+  const { messages, setMessages, pendingMessages, setPendingMessages } = useChannelStore();
 
   const [firstLoad, setFirstLoad] = useState(true);
 
@@ -341,19 +350,15 @@ const Channel = ({ channel }) => {
     window.Echo.private(`channel.${channel.channel_id}`)
       .listen('.message.created', (event) => {
         if (event.channel.id == channel.channel_id) {
-          console.log(event.message);
-          if (messages.find((m) => m.id === event.message.id)) {
-            setMessages(messages.map((m) => m.id === event.message.id ? event.message : m));
-          } else {
-            setMessages([...messages, event.message]);
-          }
+          setPendingMessages(pendingMessages.filter((m) => m.id !== event.message.id));
+          setMessages([...messages, event.message]);
         }
       })
 
     return () => {
       window.Echo.leave(`channel.${channel.channel_id}`);
     };
-  }, [channel, messages, scrollToBottom, setMessages]);
+  }, [channel, messages, pendingMessages, scrollToBottom, setMessages, setPendingMessages]);
 
   return (
     <div className="relative flex w-full flex-col dark:bg-gray-700">
