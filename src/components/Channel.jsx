@@ -57,6 +57,11 @@ const ChannelMessage = ({ message, prevMessage }) => {
   const onEdit = useCallback(async (event) => {
     event.preventDefault();
 
+    if (!editedMessage || editedMessage === message.content) {
+      setEditingId(null);
+      return;
+    }
+
     try {
       await api.put(`/channels/${message.channel_id}/messages/${message.id}`, { content: editedMessage });
       setMessages(messages.map((m) => m.id === message.id ? { ...m, content: editedMessage, updated_at: new Date().toISOString() } : m));
@@ -128,7 +133,8 @@ const ChannelMessage = ({ message, prevMessage }) => {
                 </form>
               </div>
               <p className="text-xs text-gray-400">
-                escape to <span className="text-primary">cancel</span>, enter to <span className="text-primary">save</span>
+                escape to <button onClick={() => setEditingId(null)} className="text-primary">cancel</button>,
+                enter to <button onClick={(e) => onEdit(e)} className="text-primary">save</button>
               </p>
             </div>
           ) : (
