@@ -70,7 +70,7 @@ const ChannelMessage = ({ message, prevMessage }) => {
       console.error(error);
       toast.error(error.response?.data?.message || 'Could not edit message.');
     }
-  }, [message.channel_id, message.id, editedMessage, setMessages, messages, setEditingId]);
+  }, [editedMessage, message.content, message.channel_id, message.id, setEditingId, setMessages, messages]);
 
   const onDelete = useCallback(async () => {
     try {
