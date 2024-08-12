@@ -138,7 +138,7 @@ const ChannelMessage = ({ message, prevMessage }) => {
               </p>
             </div>
           ) : (
-            <div className="text-gray-400">
+            <div className={`text-gray-400 ${message?.pending ? 'opacity-50' : ''}`}>
               {message.content}
               {(message.updated_at && message.created_at !== message.updated_at) && (
                 <span className="ml-1 text-[0.65rem] text-gray-500">(edited)</span>
@@ -201,7 +201,7 @@ const ChannelMessages = ({ messagesRef }) => {
 };
 
 const ChannelInput = ({ channel, scrollToBottom }) => {
-  const { messages, replyingId, setReplyingId } = useChannelStore();
+  const { messages, setMessages, replyingId, setReplyingId } = useChannelStore();
 
   const replyMessage = useMemo(() => replyingId ? messages.find((m) => m.id == replyingId) : null, [messages, replyingId]);
 
@@ -217,15 +217,16 @@ const ChannelInput = ({ channel, scrollToBottom }) => {
     }
 
     try {
-      await api.post(`/channels/${channel.channel_id}/messages`, { content: message, reply_to: replyingId });
+      const { data: newMessage } = await api.post(`/channels/${channel.channel_id}/messages`, { content: message, reply_to: replyingId });
       setMessage('');
       setReplyingId(null);
+      setMessages([...messages, { ...newMessage, pending: true }]);
       scrollToBottom();
     } catch (error) {
       console.error(error);
       toast.error(error.response?.data?.message || 'Could not send message.');
     }
-  }, [channel?.channel_id, message, replyingId, scrollToBottom, setReplyingId]);
+  }, [channel.channel_id, message, messages, replyingId, scrollToBottom, setMessages, setReplyingId]);
 
   // autofocus when replying
   useEffect(() => {
