@@ -135,8 +135,8 @@ const ChannelMessage = ({ message, prevMessage, pending }) => {
                 </form>
               </div>
               <p className="text-xs text-gray-400">
-                escape to <button onClick={() => setEditingId(null)} className="text-primary">cancel</button>,
-                enter to <button onClick={(e) => onEdit(e)} className="text-primary">save</button>
+                escape to <button onClick={() => setEditingId(null)} className="text-primary hover:underline">cancel</button> • 
+                enter to <button onClick={(e) => onEdit(e)} className="text-primary hover:underline">save</button>
               </p>
             </div>
           ) : (
