@@ -227,7 +227,7 @@ const ChannelInput = ({ channel, scrollToBottom }) => {
       console.error(error);
       toast.error(error.response?.data?.message || 'Could not send message.');
     }
-  }, [channel.channel_id, message, replyingId, scrollToBottom, setReplyingId]);
+  }, [channel?.channel_id, message, replyingId, scrollToBottom, setReplyingId]);
 
   // autofocus when replying
   useEffect(() => {
@@ -316,7 +316,7 @@ const Channel = ({ channel }) => {
       console.error(error);
       toast.error(error.response?.data?.message || 'Could not fetch messages.');
     }
-  }, [channel.channel_id, setMessages]);
+  }, [channel?.channel_id, setMessages]);
 
   useEffect(() => {
     fetchMessages();
