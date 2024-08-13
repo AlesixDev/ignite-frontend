@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useCallback } from 'react';
+import { useEffect, useMemo, useCallback, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import api from '../../api';
@@ -6,6 +6,7 @@ import GuildLayout from '../../layouts/GuildLayout';
 import Channel from '../../components/Channel';
 import useGuildStore from '../../hooks/useGuildStore';
 import { ChannelContextProvider } from '../../contexts/ChannelContext';
+import ChannelDialog from '../../components/ChannelDialog';
 
 const GuildChannelPage = () => {
   const { guilds, editGuild } = useGuildStore();
@@ -49,11 +50,15 @@ const GuildChannelPage = () => {
 
   const channel = useMemo(() => guild?.channels?.find((c) => c.channel_id == channelId), [guild, channelId]);
 
+  const [isChannelDialogOpen, setIsChannelDialogOpen] = useState(true);
+
   return (
     <GuildLayout guild={guild}>
       <ChannelContextProvider>
         <Channel channel={channel} />
       </ChannelContextProvider>
+
+      <ChannelDialog isOpen={isChannelDialogOpen} setIsOpen={setIsChannelDialogOpen} guild={guild} />
     </GuildLayout>
   );
 };
