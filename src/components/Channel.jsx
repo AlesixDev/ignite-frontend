@@ -5,6 +5,7 @@ import api from '../api';
 import useStore from '../hooks/useStore';
 import { create } from 'zustand';
 import ChannelBar from './ChannelBar.jsx';
+import { useChannelContext } from '../contexts/ChannelContext.jsx';
 
 const useChannelStore = create((set) => ({
   channel: null,
@@ -22,7 +23,7 @@ const useChannelStore = create((set) => ({
 const ChannelMessage = ({ message, prevMessage, pending }) => {
   const store = useStore();
 
-  const { messages, setMessages, editingId, setEditingId, setReplyingId } = useChannelStore();
+  const { messages, setMessages, editingId, setEditingId, setReplyingId } = useChannelContext();
 
   const formattedDateTime = useMemo(() => {
     const date = new Date(message.created_at);
@@ -135,7 +136,7 @@ const ChannelMessage = ({ message, prevMessage, pending }) => {
                 </form>
               </div>
               <p className="text-xs text-gray-400">
-                escape to <button onClick={() => setEditingId(null)} className="text-primary hover:underline">cancel</button> • 
+                escape to <button onClick={() => setEditingId(null)} className="text-primary hover:underline">cancel</button> •
                 enter to <button onClick={(e) => onEdit(e)} className="text-primary hover:underline">save</button>
               </p>
             </div>
@@ -171,7 +172,7 @@ const ChannelMessage = ({ message, prevMessage, pending }) => {
 };
 
 const ChannelMessages = ({ messagesRef }) => {
-  const { messages, pendingMessages, setEditingId, replyingId, setReplyingId } = useChannelStore();
+  const { messages, pendingMessages, setEditingId, replyingId, setReplyingId } = useChannelContext();
 
   // attach escape key listener to cancel editing
   useEffect(() => {
@@ -209,8 +210,8 @@ const ChannelMessages = ({ messagesRef }) => {
   );
 };
 
-const ChannelInput = ({ channel, scrollToBottom }) => {
-  const { messages, setMessages, pendingMessages, setPendingMessages, replyingId, setReplyingId } = useChannelStore();
+const ChannelInput = ({ channel }) => {
+  const { messages, setMessages, pendingMessages, setPendingMessages, replyingId, setReplyingId } = useChannelContext();
 
   const replyMessage = useMemo(() => replyingId ? messages.find((m) => m.id == replyingId) : null, [messages, replyingId]);
 
@@ -230,12 +231,11 @@ const ChannelInput = ({ channel, scrollToBottom }) => {
       setMessage('');
       setReplyingId(null);
       setPendingMessages([...pendingMessages, { ...newMessage, pending: true }]);
-      scrollToBottom();
     } catch (error) {
       console.error(error);
       toast.error(error.response?.data?.message || 'Could not send message.');
     }
-  }, [channel.channel_id, message, pendingMessages, replyingId, scrollToBottom, setPendingMessages, setReplyingId]);
+  }, [channel?.channel_id, message, pendingMessages, replyingId, setPendingMessages, setReplyingId]);
 
   // autofocus when replying
   useEffect(() => {
@@ -302,45 +302,33 @@ const ChannelInput = ({ channel, scrollToBottom }) => {
 };
 
 const Channel = ({ channel }) => {
-  const { messages, setMessages, pendingMessages, setPendingMessages } = useChannelStore();
-
-  const [firstLoad, setFirstLoad] = useState(true);
+  const { messages, setMessages, pendingMessages, setPendingMessages } = useChannelContext();
+  const [forceScrollDown, setForceScrollDown] = useState(false);
 
   const messagesRef = useRef();
-
-  const scrollToBottom = useCallback(() => {
-    messagesRef.current.scrollTop = messagesRef.current.scrollHeight;
-  }, [messagesRef]);
 
   const fetchMessages = useCallback(async () => {
     if (!channel?.channel_id) {
       return;
     }
 
-    try {
-      const response = await api.get(`/channels/${channel.channel_id}/messages`);
+    return api.get(`/channels/${channel.channel_id}/messages`).then((response) => {
       setMessages(response.data);
-    } catch (error) {
+    }).catch((error) => {
       console.error(error);
       toast.error(error.response?.data?.message || 'Could not fetch messages.');
-    }
+    });
   }, [channel?.channel_id, setMessages]);
 
   useEffect(() => {
-    fetchMessages();
-  }, [fetchMessages, firstLoad, scrollToBottom]);
+    fetchMessages().finally(() => setForceScrollDown(true));
+  }, [fetchMessages]);
 
   useEffect(() => {
-    if (messages && messages.length && firstLoad) {
-      scrollToBottom();
-      setFirstLoad(false);
+    if (forceScrollDown || (messagesRef.current.scrollHeight - messagesRef.current.scrollTop - messagesRef.current.clientHeight < 100)) {
+      messagesRef.current.scrollTop = messagesRef.current.scrollHeight;
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [messages]);
-
-  useEffect(() => {
-    setFirstLoad(true);
-  }, [channel]);
+  }, [pendingMessages, messages, forceScrollDown]);
 
   useEffect(() => {
     if (!channel) {
@@ -354,18 +342,28 @@ const Channel = ({ channel }) => {
           setMessages([...messages, event.message]);
         }
       })
+      .listen('.message.updated', (event) => {
+        if (event.channel.id == channel.channel_id) {
+          setMessages(messages.map((m) => m.id === event.message.id ? { ...m, content: event.message.content, updated_at: event.message.updated_at } : m));
+        }
+      })
+      .listen('.message.deleted', (event) => {
+        if (event.channel.id == channel.channel_id) {
+          setMessages(messages.filter((m) => m.id !== event.message.id));
+        }
+      });
 
     return () => {
       window.Echo.leave(`channel.${channel.channel_id}`);
     };
-  }, [channel, messages, pendingMessages, scrollToBottom, setMessages, setPendingMessages]);
+  }, [channel, messages, pendingMessages, setMessages, setPendingMessages]);
 
   return (
     <div className="relative flex w-full flex-col dark:bg-gray-700">
       <ChannelBar channel={channel} />
       <hr className="m-0 w-full border border-gray-800 bg-gray-800 p-0" />
       <ChannelMessages messagesRef={messagesRef} />
-      <ChannelInput channel={channel} fetchMessages={fetchMessages} scrollToBottom={scrollToBottom} />
+      <ChannelInput channel={channel} fetchMessages={fetchMessages} />
     </div>
   );
 };

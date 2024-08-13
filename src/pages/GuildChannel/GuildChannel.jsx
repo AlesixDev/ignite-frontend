@@ -5,6 +5,7 @@ import api from '../../api';
 import GuildLayout from '../../layouts/GuildLayout';
 import Channel from '../../components/Channel';
 import useGuildStore from '../../hooks/useGuildStore';
+import { ChannelContextProvider } from '../../contexts/ChannelContext';
 
 const GuildChannelPage = () => {
   const { guilds, editGuild } = useGuildStore();
@@ -50,7 +51,9 @@ const GuildChannelPage = () => {
 
   return (
     <GuildLayout guild={guild}>
-      <Channel channel={channel} />
+      <ChannelContextProvider>
+        <Channel channel={channel} />
+      </ChannelContextProvider>
     </GuildLayout>
   );
 };
