@@ -43,7 +43,7 @@ const GuildChannelPage = () => {
 
   // if no channel id in url redirect to first channel
   useEffect(() => {
-    if (guild.channels && !channelId) {
+    if (guild?.channels && !channelId) {
       navigate(`/channels/${guild.id}/${BigInt(guild.channels[0].channel_id)}`);
     }
   }, [channelId, guild, navigate]);
