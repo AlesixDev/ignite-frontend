@@ -70,6 +70,7 @@ const GuildSidebarHeader = ({ guildName = '', guild }) => {
         setMenuOpen(false);
         setInviteInfo(null);
         navigate('/channels/@me');
+        window.location.reload();
       } catch (err) {
         const msg = err.response?.data?.message || err.message || 'Unknown error';
         setError(msg);
