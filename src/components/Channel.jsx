@@ -1,6 +1,6 @@
 import { useState, useCallback, useEffect, useRef, useMemo } from 'react';
 import { toast } from 'react-toastify';
-import { Gif, Gift, PlusCircle, Smiley, Sticker, NotePencil, Trash, ArrowBendUpLeft, XCircle } from '@phosphor-icons/react';
+import { Gif, Gift, PlusCircle, Smiley, Sticker, NotePencil, Trash, ArrowBendUpLeft, XCircle, PushPin } from '@phosphor-icons/react';
 import api from '../api';
 import useStore from '../hooks/useStore';
 import { create } from 'zustand';
@@ -18,12 +18,14 @@ const useChannelStore = create((set) => ({
   setEditingId: (editingId) => set({ editingId }),
   replyingId: null,
   setReplyingId: (replyingId) => set({ replyingId }),
+  pinId: null,
+  setPinId: (pinId) => set({ pinId }),
 }));
 
 const ChannelMessage = ({ message, prevMessage, pending }) => {
   const store = useStore();
 
-  const { messages, setMessages, editingId, setEditingId, setReplyingId } = useChannelContext();
+  const { messages, setMessages, editingId, setEditingId, setReplyingId, setPinId } = useChannelContext();
 
   const formattedDateTime = useMemo(() => {
     const date = new Date(message.created_at);
@@ -89,6 +91,17 @@ const ChannelMessage = ({ message, prevMessage, pending }) => {
     setReplyingId(message.id);
   }, [message.id, setReplyingId]);
 
+  const onPin = useCallback(async () => {
+    try {
+      await api.post(`/channels/${message.channel_id}/messages/${message.id}/pin`);
+      setPinId(message.id);
+    } catch (error) {
+      console.error(error);
+      toast.error(error.response?.data?.message || 'Could not pin message.');
+    }
+    toast.info('Pinning is not available yet.');
+  }, [message.channel_id, message.id, messages, setPinId]);
+
   return (
     <div className={`group relative py-0.5 ${isEditing ? 'bg-gray-800/60' : 'hover:bg-gray-800/60'} ${shouldStack ? '' : 'mt-3.5'}`}>
       <div className="flex px-4">
@@ -148,6 +161,9 @@ const ChannelMessage = ({ message, prevMessage, pending }) => {
       </div>
       {(!isEditing && !pending) && (
         <div className="absolute -top-4 right-4 hidden rounded-md border border-gray-800 bg-gray-700 group-hover:flex">
+          <button type="button" onClick={onPin} className="rounded-md p-2 text-sm text-white/90 hover:bg-primary/10 hover:text-primary">
+            <PushPin className="size-5" />
+          </button>
           {canEdit && (
             <button type="button" onClick={() => setEditingId(message.id)} className="rounded-md p-2 text-sm text-white/90 hover:bg-primary/10 hover:text-primary">
               <NotePencil className="size-5" />
