@@ -200,7 +200,7 @@ const ChannelMessages = ({ messagesRef, highlightId, onLoadMore, loadingMore, ha
 
   return (
     <div
-      className={`h-full overflow-y-auto ${replyingId ? ' max-h-[calc(100vh-11.5rem)]' : ' max-h-[calc(100vh-9rem)]'}`}
+      className={`flex-1 min-h-0 overflow-y-auto ${replyingId ? ' max-h-[calc(100vh-11.5rem)]' : ' max-h-[calc(100vh-9rem)]'}`}
       ref={messagesRef}
       onScroll={onScroll}
     >
@@ -441,7 +441,7 @@ const Channel = ({ channel }) => {
   };
 
   return (
-    <div className="relative flex w-full flex-col dark:bg-gray-700">
+    <div className="relative flex w-full flex-1 min-h-0 flex-col dark:bg-gray-700">
       <ChannelBar channel={channel} onJumpToMessage={handleJumpToMessage} />
       <hr className="m-0 w-full border border-gray-800 bg-gray-800 p-0" />
       <ChannelMessages
