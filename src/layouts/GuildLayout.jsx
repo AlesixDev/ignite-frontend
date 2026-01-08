@@ -1,13 +1,14 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
-import { Hash, Plus, CaretDown, CaretRight } from '@phosphor-icons/react';
+import { Hash, Plus, CaretDown, CaretRight, NotePencil, Trash } from '@phosphor-icons/react';
 import { toast } from 'react-toastify';
 import BaseAuthLayout from './BaseAuthLayout';
 import UserBar from '../components/UserBar';
 import CreateGuildChannelDialog from '../components/CreateGuildChannelDialog';
+import ServerSettings from '../components/Settings/ServerSettings';
 import api from '../api';
 
-const GuildSidebarHeader = ({ guildName = '', guild }) => {
+const GuildSidebarHeader = ({ guildName = '', guild, onOpenServerSettings }) => {
   const navigate = useNavigate();
 
   const [menuOpen, setMenuOpen] = useState(false);
@@ -110,6 +111,10 @@ const GuildSidebarHeader = ({ guildName = '', guild }) => {
           <button
             type="button"
             className="block w-full px-4 py-2 text-left text-sm text-gray-100 hover:bg-gray-600"
+            onClick={() => {
+              setMenuOpen(false);
+              onOpenServerSettings?.();
+            }}
           >
             Server Settings
           </button>
@@ -208,7 +213,7 @@ const GuildSidebarSection = ({ sectionName = 'Text Channels', channels, activeCh
           className={`${!expanded && channel.channel_id != activeChannelId ? 'hidden' : ''}`}
         >
           <div
-            className={`mx-2 my-0.5 flex cursor-pointer items-center rounded px-2 py-1 ${
+            className={`group relative mx-2 my-0.5 flex cursor-pointer items-center rounded px-2 py-1 pr-16 ${
               channel.channel_id == activeChannelId
                 ? 'bg-gray-600 text-gray-100'
                 : 'text-gray-500 hover:bg-gray-700 hover:text-gray-400'
@@ -216,6 +221,32 @@ const GuildSidebarSection = ({ sectionName = 'Text Channels', channels, activeCh
           >
             <Hash className="size-6 text-gray-500" />
             <p className="ml-1 truncate text-base font-medium">{channel.name}</p>
+            <div className="absolute right-2 hidden items-center gap-1 rounded bg-gray-800/80 px-1 py-0.5 group-hover:flex">
+              <button
+                type="button"
+                aria-label={`Edit ${channel.name}`}
+                className="rounded p-1 text-sm text-white/90 hover:bg-primary/10 hover:text-primary"
+                onClick={(event) => {
+                  event.preventDefault();
+                  event.stopPropagation();
+                  toast.info('Channel editing is not available yet.');
+                }}
+              >
+                <NotePencil className="size-4" />
+              </button>
+              <button
+                type="button"
+                aria-label={`Delete ${channel.name}`}
+                className="rounded p-1 text-sm text-white/90 hover:bg-primary/10 hover:text-primary"
+                onClick={(event) => {
+                  event.preventDefault();
+                  event.stopPropagation();
+                  toast.info('Channel deletion is not available yet.');
+                }}
+              >
+                <Trash className="size-4" />
+              </button>
+            </div>
           </div>
         </Link>
       ))}
@@ -223,14 +254,14 @@ const GuildSidebarSection = ({ sectionName = 'Text Channels', channels, activeCh
   );
 };
 
-const GuildSidebar = ({ guild }) => {
+const GuildSidebar = ({ guild, onOpenServerSettings }) => {
   const { channelId } = useParams();
   const [isCreateChannelDialogOpen, setIsCreateChannelDialogOpen] = useState(false);
 
   return (
     <div className="relative top-0 flex h-full min-w-[240px] flex-col bg-gray-800 text-gray-100">
       <div className="flex flex-col flex-1 overflow-y-auto items-center">
-        <GuildSidebarHeader guildName={guild?.name} guild={guild} />
+        <GuildSidebarHeader guildName={guild?.name} guild={guild} onOpenServerSettings={onOpenServerSettings} />
         <hr className="m-0 w-full border border-gray-900 bg-gray-900 p-0" />
         <GuildSidebarSection
           sectionName="Text Channels"
@@ -248,14 +279,21 @@ const GuildSidebar = ({ guild }) => {
 };
 
 const GuildLayout = ({ children, guild }) => {
+  const [isServerSettingsOpen, setIsServerSettingsOpen] = useState(false);
+
   return (
     <BaseAuthLayout>
       <div className="flex h-screen w-screen">
-        <GuildSidebar guild={guild} />
+        <GuildSidebar guild={guild} onOpenServerSettings={() => setIsServerSettingsOpen(true)} />
         <main className="flex-1 min-w-0 flex flex-col">
           {children}
         </main>
       </div>
+      <ServerSettings
+        isOpen={isServerSettingsOpen}
+        onClose={() => setIsServerSettingsOpen(false)}
+        guild={guild}
+      />
     </BaseAuthLayout>
   );
 };
