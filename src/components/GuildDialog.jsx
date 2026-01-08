@@ -1,7 +1,7 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { FormProvider, useForm } from 'react-hook-form';
 import { toast } from 'react-toastify';
-import { ArrowRight } from '@phosphor-icons/react';
+import { ArrowLeft, ArrowRight } from '@phosphor-icons/react';
 import api from '../api';
 import Dialog from './Dialog';
 import FormInput from './Form/FormInput';
@@ -9,103 +9,198 @@ import FormError from './Form/FormError';
 import FormSubmit from './Form/FormSubmit';
 import useGuildStore from '../hooks/useGuildStore';
 
-const CreateGuildDialog = ({ isOpen, setIsOpen }) => {
-    const { addGuild } = useGuildStore();
-    const form = useForm();
-
-    const onSubmit = useCallback(async (data) => {
-        try {
-            const response = await api.post('guilds', data);
-            addGuild(response.data);
-
-            toast.success('Server created successfully.');
-            setIsOpen(false);
-            form.reset();
-        } catch (error) {
-            console.error(error);
-            toast.error(error.response?.data?.message || 'An error occurred.');
-        }
-    }, [form, setIsOpen]);
-
-    return (
-        <Dialog isOpen={isOpen} setIsOpen={setIsOpen} title="Create Your Server">
-            <FormProvider {...form}>
-                <form onSubmit={form.handleSubmit(onSubmit)}>
-                    <div className="flex gap-4">
-                        <FormInput type="text" name="name" placeholder="My Server" validation={{ required: "Name is required." }} />
-                        <FormSubmit form={form} label="Create" icon={<ArrowRight className="size-4" />} />
-                    </div>
-                    <FormError name="name" />
-                </form>
-            </FormProvider>
-        </Dialog>
-    );
-}
-
-const JoinGuildDialog = ({ isOpen, setIsOpen }) => {
-    const form = useForm();
-
-    const onSubmit = useCallback(async (data) => {
-        api.post(`/invites/${data.invite}`).then((response) => {
-            console.log(response.data);
-        }).catch((error) => {
-            console.error(error);
-            toast.error(error.response?.data?.message || 'An error occurred.');
-        });
-    }, [form, setIsOpen]);
-
-    return (
-        <Dialog isOpen={isOpen} setIsOpen={setIsOpen} title="Join a Server">
-            <FormProvider {...form}>
-                <form onSubmit={form.handleSubmit(onSubmit)}>
-                    <div className="flex gap-4">
-                        <FormInput type="text" name="invite" placeholder="Enter invite code" validation={{ required: "Invite is required." }} />
-                        <FormSubmit form={form} label="Join" icon={<ArrowRight className="size-4" />} />
-                    </div>
-                    <FormError name="name" />
-                </form>
-            </FormProvider>
-        </Dialog>
-    );
-}
-
 const GuildDialog = ({ isOpen, setIsOpen }) => {
-    const [isCreateGuildDialogOpen, setIsCreateGuildDialogOpen] = useState(false);
-    const [isJoinGuildDialogOpen, setIsJoinGuildDialogOpen] = useState(false);
+  const { addGuild } = useGuildStore();
 
-    const handleCreateGuild = () => {
-        setIsOpen(false);
-        setIsCreateGuildDialogOpen(true);
-    }
+  const [view, setView] = useState('menu');
+  const createForm = useForm({ mode: 'onChange', defaultValues: { name: '' } });
+  const joinForm = useForm({ mode: 'onChange', defaultValues: { invite: '' } });
 
-    const handleJoinGuild = () => {
-        setIsOpen(false);
-        setIsJoinGuildDialogOpen(true);
-    }
+  const title = useMemo(() => {
+    if (view === 'create') return 'Create Your Server';
+    if (view === 'join') return 'Join a Server';
+    return 'Servers';
+  }, [view]);
 
-    return (
-        <>
-            <Dialog isOpen={isOpen} setIsOpen={setIsOpen} title="Create Your Server">
-                <button type="submit" className="inline-flex min-w-32 items-center justify-center gap-2 rounded-lg border border-transparent bg-primary px-5 py-2.5 text-sm text-white shadow-md" onClick={handleCreateGuild}>
-                    <span>Create Server</span>
+  const closeAll = useCallback(() => {
+    setIsOpen(false);
+    setView('menu');
+    createForm.reset();
+    joinForm.reset();
+  }, [setIsOpen, createForm, joinForm]);
+
+  const goBack = useCallback(() => {
+    setView('menu');
+    createForm.reset();
+    joinForm.reset();
+  }, [createForm, joinForm]);
+
+  const onCreate = useCallback(
+    async (data) => {
+      try {
+        const response = await api.post('guilds', data);
+        addGuild(response.data);
+        toast.success('Server created successfully.');
+        closeAll();
+      } catch (error) {
+        console.error(error);
+        toast.error(error.response?.data?.message || 'An error occurred.');
+      }
+    },
+    [addGuild, closeAll]
+  );
+
+  const onJoin = useCallback(
+    async (data) => {
+      try {
+        const response = await api.post(`/invites/${data.invite}`);
+        if (response?.data) addGuild(response.data);
+        toast.success('Joined server successfully.');
+        closeAll();
+      } catch (error) {
+        console.error(error);
+        toast.error(error.response?.data?.message || 'An error occurred.');
+      }
+    },
+    [addGuild, closeAll]
+  );
+
+  const activeIndex = view === 'menu' ? 0 : view === 'create' ? 1 : 2;
+  const isCreateSubmitting = createForm.formState.isSubmitting;
+  const isJoinSubmitting = joinForm.formState.isSubmitting;
+
+  return (
+    <Dialog isOpen={isOpen} setIsOpen={setIsOpen} title={title}>
+      <div className="w-[min(520px,90vw)] overflow-hidden">
+        <div
+          className="flex transition-transform duration-200 ease-out"
+          style={{ transform: `translateX(-${activeIndex * 100}%)` }}
+        >
+          <div className="w-full shrink-0">
+            <div className="space-y-3">
+              <p className="text-sm text-muted-foreground">
+                Create a new server or join one with an invite code.
+              </p>
+
+              <div className="grid gap-3">
+                <button
+                  type="button"
+                  className="flex w-full items-center justify-between rounded-lg border bg-background px-4 py-3 text-left shadow-sm transition hover:shadow-md"
+                  onClick={() => setView('create')}
+                >
+                  <div>
+                    <div className="text-sm font-medium">Create a server</div>
+                    <div className="text-xs text-muted-foreground">
+                      Start fresh and invite others.
+                    </div>
+                  </div>
+                  <ArrowRight className="size-4 opacity-70" />
                 </button>
 
-                <button type="submit" className="inline-flex min-w-32 items-center justify-center gap-2 rounded-lg border border-transparent bg-primary px-5 py-2.5 text-sm text-white shadow-md" onClick={handleJoinGuild}>
-                    <span>Join Server</span>
+                <button
+                  type="button"
+                  className="flex w-full items-center justify-between rounded-lg border bg-background px-4 py-3 text-left shadow-sm transition hover:shadow-md"
+                  onClick={() => setView('join')}
+                >
+                  <div>
+                    <div className="text-sm font-medium">Join a server</div>
+                    <div className="text-xs text-muted-foreground">
+                      Paste an invite code to hop in.
+                    </div>
+                  </div>
+                  <ArrowRight className="size-4 opacity-70" />
                 </button>
-            </Dialog>
 
-            {/* 
-                HACK: This is a hack and should be polished out, A transition to the right ( similiar to how discord does it ) is preferable
-            */}
-            <CreateGuildDialog isOpen={isCreateGuildDialogOpen} setIsOpen={setIsCreateGuildDialogOpen} />
+                <button
+                  type="button"
+                  className="mt-1 inline-flex w-full items-center justify-center rounded-lg border bg-background px-4 py-2.5 text-sm shadow-sm transition hover:shadow-md"
+                  onClick={closeAll}
+                >
+                  Close
+                </button>
+              </div>
+            </div>
+          </div>
 
-            {/* 
-                HACK: This is a hack and should be polished out, A transition to the right ( similiar to how discord does it ) is preferable
-            */}
-            <JoinGuildDialog isOpen={isJoinGuildDialogOpen} setIsOpen={setIsJoinGuildDialogOpen} />
-        </>
-    );
-}
+          <div className="w-full shrink-0">
+            <div className="mb-3 flex items-center justify-between">
+              <button
+                type="button"
+                className="inline-flex items-center gap-2 rounded-lg border bg-background px-3 py-2 text-sm shadow-sm transition hover:shadow-md"
+                onClick={goBack}
+                disabled={isCreateSubmitting}
+              >
+                <ArrowLeft className="size-4" />
+                Back
+              </button>
+            </div>
+
+            <FormProvider {...createForm}>
+              <form onSubmit={createForm.handleSubmit(onCreate)} className="space-y-3">
+                <div className="space-y-2">
+                  <FormInput
+                    type="text"
+                    name="name"
+                    placeholder="My Server"
+                    validation={{
+                      required: 'Name is required.',
+                      minLength: { value: 2, message: 'Name must be at least 2 characters.' },
+                      maxLength: { value: 50, message: 'Name must be 50 characters or less.' },
+                    }}
+                  />
+                  <FormError name="name" />
+                </div>
+
+                <FormSubmit
+                  form={createForm}
+                  label={isCreateSubmitting ? 'Creating…' : 'Create'}
+                  icon={<ArrowRight className="size-4" />}
+                />
+              </form>
+            </FormProvider>
+          </div>
+
+          <div className="w-full shrink-0">
+            <div className="mb-3 flex items-center justify-between">
+              <button
+                type="button"
+                className="inline-flex items-center gap-2 rounded-lg border bg-background px-3 py-2 text-sm shadow-sm transition hover:shadow-md"
+                onClick={goBack}
+                disabled={isJoinSubmitting}
+              >
+                <ArrowLeft className="size-4" />
+                Back
+              </button>
+            </div>
+
+            <FormProvider {...joinForm}>
+              <form onSubmit={joinForm.handleSubmit(onJoin)} className="space-y-3">
+                <div className="space-y-2">
+                  <FormInput
+                    type="text"
+                    name="invite"
+                    placeholder="Enter invite code"
+                    validation={{
+                      required: 'Invite is required.',
+                      minLength: { value: 4, message: 'Invite code looks too short.' },
+                      maxLength: { value: 128, message: 'Invite code looks too long.' },
+                    }}
+                  />
+                  <FormError name="invite" />
+                </div>
+
+                <FormSubmit
+                  form={joinForm}
+                  label={isJoinSubmitting ? 'Joining…' : 'Join'}
+                  icon={<ArrowRight className="size-4" />}
+                />
+              </form>
+            </FormProvider>
+          </div>
+        </div>
+      </div>
+    </Dialog>
+  );
+};
 
 export default GuildDialog;
