@@ -228,16 +228,21 @@ const GuildSidebar = ({ guild }) => {
   const [isCreateChannelDialogOpen, setIsCreateChannelDialogOpen] = useState(false);
 
   return (
-    <div className="relative top-0 flex h-full min-w-[240px] flex-col items-center bg-gray-800 text-gray-100">
-      <GuildSidebarHeader guildName={guild?.name} guild={guild} />
-      <hr className="m-0 w-full border border-gray-900 bg-gray-900 p-0" />
-      <GuildSidebarSection
-        sectionName="Text Channels"
-        channels={guild?.channels || []}
-        activeChannelId={channelId}
-        setIsCreateChannelDialogOpen={setIsCreateChannelDialogOpen}
-      />
-      <CreateGuildChannelDialog isOpen={isCreateChannelDialogOpen} setIsOpen={setIsCreateChannelDialogOpen} guild={guild} />
+    <div className="relative top-0 flex h-full min-w-[240px] flex-col bg-gray-800 text-gray-100">
+      <div className="flex flex-col flex-1 overflow-y-auto items-center">
+        <GuildSidebarHeader guildName={guild?.name} guild={guild} />
+        <hr className="m-0 w-full border border-gray-900 bg-gray-900 p-0" />
+        <GuildSidebarSection
+          sectionName="Text Channels"
+          channels={guild?.channels || []}
+          activeChannelId={channelId}
+          setIsCreateChannelDialogOpen={setIsCreateChannelDialogOpen}
+        />
+        <CreateGuildChannelDialog isOpen={isCreateChannelDialogOpen} setIsOpen={setIsCreateChannelDialogOpen} guild={guild} />
+      </div>
+      <div className="shrink-0">
+        <UserBar />
+      </div>
     </div>
   );
 };
@@ -245,11 +250,12 @@ const GuildSidebar = ({ guild }) => {
 const GuildLayout = ({ children, guild }) => {
   return (
     <BaseAuthLayout>
-      <div className="flex flex-col">
+      <div className="flex h-screen w-screen">
         <GuildSidebar guild={guild} />
-        <UserBar />
+        <main className="flex-1 min-w-0 flex flex-col">
+          {children}
+        </main>
       </div>
-      {children}
     </BaseAuthLayout>
   );
 };
