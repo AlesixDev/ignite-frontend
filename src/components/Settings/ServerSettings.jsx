@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import ServerInfo from './ServerInfo';
-import RoleManager from './RoleManager';
-import ChannelManager from './ChannelManager';
+import ServerRoleManager from './ServerRoleManager';
+import ServerChannelManager from './ServerChannelManager';
 
 const ServerSettings = ({ isOpen, onClose, guild }) => {
   const [activeTab, setActiveTab] = useState('info');
@@ -9,8 +9,8 @@ const ServerSettings = ({ isOpen, onClose, guild }) => {
   const tabs = useMemo(
     () => [
       { id: 'info', label: 'Server Info', component: <ServerInfo guild={guild} /> },
-      { id: 'roles', label: 'Role Manager', component: <RoleManager guild={guild} /> },
-      { id: 'channels', label: 'Channel Manager', component: <ChannelManager guild={guild} /> },
+      { id: 'roles', label: 'Role Manager', component: <ServerRoleManager guild={guild} /> },
+      { id: 'channels', label: 'Channel Manager', component: <ServerChannelManager guild={guild} /> },
     ],
     [guild]
   );

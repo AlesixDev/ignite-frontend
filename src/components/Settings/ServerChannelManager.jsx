@@ -1,4 +1,4 @@
-const ChannelManager = ({ guild }) => {
+const ServerChannelManager = ({ guild }) => {
   return (
     <div className="space-y-6">
       <div>
@@ -27,4 +27,4 @@ const ChannelManager = ({ guild }) => {
   );
 };
 
-export default ChannelManager;
+export default ServerChannelManager;

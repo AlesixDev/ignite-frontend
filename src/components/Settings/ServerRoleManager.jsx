@@ -1,4 +1,4 @@
-const RoleManager = ({ guild }) => {
+const ServerRoleManager = ({ guild }) => {
   return (
     <div className="space-y-6">
       <div>
@@ -27,4 +27,4 @@ const RoleManager = ({ guild }) => {
   );
 };
 
-export default RoleManager;
+export default ServerRoleManager;
