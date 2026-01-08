@@ -41,7 +41,6 @@ const ChannelMessage = ({ message, prevMessage, pending }) => {
     return `${day} at ${time}`;
   }, [message.created_at]);
 
-  // Stack messages from the same author within 1 minute.
   const shouldStack = useMemo(() => {
     if (prevMessage) {
       const sameAuthor = prevMessage.author.id === message.author.id;
@@ -172,10 +171,9 @@ const ChannelMessage = ({ message, prevMessage, pending }) => {
   );
 };
 
-const ChannelMessages = ({ messagesRef }) => {
+const ChannelMessages = ({ messagesRef, highlightId }) => {
   const { messages, pendingMessages, setEditingId, replyingId, setReplyingId } = useChannelContext();
 
-  // attach escape key listener to cancel editing
   useEffect(() => {
     const handleEscape = (event) => {
       if (event.key === 'Escape') {
@@ -195,14 +193,14 @@ const ChannelMessages = ({ messagesRef }) => {
     <div className={`h-full overflow-y-auto ${replyingId ? ' max-h-[calc(100vh-11.5rem)]' : ' max-h-[calc(100vh-9rem)]'}`} ref={messagesRef}>
       {messages && messages.map((message, index) => {
         const prevMessage = messages[index - 1] || null;
-
         return (
-          <ChannelMessage key={message.id} message={message} prevMessage={prevMessage} />
+          <div key={message.id} id={`msg-${message.id}`} className={highlightId === message.id ? 'ring-2 ring-primary rounded' : ''}>
+            <ChannelMessage message={message} prevMessage={prevMessage} />
+          </div>
         );
       })}
       {pendingMessages && pendingMessages.map((message, index) => {
         const prevMessage = pendingMessages[index - 1] || messages[messages.length - 1] || null;
-
         return (
           <ChannelMessage key={message.nonce} message={message} prevMessage={prevMessage} pending={true} />
         );
@@ -228,10 +226,8 @@ const ChannelInput = ({ channel }) => {
     }
 
     try {
-      // generate a message nonce using timestamp with extra entropy
       const generatedNonce = Date.now().toString() + Math.floor(Math.random() * 1000).toString();
 
-      // Add the message to pending messages
       setPendingMessages([...pendingMessages, {
         nonce: generatedNonce,
         content: message,
@@ -243,14 +239,12 @@ const ChannelInput = ({ channel }) => {
         created_at: new Date().toISOString(),
       }]);
 
-      // Send the message to the server, then remove it from pending messages on success
-      api.post(`/channels/${channel.channel_id}/messages`, { 
-        content: message, 
-        nonce: generatedNonce, 
-        reply_to: replyingId 
+      api.post(`/channels/${channel.channel_id}/messages`, {
+        content: message,
+        nonce: generatedNonce,
+        reply_to: replyingId
       }).then((response) => {
         setPendingMessages((pendingMessages) => pendingMessages.filter((m) => m.nonce !== generatedNonce));
-        // Add to messages list
         setMessages((messages) => [...messages, response.data]);
       });
 
@@ -262,7 +256,6 @@ const ChannelInput = ({ channel }) => {
     }
   }, [channel?.channel_id, message, pendingMessages, replyingId, setPendingMessages, setReplyingId]);
 
-  // autofocus when replying
   useEffect(() => {
     if (replyingId) {
       inputRef.current.focus();
@@ -280,13 +273,7 @@ const ChannelInput = ({ channel }) => {
         </div>
       )}
       <div className={`flex items-center bg-gray-600 py-2 ${replyingId ? 'rounded-b-lg' : 'rounded-lg'}`}>
-        <div className="mr-1">
-          {/* <PlusCircle
-            className="mx-4 cursor-pointer text-gray-400 hover:text-gray-200"
-            weight="fill"
-            size={26}
-          /> */}
-        </div>
+        <div className="mr-1"></div>
 
         <form onSubmit={(e) => sendMessage(e)} className="w-full">
           <input
@@ -299,28 +286,7 @@ const ChannelInput = ({ channel }) => {
           />
         </form>
 
-        <div className="mr-1 flex">
-          {/* <Gift
-            className="mx-1.5 cursor-pointer text-gray-400 hover:text-gray-200"
-            weight="fill"
-            size={28}
-          /> */}
-          {/* <Gif
-            className="mx-1.5 cursor-pointer text-gray-400 hover:text-gray-200"
-            weight="fill"
-            size={28}
-          /> */}
-          {/* <Sticker
-            className="mx-1.5 cursor-pointer text-gray-400 hover:text-gray-200"
-            weight="fill"
-            size={28}
-          /> */}
-          {/* <Smiley
-            className="mx-1.5 cursor-pointer text-gray-400 hover:text-gray-200"
-            weight="fill"
-            size={28}
-          /> */}
-        </div>
+        <div className="mr-1 flex"></div>
       </div>
     </div>
   );
@@ -329,6 +295,7 @@ const ChannelInput = ({ channel }) => {
 const Channel = ({ channel }) => {
   const { messages, setMessages, pendingMessages, setPendingMessages } = useChannelContext();
   const [forceScrollDown, setForceScrollDown] = useState(false);
+  const [highlightId, setHighlightId] = useState(null);
 
   const messagesRef = useRef();
 
@@ -366,17 +333,6 @@ const Channel = ({ channel }) => {
     window.Echo.private(`channel.${channel.channel_id}`)
       .listen('.message.created', (event) => {
         if (event.channel.id == channel.channel_id) {
-          // console.log('New message received:', event.message);
-          // console.log('Amount of pending messages:', pendingMessages.length);
-
-          // pendingMessages.forEach((m) => {
-          //   console.log('Pending message nonce:', m.nonce);
-          // });
-
-          //setPendingMessages(pendingMessages.filter((m) => m.nonce !== event.message.nonce));
-
-          console.log("Adding new message to messages list.");
-
           setMessages([...messages, event.message]);
         }
       })
@@ -396,11 +352,22 @@ const Channel = ({ channel }) => {
     };
   }, [channel, messages, pendingMessages, setMessages, setPendingMessages]);
 
+  const handleJumpToMessage = (msgId) => {
+    setHighlightId(msgId);
+    setTimeout(() => setHighlightId(null), 2000);
+    setTimeout(() => {
+      const el = document.getElementById(`msg-${msgId}`);
+      if (el && messagesRef.current) {
+        el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+    }, 100);
+  };
+
   return (
     <div className="relative flex w-full flex-col dark:bg-gray-700">
-      <ChannelBar channel={channel} />
+      <ChannelBar channel={channel} onJumpToMessage={handleJumpToMessage} />
       <hr className="m-0 w-full border border-gray-800 bg-gray-800 p-0" />
-      <ChannelMessages messagesRef={messagesRef} />
+      <ChannelMessages messagesRef={messagesRef} highlightId={highlightId} />
       <ChannelInput channel={channel} fetchMessages={fetchMessages} />
     </div>
   );
