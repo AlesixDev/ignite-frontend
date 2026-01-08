@@ -171,7 +171,7 @@ const ChannelMessage = ({ message, prevMessage, pending }) => {
   );
 };
 
-const ChannelMessages = ({ messagesRef, highlightId }) => {
+const ChannelMessages = ({ messagesRef, highlightId, onLoadMore, loadingMore, hasMore }) => {
   const { messages, pendingMessages, setEditingId, replyingId, setReplyingId } = useChannelContext();
 
   useEffect(() => {
@@ -189,8 +189,26 @@ const ChannelMessages = ({ messagesRef, highlightId }) => {
     };
   }, [setEditingId, setReplyingId]);
 
+  const onScroll = useCallback(() => {
+    const el = messagesRef.current;
+    if (!el) return;
+    if (el.scrollTop <= 20 && hasMore && !loadingMore) {
+      onLoadMore();
+    }
+  }, [messagesRef, hasMore, loadingMore, onLoadMore]);
+
   return (
-    <div className={`h-full overflow-y-auto ${replyingId ? ' max-h-[calc(100vh-11.5rem)]' : ' max-h-[calc(100vh-9rem)]'}`} ref={messagesRef}>
+    <div
+      className={`h-full overflow-y-auto ${replyingId ? ' max-h-[calc(100vh-11.5rem)]' : ' max-h-[calc(100vh-9rem)]'}`}
+      ref={messagesRef}
+      onScroll={onScroll}
+    >
+      {loadingMore && (
+        <div className="px-4 py-2 text-xs text-gray-400">
+          Loading older messages...
+        </div>
+      )}
+
       {messages && messages.map((message, index) => {
         const prevMessage = messages[index - 1] || null;
         return (
@@ -296,28 +314,40 @@ const Channel = ({ channel }) => {
   const { messages, setMessages, pendingMessages, setPendingMessages } = useChannelContext();
   const [forceScrollDown, setForceScrollDown] = useState(false);
   const [highlightId, setHighlightId] = useState(null);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [hasMore, setHasMore] = useState(true);
 
   const messagesRef = useRef();
 
-  const fetchMessages = useCallback(async () => {
-    if (!channel?.channel_id) {
-      return;
-    }
+  const fetchMessages = useCallback(async (opts = {}) => {
+    if (!channel?.channel_id) return;
 
-    return api.get(`/channels/${channel.channel_id}/messages`).then((response) => {
-      setMessages(response.data);
+    const limit = opts.limit ?? 50;
+    const before = opts.before;
+
+    const params = { limit };
+    if (before) params.before = before;
+
+    return api.get(`/channels/${channel.channel_id}/messages`, { params }).then((response) => {
+      const data = Array.isArray(response.data) ? response.data : [];
+      return data;
     }).catch((error) => {
       console.error(error);
       toast.error(error.response?.data?.message || 'Could not fetch messages.');
+      return [];
     });
-  }, [channel?.channel_id, setMessages]);
+  }, [channel?.channel_id]);
 
   useEffect(() => {
     setMessages([]);
     setPendingMessages([]);
+    setHasMore(true);
 
-    fetchMessages().finally(() => setForceScrollDown(true));
-  }, [fetchMessages]);
+    fetchMessages({ limit: 50 }).then((data) => {
+      setMessages(data);
+      setTimeout(() => setForceScrollDown(true), 0);
+    });
+  }, [fetchMessages, setMessages, setPendingMessages]);
 
   useEffect(() => {
     if (forceScrollDown || (messagesRef.current.scrollHeight - messagesRef.current.scrollTop - messagesRef.current.clientHeight < 100)) {
@@ -352,6 +382,39 @@ const Channel = ({ channel }) => {
     };
   }, [channel, messages, pendingMessages, setMessages, setPendingMessages]);
 
+  const loadMore = useCallback(async () => {
+    if (loadingMore || !hasMore) return;
+    if (!messagesRef.current) return;
+    if (!messages || messages.length === 0) return;
+
+    const oldestId = messages[0]?.id;
+    if (!oldestId) return;
+
+    setLoadingMore(true);
+
+    const container = messagesRef.current;
+    const prevScrollHeight = container.scrollHeight;
+
+    const older = await fetchMessages({ limit: 50, before: oldestId });
+
+    if (!older || older.length === 0) {
+      setHasMore(false);
+      setLoadingMore(false);
+      return;
+    }
+
+    const existing = new Set(messages.map((m) => String(m.id)));
+    const dedupedOlder = older.filter((m) => !existing.has(String(m.id)));
+
+    setMessages((prev) => [...dedupedOlder, ...prev]);
+
+    requestAnimationFrame(() => {
+      const newScrollHeight = container.scrollHeight;
+      container.scrollTop = newScrollHeight - prevScrollHeight + container.scrollTop;
+      setLoadingMore(false);
+    });
+  }, [fetchMessages, hasMore, loadingMore, messages, setMessages]);
+
   const handleJumpToMessage = (msgId) => {
     setHighlightId(msgId);
     setTimeout(() => setHighlightId(null), 2000);
@@ -367,7 +430,13 @@ const Channel = ({ channel }) => {
     <div className="relative flex w-full flex-col dark:bg-gray-700">
       <ChannelBar channel={channel} onJumpToMessage={handleJumpToMessage} />
       <hr className="m-0 w-full border border-gray-800 bg-gray-800 p-0" />
-      <ChannelMessages messagesRef={messagesRef} highlightId={highlightId} />
+      <ChannelMessages
+        messagesRef={messagesRef}
+        highlightId={highlightId}
+        onLoadMore={loadMore}
+        loadingMore={loadingMore}
+        hasMore={hasMore}
+      />
       <ChannelInput channel={channel} fetchMessages={fetchMessages} />
     </div>
   );
