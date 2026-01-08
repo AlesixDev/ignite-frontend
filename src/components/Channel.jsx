@@ -364,8 +364,13 @@ const Channel = ({ channel }) => {
   }, [fetchMessages, setMessages, setPendingMessages]);
 
   useEffect(() => {
-    if (forceScrollDown || (messagesRef.current.scrollHeight - messagesRef.current.scrollTop - messagesRef.current.clientHeight < 100)) {
+    if (!messagesRef.current) return;
+    const nearBottom = messagesRef.current.scrollHeight - messagesRef.current.scrollTop - messagesRef.current.clientHeight < 100;
+    if (forceScrollDown || nearBottom) {
       messagesRef.current.scrollTop = messagesRef.current.scrollHeight;
+      if (forceScrollDown) {
+        setForceScrollDown(false);
+      }
     }
   }, [pendingMessages, messages, forceScrollDown]);
 
@@ -429,7 +434,7 @@ const Channel = ({ channel }) => {
     });
   }, [fetchMessages, hasMore, loadingMore, messages, setMessages]);
 
-  const handleJumpToMessage = (msgId) => {
+  const scrollToMessage = useCallback((msgId) => {
     setHighlightId(msgId);
     setTimeout(() => setHighlightId(null), 2000);
     setTimeout(() => {
@@ -438,7 +443,65 @@ const Channel = ({ channel }) => {
         el.scrollIntoView({ behavior: 'smooth', block: 'center' });
       }
     }, 100);
-  };
+  }, []);
+
+  const handleJumpToMessage = useCallback(async (msgId) => {
+    if (!msgId) return;
+    setForceScrollDown(false);
+
+    const existingEl = document.getElementById(`msg-${msgId}`);
+    if (existingEl) {
+      scrollToMessage(msgId);
+      return;
+    }
+
+    setLoadingMore(true);
+    let workingMessages = Array.isArray(messages) ? [...messages] : [];
+    let found = false;
+    let pages = 0;
+    const maxPages = 20;
+
+    while (!found && pages < maxPages) {
+      if (workingMessages.length === 0) {
+        const initial = await fetchMessages({ limit: 50 });
+        if (!initial || initial.length === 0) {
+          setHasMore(false);
+          break;
+        }
+        workingMessages = [...initial];
+        setMessages(workingMessages);
+      } else {
+        const oldestId = workingMessages[0]?.id;
+        if (!oldestId) break;
+
+        const older = await fetchMessages({ limit: 50, before: oldestId });
+        if (!older || older.length === 0) {
+          setHasMore(false);
+          break;
+        }
+
+        const existing = new Set(workingMessages.map((m) => String(m.id)));
+        const dedupedOlder = older.filter((m) => !existing.has(String(m.id)));
+        if (dedupedOlder.length > 0) {
+          workingMessages = [...dedupedOlder, ...workingMessages];
+          setMessages(workingMessages);
+        }
+      }
+
+      await new Promise((resolve) => requestAnimationFrame(resolve));
+      found = workingMessages.some((m) => String(m.id) === String(msgId));
+      pages += 1;
+    }
+
+    setLoadingMore(false);
+
+    const el = document.getElementById(`msg-${msgId}`);
+    if (el) {
+      scrollToMessage(msgId);
+    } else {
+      toast.error('Message not found in history.');
+    }
+  }, [fetchMessages, messages, scrollToMessage, setMessages]);
 
   return (
     <div className="relative flex w-full flex-1 min-h-0 flex-col dark:bg-gray-700">
