@@ -45,9 +45,10 @@ const ChannelMessage = ({ message, prevMessage, pending }) => {
   const shouldStack = useMemo(() => {
     if (prevMessage) {
       const sameAuthor = prevMessage.author.id === message.author.id;
+      const sameName = prevMessage.author.name === message.author.name;
       const sentWithinMinute = (new Date(message.created_at) - new Date(prevMessage.created_at)) / 1000 < 60;
 
-      return sameAuthor && sentWithinMinute;
+      return sameAuthor && sameName && sentWithinMinute;
     }
   }, [prevMessage, message]);
 
@@ -104,7 +105,7 @@ const ChannelMessage = ({ message, prevMessage, pending }) => {
               />
             ) : (
               <div className="mr-4 flex size-10 items-center justify-center rounded-full bg-gray-800 text-gray-300">
-                {message?.author.username.slice(0, 1).toUpperCase()}
+                {message?.author?.name?.slice(0, 1).toUpperCase()}
               </div>
             )}
           </>
@@ -114,7 +115,7 @@ const ChannelMessage = ({ message, prevMessage, pending }) => {
           {shouldStack ? null : (
             <div className="mb-1 flex justify-start leading-none">
               <h6 className="font-semibold leading-none">
-                {message?.author.username}
+                {message?.author.name} {message?.author.is_webhook ? ' APP' : ''}
               </h6>
               <p className="ml-2 self-end text-xs font-medium leading-tight text-gray-600 dark:text-gray-500">
                 {formattedDateTime}
@@ -203,7 +204,7 @@ const ChannelMessages = ({ messagesRef }) => {
         const prevMessage = pendingMessages[index - 1] || messages[messages.length - 1] || null;
 
         return (
-          <ChannelMessage key={message.id} message={message} prevMessage={prevMessage} pending={true} />
+          <ChannelMessage key={message.nonce} message={message} prevMessage={prevMessage} pending={true} />
         );
       })}
     </div>
@@ -227,10 +228,34 @@ const ChannelInput = ({ channel }) => {
     }
 
     try {
-      const { data: newMessage } = await api.post(`/channels/${channel.channel_id}/messages`, { content: message, reply_to: replyingId });
+      // generate a message nonce using timestamp with extra entropy
+      const generatedNonce = Date.now().toString() + Math.floor(Math.random() * 1000).toString();
+
+      // Add the message to pending messages
+      setPendingMessages([...pendingMessages, {
+        nonce: generatedNonce,
+        content: message,
+        author: {
+          id: useStore.getState().user.id,
+          name: useStore.getState().user.name ?? useStore.getState().user.username,
+          username: useStore.getState().user.username,
+        },
+        created_at: new Date().toISOString(),
+      }]);
+
+      // Send the message to the server, then remove it from pending messages on success
+      api.post(`/channels/${channel.channel_id}/messages`, { 
+        content: message, 
+        nonce: generatedNonce, 
+        reply_to: replyingId 
+      }).then((response) => {
+        setPendingMessages((pendingMessages) => pendingMessages.filter((m) => m.nonce !== generatedNonce));
+        // Add to messages list
+        setMessages((messages) => [...messages, response.data]);
+      });
+
       setMessage('');
       setReplyingId(null);
-      setPendingMessages([...pendingMessages, { ...newMessage, pending: true }]);
     } catch (error) {
       console.error(error);
       toast.error(error.response?.data?.message || 'Could not send message.');
@@ -255,12 +280,12 @@ const ChannelInput = ({ channel }) => {
         </div>
       )}
       <div className={`flex items-center bg-gray-600 py-2 ${replyingId ? 'rounded-b-lg' : 'rounded-lg'}`}>
-        <div>
-          <PlusCircle
+        <div className="mr-1">
+          {/* <PlusCircle
             className="mx-4 cursor-pointer text-gray-400 hover:text-gray-200"
             weight="fill"
             size={26}
-          />
+          /> */}
         </div>
 
         <form onSubmit={(e) => sendMessage(e)} className="w-full">
@@ -275,26 +300,26 @@ const ChannelInput = ({ channel }) => {
         </form>
 
         <div className="mr-1 flex">
-          <Gift
+          {/* <Gift
             className="mx-1.5 cursor-pointer text-gray-400 hover:text-gray-200"
             weight="fill"
             size={28}
-          />
-          <Gif
+          /> */}
+          {/* <Gif
             className="mx-1.5 cursor-pointer text-gray-400 hover:text-gray-200"
             weight="fill"
             size={28}
-          />
-          <Sticker
+          /> */}
+          {/* <Sticker
             className="mx-1.5 cursor-pointer text-gray-400 hover:text-gray-200"
             weight="fill"
             size={28}
-          />
-          <Smiley
+          /> */}
+          {/* <Smiley
             className="mx-1.5 cursor-pointer text-gray-400 hover:text-gray-200"
             weight="fill"
             size={28}
-          />
+          /> */}
         </div>
       </div>
     </div>
@@ -321,6 +346,9 @@ const Channel = ({ channel }) => {
   }, [channel?.channel_id, setMessages]);
 
   useEffect(() => {
+    setMessages([]);
+    setPendingMessages([]);
+
     fetchMessages().finally(() => setForceScrollDown(true));
   }, [fetchMessages]);
 
@@ -338,7 +366,17 @@ const Channel = ({ channel }) => {
     window.Echo.private(`channel.${channel.channel_id}`)
       .listen('.message.created', (event) => {
         if (event.channel.id == channel.channel_id) {
-          setPendingMessages(pendingMessages.filter((m) => m.id !== event.message.id));
+          // console.log('New message received:', event.message);
+          // console.log('Amount of pending messages:', pendingMessages.length);
+
+          // pendingMessages.forEach((m) => {
+          //   console.log('Pending message nonce:', m.nonce);
+          // });
+
+          //setPendingMessages(pendingMessages.filter((m) => m.nonce !== event.message.nonce));
+
+          console.log("Adding new message to messages list.");
+
           setMessages([...messages, event.message]);
         }
       })

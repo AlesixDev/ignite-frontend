@@ -44,13 +44,13 @@ const GuildChannelPage = () => {
   // if no channel id in url redirect to first channel
   useEffect(() => {
     if (guild.channels && !channelId) {
-      navigate(`/channels/${guild.id}/${guild.channels[0].id}`);
+      navigate(`/channels/${guild.id}/${BigInt(guild.channels[0].channel_id)}`);
     }
   }, [channelId, guild, navigate]);
 
   const channel = useMemo(() => guild?.channels?.find((c) => c.channel_id == channelId), [guild, channelId]);
 
-  const [isChannelDialogOpen, setIsChannelDialogOpen] = useState(true);
+  const [isChannelDialogOpen, setIsChannelDialogOpen] = useState(false);
 
   return (
     <GuildLayout guild={guild}>
