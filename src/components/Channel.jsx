@@ -97,11 +97,7 @@ const ChannelMessage = ({ message, prevMessage, pending }) => {
         ) : (
           <>
             {message?.author.avatar ? (
-              <img
-                className="h-10 rounded-full bg-transparent"
-                src={message?.author.avatar}
-                alt="User avatar"
-              />
+              <img className="h-10 rounded-full bg-transparent" src={message?.author.avatar} alt="User avatar" />
             ) : (
               <div className="mr-4 flex size-10 items-center justify-center rounded-full bg-gray-800 text-gray-300">
                 {message?.author?.name?.slice(0, 1).toUpperCase()}
@@ -173,6 +169,7 @@ const ChannelMessage = ({ message, prevMessage, pending }) => {
 
 const ChannelMessages = ({ messagesRef, highlightId, onLoadMore, loadingMore, hasMore }) => {
   const { messages, pendingMessages, setEditingId, replyingId, setReplyingId } = useChannelContext();
+  const [atTop, setAtTop] = useState(false);
 
   useEffect(() => {
     const handleEscape = (event) => {
@@ -192,10 +189,14 @@ const ChannelMessages = ({ messagesRef, highlightId, onLoadMore, loadingMore, ha
   const onScroll = useCallback(() => {
     const el = messagesRef.current;
     if (!el) return;
-    if (el.scrollTop <= 20 && hasMore && !loadingMore) {
-      onLoadMore();
-    }
-  }, [messagesRef, hasMore, loadingMore, onLoadMore]);
+    setAtTop(el.scrollTop <= 10);
+  }, [messagesRef]);
+
+  useEffect(() => {
+    const el = messagesRef.current;
+    if (!el) return;
+    setAtTop(el.scrollTop <= 10);
+  }, [messagesRef, messages?.length]);
 
   return (
     <div
@@ -203,9 +204,22 @@ const ChannelMessages = ({ messagesRef, highlightId, onLoadMore, loadingMore, ha
       ref={messagesRef}
       onScroll={onScroll}
     >
-      {loadingMore && (
-        <div className="px-4 py-2 text-xs text-gray-400">
-          Loading older messages...
+      {atTop && hasMore && (
+        <div className="sticky top-0 z-10 flex justify-center bg-gray-700/80 backdrop-blur px-4 py-2">
+          <button
+            type="button"
+            onClick={onLoadMore}
+            disabled={loadingMore}
+            className="rounded bg-gray-800 px-3 py-1 text-xs text-gray-200 hover:bg-gray-750 disabled:opacity-60"
+          >
+            {loadingMore ? 'Loading…' : 'Load history'}
+          </button>
+        </div>
+      )}
+
+      {!hasMore && (
+        <div className="px-4 py-2 text-center text-xs text-gray-500">
+          Beginning of channel
         </div>
       )}
 
