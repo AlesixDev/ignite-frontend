@@ -2,17 +2,29 @@ import { useEffect, useMemo, useState } from 'react';
 import ServerInfo from './ServerInfo';
 import ServerRoleManager from './ServerRoleManager';
 import ServerChannelManager from './ServerChannelManager';
+import ServerMemberManager from './ServerMemberManager';
 
-const ServerSettings = ({ isOpen, onClose, guild }) => {
+const ServerSettings = ({ isOpen, onClose, guild, initialTab = 'info', editChannelId, onEditChannelChange }) => {
   const [activeTab, setActiveTab] = useState('info');
 
   const tabs = useMemo(
     () => [
       { id: 'info', label: 'Server Info', component: <ServerInfo guild={guild} /> },
       { id: 'roles', label: 'Role Manager', component: <ServerRoleManager guild={guild} /> },
-      { id: 'channels', label: 'Channel Manager', component: <ServerChannelManager guild={guild} /> },
+      { id: 'members', label: 'Member Management', component: <ServerMemberManager guild={guild} /> },
+      {
+        id: 'channels',
+        label: 'Channel Manager',
+        component: (
+          <ServerChannelManager
+            guild={guild}
+            editChannelId={editChannelId}
+            onEditChannelChange={onEditChannelChange}
+          />
+        ),
+      },
     ],
-    [guild]
+    [editChannelId, guild, onEditChannelChange]
   );
 
   useEffect(() => {
@@ -30,8 +42,8 @@ const ServerSettings = ({ isOpen, onClose, guild }) => {
   }, [isOpen, onClose]);
 
   useEffect(() => {
-    if (isOpen) setActiveTab('info');
-  }, [isOpen]);
+    if (isOpen) setActiveTab(initialTab || 'info');
+  }, [initialTab, isOpen]);
 
   if (!isOpen) return null;
 

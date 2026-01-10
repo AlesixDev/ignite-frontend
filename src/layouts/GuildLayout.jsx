@@ -7,6 +7,7 @@ import UserBar from '../components/UserBar';
 import CreateGuildChannelDialog from '../components/CreateGuildChannelDialog';
 import ServerSettings from '../components/Settings/ServerSettings';
 import api from '../api';
+import useGuildStore from '../hooks/useGuildStore';
 
 const GuildSidebarHeader = ({ guildName = '', guild, onOpenServerSettings }) => {
   const navigate = useNavigate();
@@ -183,8 +184,53 @@ const GuildSidebarHeader = ({ guildName = '', guild, onOpenServerSettings }) => 
   );
 };
 
-const GuildSidebarSection = ({ sectionName = 'Text Channels', channels, activeChannelId, setIsCreateChannelDialogOpen }) => {
+const GuildSidebarSection = ({
+  sectionName = 'Text Channels',
+  channels,
+  activeChannelId,
+  setIsCreateChannelDialogOpen,
+  guild,
+  onEditChannel,
+}) => {
   const [expanded, setExpanded] = useState(true);
+  const navigate = useNavigate();
+  const { editGuild } = useGuildStore();
+
+  const handleDeleteChannel = useCallback(
+    async (channel, event) => {
+      event.preventDefault();
+      event.stopPropagation();
+      if (!guild?.id || !channel) return;
+
+      const confirmDelete = window.confirm('Delete this channel?');
+      if (!confirmDelete) return;
+
+      try {
+        await api.delete(`/guilds/${guild.id}/channels/${channel.channel_id || channel.id}`);
+        const nextChannels = channels.filter(
+          (item) => (item.channel_id || item.id) !== (channel.channel_id || channel.id)
+        );
+        editGuild({ ...guild, channels: nextChannels });
+        if (String(channel.channel_id) === String(activeChannelId)) {
+          navigate(`/channels/${guild.id}`);
+        }
+        toast.success('Channel deleted.');
+      } catch (err) {
+        const msg = err.response?.data?.message || err.message || 'Could not delete channel.';
+        toast.error(msg);
+      }
+    },
+    [activeChannelId, channels, editGuild, guild, navigate]
+  );
+
+  const sortedChannels = [...(channels || [])].sort((a, b) => {
+    const aPos = Number(a.position ?? 0);
+    const bPos = Number(b.position ?? 0);
+    if (aPos === bPos) {
+      return String(a.name || a.channel_name || '').localeCompare(String(b.name || b.channel_name || ''));
+    }
+    return aPos - bPos;
+  });
 
   return (
     <div className="flex w-full flex-col">
@@ -206,7 +252,7 @@ const GuildSidebarSection = ({ sectionName = 'Text Channels', channels, activeCh
         </button>
       </div>
 
-      {channels?.map((channel) => (
+      {sortedChannels.map((channel) => (
         <Link
           key={channel.channel_id}
           to={`/channels/${channel.guild_id}/${channel.channel_id}`}
@@ -229,7 +275,7 @@ const GuildSidebarSection = ({ sectionName = 'Text Channels', channels, activeCh
                 onClick={(event) => {
                   event.preventDefault();
                   event.stopPropagation();
-                  toast.info('Channel editing is not available yet.');
+                  onEditChannel?.(channel);
                 }}
               >
                 <NotePencil className="size-4" />
@@ -238,11 +284,7 @@ const GuildSidebarSection = ({ sectionName = 'Text Channels', channels, activeCh
                 type="button"
                 aria-label={`Delete ${channel.name}`}
                 className="rounded p-1 text-sm text-white/90 hover:bg-primary/10 hover:text-primary"
-                onClick={(event) => {
-                  event.preventDefault();
-                  event.stopPropagation();
-                  toast.info('Channel deletion is not available yet.');
-                }}
+                onClick={(event) => handleDeleteChannel(channel, event)}
               >
                 <Trash className="size-4" />
               </button>
@@ -254,7 +296,7 @@ const GuildSidebarSection = ({ sectionName = 'Text Channels', channels, activeCh
   );
 };
 
-const GuildSidebar = ({ guild, onOpenServerSettings }) => {
+const GuildSidebar = ({ guild, onOpenServerSettings, onEditChannel }) => {
   const { channelId } = useParams();
   const [isCreateChannelDialogOpen, setIsCreateChannelDialogOpen] = useState(false);
 
@@ -268,6 +310,8 @@ const GuildSidebar = ({ guild, onOpenServerSettings }) => {
           channels={guild?.channels || []}
           activeChannelId={channelId}
           setIsCreateChannelDialogOpen={setIsCreateChannelDialogOpen}
+          guild={guild}
+          onEditChannel={onEditChannel}
         />
         <CreateGuildChannelDialog isOpen={isCreateChannelDialogOpen} setIsOpen={setIsCreateChannelDialogOpen} guild={guild} />
       </div>
@@ -280,11 +324,25 @@ const GuildSidebar = ({ guild, onOpenServerSettings }) => {
 
 const GuildLayout = ({ children, guild }) => {
   const [isServerSettingsOpen, setIsServerSettingsOpen] = useState(false);
+  const [settingsTab, setSettingsTab] = useState('info');
+  const [editChannelId, setEditChannelId] = useState(null);
 
   return (
     <BaseAuthLayout>
       <div className="flex h-screen w-screen">
-        <GuildSidebar guild={guild} onOpenServerSettings={() => setIsServerSettingsOpen(true)} />
+        <GuildSidebar
+          guild={guild}
+          onOpenServerSettings={() => {
+            setSettingsTab('info');
+            setEditChannelId(null);
+            setIsServerSettingsOpen(true);
+          }}
+          onEditChannel={(channel) => {
+            setEditChannelId(channel.channel_id || channel.id);
+            setSettingsTab('channels');
+            setIsServerSettingsOpen(true);
+          }}
+        />
         <main className="flex-1 min-w-0 flex flex-col">
           {children}
         </main>
@@ -293,6 +351,9 @@ const GuildLayout = ({ children, guild }) => {
         isOpen={isServerSettingsOpen}
         onClose={() => setIsServerSettingsOpen(false)}
         guild={guild}
+        initialTab={settingsTab}
+        editChannelId={editChannelId}
+        onEditChannelChange={setEditChannelId}
       />
     </BaseAuthLayout>
   );

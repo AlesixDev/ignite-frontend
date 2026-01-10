@@ -1,6 +1,7 @@
 import { Microphone, Headphones, Gear } from '@phosphor-icons/react';
 import { useEffect, useRef, useState } from 'react';
 import useStore from '../hooks/useStore';
+import UserSettings from './Settings/UserSettings';
 
 const UserIcon = () => {
   const store = useStore();
@@ -34,7 +35,7 @@ const UserName = () => {
   );
 };
 
-const ActionsIcons = () => {
+const ActionsIcons = ({ onOpenSettings }) => {
   const store = useStore();
   const [open, setOpen] = useState(false);
   const menuRef = useRef(null);
@@ -80,6 +81,16 @@ const ActionsIcons = () => {
               type="button"
               onClick={() => {
                 setOpen(false);
+                onOpenSettings?.();
+              }}
+              className="w-full px-3 py-2 text-left text-sm text-gray-200 hover:bg-gray-800"
+            >
+              User Settings
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setOpen(false);
                 store.logout();
               }}
               className="w-full px-3 py-2 text-left text-sm text-gray-200 hover:bg-gray-800"
@@ -94,6 +105,8 @@ const ActionsIcons = () => {
 };
 
 const UserBar = () => {
+  const [isUserSettingsOpen, setIsUserSettingsOpen] = useState(false);
+
   return (
     <div className="flex h-14 w-full items-center bg-gray-200 dark:bg-gray-900">
       <div className="flex flex-auto items-center p-2">
@@ -101,8 +114,9 @@ const UserBar = () => {
           <UserIcon />
           <UserName />
         </div>
-        <ActionsIcons />
+        <ActionsIcons onOpenSettings={() => setIsUserSettingsOpen(true)} />
       </div>
+      <UserSettings isOpen={isUserSettingsOpen} onClose={() => setIsUserSettingsOpen(false)} />
     </div>
   );
 };
