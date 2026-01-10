@@ -3,6 +3,8 @@ import { toast } from 'react-toastify';
 import BaseAuthLayout from './BaseAuthLayout';
 import useStore from '../hooks/useStore';
 import api from '../api';
+import Channel from '../components/Channel';
+import { ChannelContextProvider } from '../contexts/ChannelContext';
 
 const nowIso = () => new Date().toISOString();
 
@@ -178,6 +180,7 @@ const PrivateMessageLayout = () => {
     return {
       id: threadId,
       channelId: thread.channel_id || thread.channelId || threadId,
+      channel_id: thread.channel_id || thread.channelId || threadId,
       user: normalizeUser(otherUser),
       messages,
     };
@@ -191,7 +194,7 @@ const PrivateMessageLayout = () => {
       const threads = Array.isArray(data) ? data : data?.data || [];
       const normalized = threads.map(normalizeThread).filter(Boolean);
       setDmThreads(normalized);
-      setActiveThreadId((prev) => prev || normalized[0]?.id || null);
+      //setActiveThreadId((prev) => prev || normalized[0]?.id || null);
       hydrateThreadUsers(normalized);
     } catch (error) {
       console.error(error);
@@ -293,78 +296,78 @@ const PrivateMessageLayout = () => {
     messagesRef.current.scrollTop = messagesRef.current.scrollHeight;
   }, [messages.length, activeThreadId]);
 
-  useEffect(() => {
-    if (!activeChannelId || !window.Echo) {
-      return;
-    }
+  // useEffect(() => {
+  //   if (!activeChannelId || !window.Echo) {
+  //     return;
+  //   }
 
-    const channelName = `channel.${activeChannelId}`;
+  //   const channelName = `channel.${activeChannelId}`;
 
-    window.Echo.private(channelName)
-      .listen('.message.created', (event) => {
-        if (event?.channel?.id != activeChannelId && event?.message?.channel_id != activeChannelId) {
-          return;
-        }
-        const nextMessage = event.message || event.payload?.message;
-        if (!nextMessage) return;
-        const normalized = normalizeMessage(nextMessage);
-        if (!normalized) return;
-        setMessages((prev) => [...prev, normalized]);
-        setDmThreads((prev) =>
-          prev.map((thread) =>
-            thread.id === activeThreadId
-              ? { ...thread, messages: [...thread.messages, normalized] }
-              : thread
-          )
-        );
-      })
-      .listen('.message.updated', (event) => {
-        if (event?.channel?.id != activeChannelId && event?.message?.channel_id != activeChannelId) {
-          return;
-        }
-        const updatedMessage = event.message || event.payload?.message;
-        if (!updatedMessage) return;
-        const normalized = normalizeMessage(updatedMessage);
-        if (!normalized) return;
-        setMessages((prev) =>
-          prev.map((msg) => (msg.id === normalized.id ? { ...msg, ...normalized } : msg))
-        );
-        setDmThreads((prev) =>
-          prev.map((thread) =>
-            thread.id === activeThreadId
-              ? {
-                  ...thread,
-                  messages: thread.messages.map((msg) =>
-                    msg.id === normalized.id ? { ...msg, ...normalized } : msg
-                  ),
-                }
-              : thread
-          )
-        );
-      })
-      .listen('.message.deleted', (event) => {
-        if (event?.channel?.id != activeChannelId && event?.message?.channel_id != activeChannelId) {
-          return;
-        }
-        const deletedId = event.message?.id || event.message_id || event.payload?.message_id;
-        if (!deletedId) return;
-        setMessages((prev) => prev.filter((msg) => msg.id !== deletedId));
-        setDmThreads((prev) =>
-          prev.map((thread) =>
-            thread.id === activeThreadId
-              ? {
-                  ...thread,
-                  messages: thread.messages.filter((msg) => msg.id !== deletedId),
-                }
-              : thread
-          )
-        );
-      });
+  //   window.Echo.private(channelName)
+  //     .listen('.message.created', (event) => {
+  //       if (event?.channel?.id != activeChannelId && event?.message?.channel_id != activeChannelId) {
+  //         return;
+  //       }
+  //       const nextMessage = event.message || event.payload?.message;
+  //       if (!nextMessage) return;
+  //       const normalized = normalizeMessage(nextMessage);
+  //       if (!normalized) return;
+  //       setMessages((prev) => [...prev, normalized]);
+  //       setDmThreads((prev) =>
+  //         prev.map((thread) =>
+  //           thread.id === activeThreadId
+  //             ? { ...thread, messages: [...thread.messages, normalized] }
+  //             : thread
+  //         )
+  //       );
+  //     })
+  //     .listen('.message.updated', (event) => {
+  //       if (event?.channel?.id != activeChannelId && event?.message?.channel_id != activeChannelId) {
+  //         return;
+  //       }
+  //       const updatedMessage = event.message || event.payload?.message;
+  //       if (!updatedMessage) return;
+  //       const normalized = normalizeMessage(updatedMessage);
+  //       if (!normalized) return;
+  //       setMessages((prev) =>
+  //         prev.map((msg) => (msg.id === normalized.id ? { ...msg, ...normalized } : msg))
+  //       );
+  //       setDmThreads((prev) =>
+  //         prev.map((thread) =>
+  //           thread.id === activeThreadId
+  //             ? {
+  //                 ...thread,
+  //                 messages: thread.messages.map((msg) =>
+  //                   msg.id === normalized.id ? { ...msg, ...normalized } : msg
+  //                 ),
+  //               }
+  //             : thread
+  //         )
+  //       );
+  //     })
+  //     .listen('.message.deleted', (event) => {
+  //       if (event?.channel?.id != activeChannelId && event?.message?.channel_id != activeChannelId) {
+  //         return;
+  //       }
+  //       const deletedId = event.message?.id || event.message_id || event.payload?.message_id;
+  //       if (!deletedId) return;
+  //       setMessages((prev) => prev.filter((msg) => msg.id !== deletedId));
+  //       setDmThreads((prev) =>
+  //         prev.map((thread) =>
+  //           thread.id === activeThreadId
+  //             ? {
+  //                 ...thread,
+  //                 messages: thread.messages.filter((msg) => msg.id !== deletedId),
+  //               }
+  //             : thread
+  //         )
+  //       );
+  //     });
 
-    return () => {
-      window.Echo.leave(channelName);
-    };
-  }, [activeChannelId, activeThreadId, normalizeMessage]);
+  //   return () => {
+  //     window.Echo.leave(channelName);
+  //   };
+  // }, [activeChannelId, activeThreadId, normalizeMessage]);
 
   const updateThread = (threadId, updater) => {
     setDmThreads((prev) =>
@@ -514,117 +517,9 @@ const PrivateMessageLayout = () => {
 
         <main className="flex min-w-0 flex-1 flex-col bg-gray-700">
           {activeThread ? (
-            <>
-              <div className="flex items-center border-b border-gray-800 px-6 py-4">
-                <div className="text-sm font-semibold text-gray-100">
-                  {activeThread.user?.username || activeThread.user?.name || 'Direct Message'}
-                </div>
-              </div>
-              <div className="flex-1 overflow-y-auto px-6 py-4 text-sm text-gray-300" ref={messagesRef}>
-                {loadingMessages ? (
-                  <div className="rounded bg-gray-800/60 px-3 py-2 text-xs text-gray-400">
-                    Loading messages...
-                  </div>
-                ) : messageError ? (
-                  <div className="rounded bg-red-500/10 px-3 py-2 text-xs text-red-300">
-                    {messageError}
-                  </div>
-                ) : messages.length === 0 ? (
-                  <div className="rounded bg-gray-800/60 px-3 py-2 text-xs text-gray-400">
-                    No messages yet.
-                  </div>
-                ) : (
-                  messages.map((message) => {
-                    const isEditing = editingId === message.id;
-                    const replyTarget = message.reply_to
-                      ? messages.find((msg) => msg.id === message.reply_to)
-                      : null;
-                    return (
-                      <div key={message.id} className="group mb-3 rounded p-2 hover:bg-gray-800/60">
-                        <div className="flex items-center gap-2 text-xs text-gray-500">
-                          <span className="font-semibold text-gray-200">{message.author.name}</span>
-                          <span>{new Date(message.created_at).toLocaleTimeString()}</span>
-                          {message.updated_at && (
-                            <span className="text-[10px] text-gray-500">(edited)</span>
-                          )}
-                        </div>
-                        {replyTarget && (
-                          <div className="mt-1 rounded border border-gray-800 bg-gray-900/60 px-2 py-1 text-[11px] text-gray-400">
-                            Replying to {replyTarget.author.name}: {replyTarget.content}
-                          </div>
-                        )}
-                        {isEditing ? (
-                          <form onSubmit={saveEdit} className="mt-2">
-                            <input
-                              value={editText}
-                              onChange={(event) => setEditText(event.target.value)}
-                              className="w-full rounded bg-gray-600 px-3 py-2 text-sm text-white outline-none"
-                            />
-                          </form>
-                        ) : (
-                          <div className="mt-1 text-sm text-gray-200">{message.content}</div>
-                        )}
-                        <div className="mt-2 hidden gap-2 text-[10px] text-gray-400 group-hover:flex">
-                          <button
-                            type="button"
-                            className="rounded border border-gray-700 px-2 py-1 hover:bg-gray-800"
-                            onClick={() => setReplyingId(message.id)}
-                          >
-                            Reply
-                          </button>
-                          {message.author.id === currentUser.id && (
-                            <>
-                              <button
-                                type="button"
-                                className="rounded border border-gray-700 px-2 py-1 hover:bg-gray-800"
-                                onClick={() => startEdit(message)}
-                              >
-                                Edit
-                              </button>
-                              <button
-                                type="button"
-                                className="rounded border border-gray-700 px-2 py-1 hover:bg-gray-800"
-                                onClick={() => deleteMessage(message.id)}
-                              >
-                                Delete
-                              </button>
-                            </>
-                          )}
-                        </div>
-                      </div>
-                    );
-                  })
-                )}
-              </div>
-              <div className="px-6 pb-6">
-                {replyPreview && (
-                  <div className="mb-2 flex items-center justify-between rounded bg-gray-800 px-3 py-2 text-xs text-gray-300">
-                    Replying to {replyPreview.author.name}: {replyPreview.content}
-                    <button
-                      type="button"
-                      className="text-gray-400 hover:text-gray-200"
-                      onClick={() => setReplyingId(null)}
-                    >
-                      Cancel
-                    </button>
-                  </div>
-                )}
-                <form onSubmit={sendMessage} className="flex items-center gap-2 rounded bg-gray-600 px-3 py-2">
-                  <input
-                    value={messageText}
-                    onChange={(event) => setMessageText(event.target.value)}
-                    className="w-full bg-transparent text-sm text-white outline-none placeholder:text-gray-400"
-                    placeholder="Message..."
-                  />
-                  <button
-                    type="submit"
-                    className="rounded bg-gray-800 px-3 py-1 text-xs text-gray-200 hover:bg-gray-700"
-                  >
-                    Send
-                  </button>
-                </form>
-              </div>
-            </>
+            <ChannelContextProvider>
+              <Channel channel={activeThread} />
+            </ChannelContextProvider>
           ) : (
             <div className="flex flex-1 items-center justify-center text-sm text-gray-400">
               Select a conversation to start messaging.

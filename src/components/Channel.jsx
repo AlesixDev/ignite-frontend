@@ -395,6 +395,8 @@ const Channel = ({ channel }) => {
       return;
     }
 
+    console.log('Subscribing to channel:', channel.channel_id, channel);
+
     window.Echo.private(`channel.${channel.channel_id}`)
       .listen('.message.created', (event) => {
         if (event.channel.id == channel.channel_id) {
