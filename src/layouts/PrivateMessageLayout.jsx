@@ -50,6 +50,64 @@ const PrivateMessageLayout = () => {
     messagesRef.current.scrollTop = messagesRef.current.scrollHeight;
   }, [activeThread?.messages?.length, activeThreadId]);
 
+  useEffect(() => {
+    if (!activeThreadId || !window.Echo) {
+      return;
+    }
+
+    const channelName = `directmessage.${activeThreadId}`;
+
+    window.Echo.private(channelName)
+      .listen('.directmessage.created', (event) => {
+        if (event?.directmessage?.id !== activeThreadId) return;
+        const nextMessage = event.message || event.directmessage_message || event.payload?.message;
+        if (!nextMessage) return;
+        setDmThreads((prev) =>
+          prev.map((thread) =>
+            thread.id === activeThreadId
+              ? { ...thread, messages: [...thread.messages, nextMessage] }
+              : thread
+          )
+        );
+      })
+      .listen('.directmessage.updated', (event) => {
+        if (event?.directmessage?.id !== activeThreadId) return;
+        const updatedMessage = event.message || event.directmessage_message || event.payload?.message;
+        if (!updatedMessage) return;
+        setDmThreads((prev) =>
+          prev.map((thread) =>
+            thread.id === activeThreadId
+              ? {
+                  ...thread,
+                  messages: thread.messages.map((msg) =>
+                    msg.id === updatedMessage.id ? { ...msg, ...updatedMessage } : msg
+                  ),
+                }
+              : thread
+          )
+        );
+      })
+      .listen('.directmessage.deleted', (event) => {
+        if (event?.directmessage?.id !== activeThreadId) return;
+        const deletedId = event.message?.id || event.message_id || event.payload?.message_id;
+        if (!deletedId) return;
+        setDmThreads((prev) =>
+          prev.map((thread) =>
+            thread.id === activeThreadId
+              ? {
+                  ...thread,
+                  messages: thread.messages.filter((msg) => msg.id !== deletedId),
+                }
+              : thread
+          )
+        );
+      });
+
+    return () => {
+      window.Echo.leave(channelName);
+    };
+  }, [activeThreadId]);
+
   const updateThread = (threadId, updater) => {
     setDmThreads((prev) =>
       prev.map((thread) => (thread.id === threadId ? updater(thread) : thread))
