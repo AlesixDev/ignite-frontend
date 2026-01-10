@@ -326,24 +326,47 @@ const GuildLayout = ({ children, guild }) => {
   const [isServerSettingsOpen, setIsServerSettingsOpen] = useState(false);
   const [settingsTab, setSettingsTab] = useState('info');
   const [editChannelId, setEditChannelId] = useState(null);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
   return (
     <BaseAuthLayout>
       <div className="flex h-screen w-screen">
-        <GuildSidebar
-          guild={guild}
-          onOpenServerSettings={() => {
-            setSettingsTab('info');
-            setEditChannelId(null);
-            setIsServerSettingsOpen(true);
-          }}
-          onEditChannel={(channel) => {
-            setEditChannelId(channel.channel_id || channel.id);
-            setSettingsTab('channels');
-            setIsServerSettingsOpen(true);
-          }}
-        />
-        <main className="flex-1 min-w-0 flex flex-col">
+        {isSidebarOpen && (
+          <button
+            type="button"
+            className="fixed inset-0 z-30 bg-transparent md:hidden"
+            onClick={() => setIsSidebarOpen(false)}
+            aria-label="Close sidebar"
+          />
+        )}
+        <div
+          className={`fixed inset-y-0 left-0 z-40 w-64 shrink-0 transition-transform md:static md:translate-x-0 ${
+            isSidebarOpen ? 'translate-x-0' : '-translate-x-full'
+          }`}
+        >
+          <GuildSidebar
+            guild={guild}
+            onOpenServerSettings={() => {
+              setSettingsTab('info');
+              setEditChannelId(null);
+              setIsServerSettingsOpen(true);
+            }}
+            onEditChannel={(channel) => {
+              setEditChannelId(channel.channel_id || channel.id);
+              setSettingsTab('channels');
+              setIsServerSettingsOpen(true);
+            }}
+          />
+        </div>
+        <main className="relative flex-1 min-w-0 flex flex-col bg-gray-700 pt-10 md:pt-0">
+          <button
+            type="button"
+            className="absolute left-3 top-2 z-20 flex items-center gap-1 rounded-full border border-gray-600/60 bg-gray-800/70 px-3 py-1 text-xs font-semibold text-gray-100 shadow-sm md:hidden"
+            onClick={() => setIsSidebarOpen(true)}
+          >
+            Menu
+            <span aria-hidden="true">›</span>
+          </button>
           {children}
         </main>
       </div>

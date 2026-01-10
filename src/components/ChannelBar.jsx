@@ -63,15 +63,15 @@ const ChannelBar = ({ channel, onJumpToMessage }) => {
   return (
     <>
       <div className="relative">
-        <div className="relative flex h-12 w-full items-center justify-between px-4 py-3">
+        <div className="relative flex min-h-12 w-full items-center justify-between gap-3 px-3 py-2 sm:px-4">
           <div className="relative flex min-w-0 flex-auto items-center overflow-hidden">
-            <Hash className="mr-2 size-6 text-gray-500" />
-            <h1 className="text-base font-semibold text-gray-100">
+            <Hash className="mr-2 size-5 text-gray-500 sm:size-6" />
+            <h1 className="truncate text-sm font-semibold text-gray-100 sm:text-base">
               {channel?.name}
             </h1>
           </div>
 
-          <div className="flex items-center gap-4">
+          <div className="flex flex-wrap items-center justify-end gap-2 sm:gap-4">
             <IconButton icon="threads" tooltipText="Threads" />
             <IconButton icon="bell" tooltipText="Notification Settings" />
             <IconButton icon="pin" tooltipText="Pinned Messages" />

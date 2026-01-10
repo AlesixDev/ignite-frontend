@@ -216,7 +216,7 @@ const ChannelMessages = ({ messagesRef, highlightId, onLoadMore, loadingMore, ha
 
   return (
     <div
-      className={`flex-1 min-h-0 overflow-y-auto ${replyingId ? ' max-h-[calc(100vh-11.5rem)]' : ' max-h-[calc(100vh-9rem)]'}`}
+      className={`flex-1 min-h-0 overflow-y-auto ${replyingId ? ' md:max-h-[calc(100vh-11.5rem)]' : ' md:max-h-[calc(100vh-9rem)]'}`}
       ref={messagesRef}
       onScroll={onScroll}
     >
@@ -311,7 +311,7 @@ const ChannelInput = ({ channel }) => {
   }, [replyingId]);
 
   return (
-    <div className="mx-4 my-6">
+    <div className="sticky bottom-0 z-10 bg-gray-700/95 px-4 pb-4 pt-3 backdrop-blur md:static md:mx-4 md:my-6 md:bg-transparent md:px-0 md:py-0">
       {replyingId && (
         <div className="flex items-center justify-between gap-2 rounded-t-lg bg-gray-800 px-4 py-2 text-sm text-gray-300">
           <p>Replying to <span className="text-primary">{replyMessage?.author.username}</span></p>
