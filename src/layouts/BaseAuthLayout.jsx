@@ -46,7 +46,16 @@ const Sidebar = () => {
   return (
     <>
       <div className="relative left-0 top-0 m-0 flex h-screen min-w-min flex-col items-center bg-gray-900 pt-3 text-white shadow">
-        <SidebarIcon icon={<Fire className="size-6" />} isServerIcon={true} text="Direct Messages" />
+        <SidebarIcon
+          icon={<Fire className="size-6" />}
+          isServerIcon={true}
+          text="Direct Messages"
+          isActive={selectedGuildId === '@me'}
+          onClick={() => {
+            setSelectedGuildId('@me');
+            navigate('/channels/@me');
+          }}
+        />
         <hr className="mx-auto mb-2 w-8 rounded-full border border-gray-800 bg-gray-800" />
         {guilds.map((guild) => (
           <SidebarIcon

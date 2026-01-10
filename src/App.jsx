@@ -8,6 +8,7 @@ import RegisterPage from './pages/Register/Register';
 import DashboardPage from './pages/Dashboard/Dashboard';
 import GuildChannelPage from './pages/GuildChannel/GuildChannel';
 import useGuildStore from './hooks/useGuildStore';
+import PrivateMessageLayout from './layouts/PrivateMessageLayout';
 
 const AuthRoute = ({ children }) => {
   const store = useStore();
@@ -103,7 +104,16 @@ function App() {
         }
       />
     </Route>
-    <Route element={<AuthRoute />}>
+      <Route element={<AuthRoute />}>
+      <Route
+        path="/channels/@me"
+        element={
+          <>
+            <PageTitle title="Direct Messages" />
+            <PrivateMessageLayout />
+          </>
+        }
+      />
       <Route
         path="/dashboard"
         element={
