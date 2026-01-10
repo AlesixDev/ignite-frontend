@@ -20,6 +20,7 @@ const PrivateMessageLayout = () => {
   const [replyingId, setReplyingId] = useState(null);
   const [editingId, setEditingId] = useState(null);
   const [editText, setEditText] = useState('');
+  const [messages, setMessages] = useState([]);
   const messagesRef = useRef(null);
   const memberCacheRef = useRef(new Map());
 
@@ -176,6 +177,7 @@ const PrivateMessageLayout = () => {
       .filter(Boolean);
     return {
       id: threadId,
+      channelId: thread.channel_id || thread.channelId || threadId,
       user: normalizeUser(otherUser),
       messages,
     };
@@ -221,13 +223,13 @@ const PrivateMessageLayout = () => {
     }
   }, [normalizeThread]);
 
-  const loadMessages = useCallback(async (threadId) => {
-    if (!threadId) return;
+  const loadMessages = useCallback(async (channelId) => {
+    if (!channelId) return;
     setLoadingMessages(true);
     setMessageError('');
     try {
-      const { data } = await api.get(`channels/${threadId}/messages`);
-      console.log('DM messages response', threadId, data);
+      const { data } = await api.get(`channels/${channelId}/messages`);
+      console.log('DM messages response', channelId, data);
       const messages = (Array.isArray(data) ? data : data?.data || [])
         .map(normalizeMessage)
         .filter(Boolean);
@@ -235,14 +237,14 @@ const PrivateMessageLayout = () => {
         .map((message) => message.author?.id)
         .filter(Boolean);
       if (authorIds.length > 0) {
-        console.log('DM message author ids', threadId, authorIds);
+        console.log('DM message author ids', channelId, authorIds);
         const receiverId = authorIds.find((id) => String(id) !== String(currentUser.id));
         if (receiverId) {
           const receiverInfo = await resolveMemberInfo(receiverId);
           if (receiverInfo) {
             setDmThreads((prev) =>
               prev.map((thread) =>
-                thread.id === threadId
+                thread.id === channelId
                   ? { ...thread, user: { ...thread.user, ...receiverInfo } }
                   : thread
               )
@@ -255,12 +257,13 @@ const PrivateMessageLayout = () => {
       )?.author;
       setDmThreads((prev) =>
         prev.map((thread) =>
-          thread.id === threadId
+          thread.id === channelId
             ? { ...thread, messages, user: otherAuthor ? normalizeUser(otherAuthor) : thread.user }
             : thread
         )
       );
-      hydrateAuthorInfo(threadId, messages);
+      setMessages(messages);
+      hydrateAuthorInfo(channelId, messages);
     } catch (error) {
       console.error(error);
       setMessageError('Unable to load messages.');
@@ -273,35 +276,40 @@ const PrivateMessageLayout = () => {
     () => dmThreads.find((thread) => thread.id === activeThreadId) || null,
     [activeThreadId, dmThreads]
   );
+  const activeChannelId = activeThread?.channelId || activeThreadId;
 
   useEffect(() => {
     loadThreads();
   }, [loadThreads]);
 
   useEffect(() => {
-    if (!activeThreadId) return;
-    loadMessages(activeThreadId);
-  }, [activeThreadId, loadMessages]);
+    if (!activeChannelId) return;
+    setMessages([]);
+    loadMessages(activeChannelId);
+  }, [activeChannelId, loadMessages]);
 
   useEffect(() => {
     if (!messagesRef.current) return;
     messagesRef.current.scrollTop = messagesRef.current.scrollHeight;
-  }, [activeThread?.messages?.length, activeThreadId]);
+  }, [messages.length, activeThreadId]);
 
   useEffect(() => {
-    if (!activeThreadId || !window.Echo) {
+    if (!activeChannelId || !window.Echo) {
       return;
     }
 
-    const channelName = `directmessage.${activeThreadId}`;
+    const channelName = `channel.${activeChannelId}`;
 
     window.Echo.private(channelName)
-      .listen('.directmessage.created', (event) => {
-        if (event?.directmessage?.id !== activeThreadId) return;
-        const nextMessage = event.message || event.directmessage_message || event.payload?.message;
+      .listen('.message.created', (event) => {
+        if (event?.channel?.id != activeChannelId && event?.message?.channel_id != activeChannelId) {
+          return;
+        }
+        const nextMessage = event.message || event.payload?.message;
         if (!nextMessage) return;
         const normalized = normalizeMessage(nextMessage);
         if (!normalized) return;
+        setMessages((prev) => [...prev, normalized]);
         setDmThreads((prev) =>
           prev.map((thread) =>
             thread.id === activeThreadId
@@ -310,12 +318,17 @@ const PrivateMessageLayout = () => {
           )
         );
       })
-      .listen('.directmessage.updated', (event) => {
-        if (event?.directmessage?.id !== activeThreadId) return;
-        const updatedMessage = event.message || event.directmessage_message || event.payload?.message;
+      .listen('.message.updated', (event) => {
+        if (event?.channel?.id != activeChannelId && event?.message?.channel_id != activeChannelId) {
+          return;
+        }
+        const updatedMessage = event.message || event.payload?.message;
         if (!updatedMessage) return;
         const normalized = normalizeMessage(updatedMessage);
         if (!normalized) return;
+        setMessages((prev) =>
+          prev.map((msg) => (msg.id === normalized.id ? { ...msg, ...normalized } : msg))
+        );
         setDmThreads((prev) =>
           prev.map((thread) =>
             thread.id === activeThreadId
@@ -329,10 +342,13 @@ const PrivateMessageLayout = () => {
           )
         );
       })
-      .listen('.directmessage.deleted', (event) => {
-        if (event?.directmessage?.id !== activeThreadId) return;
+      .listen('.message.deleted', (event) => {
+        if (event?.channel?.id != activeChannelId && event?.message?.channel_id != activeChannelId) {
+          return;
+        }
         const deletedId = event.message?.id || event.message_id || event.payload?.message_id;
         if (!deletedId) return;
+        setMessages((prev) => prev.filter((msg) => msg.id !== deletedId));
         setDmThreads((prev) =>
           prev.map((thread) =>
             thread.id === activeThreadId
@@ -348,7 +364,7 @@ const PrivateMessageLayout = () => {
     return () => {
       window.Echo.leave(channelName);
     };
-  }, [activeThreadId, normalizeMessage]);
+  }, [activeChannelId, activeThreadId, normalizeMessage]);
 
   const updateThread = (threadId, updater) => {
     setDmThreads((prev) =>
@@ -365,9 +381,11 @@ const PrivateMessageLayout = () => {
     setReplyingId(null);
     setMessageError('');
     try {
-      const { data } = await api.post(
-        `channels/${activeThread.id}/messages?content=${encodeURIComponent(content)}`
-      );
+      const channelId = activeThread.channelId || activeThread.id;
+      const { data } = await api.post(`channels/${channelId}/messages`, {
+        content,
+        reply_to: replyTo,
+      });
       const created = normalizeMessage(data) || {
         id: `msg-${Date.now()}`,
         author: { id: currentUser.id, name: currentUser.username || currentUser.name || 'You' },
@@ -379,6 +397,7 @@ const PrivateMessageLayout = () => {
         ...thread,
         messages: [...thread.messages, created],
       }));
+      setMessages((prev) => [...prev, created]);
     } catch (error) {
       console.error(error);
       setMessageError('Unable to send message.');
@@ -416,8 +435,8 @@ const PrivateMessageLayout = () => {
 
   const replyPreview = useMemo(() => {
     if (!activeThread || !replyingId) return null;
-    return activeThread.messages.find((msg) => msg.id === replyingId) || null;
-  }, [activeThread, replyingId]);
+    return messages.find((msg) => msg.id === replyingId) || null;
+  }, [activeThread, messages, replyingId]);
 
   return (
     <BaseAuthLayout>
@@ -468,7 +487,7 @@ const PrivateMessageLayout = () => {
                   <button
                     key={thread.id}
                     type="button"
-                    onClick={() => setActiveThreadId(thread.id)}
+                    onClick={() => setActiveThreadId(thread.channelId || thread.id)}
                     className={`mb-2 flex w-full items-center gap-3 rounded px-3 py-2 text-left text-sm transition-colors ${
                       isActive ? 'bg-gray-700 text-white' : 'text-gray-400 hover:bg-gray-800/60'
                     }`}
@@ -510,15 +529,15 @@ const PrivateMessageLayout = () => {
                   <div className="rounded bg-red-500/10 px-3 py-2 text-xs text-red-300">
                     {messageError}
                   </div>
-                ) : activeThread.messages.length === 0 ? (
+                ) : messages.length === 0 ? (
                   <div className="rounded bg-gray-800/60 px-3 py-2 text-xs text-gray-400">
                     No messages yet.
                   </div>
                 ) : (
-                  activeThread.messages.map((message) => {
+                  messages.map((message) => {
                     const isEditing = editingId === message.id;
                     const replyTarget = message.reply_to
-                      ? activeThread.messages.find((msg) => msg.id === message.reply_to)
+                      ? messages.find((msg) => msg.id === message.reply_to)
                       : null;
                     return (
                       <div key={message.id} className="group mb-3 rounded p-2 hover:bg-gray-800/60">
