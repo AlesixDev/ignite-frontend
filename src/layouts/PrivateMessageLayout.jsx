@@ -3,8 +3,8 @@ import { toast } from 'react-toastify';
 import BaseAuthLayout from './BaseAuthLayout';
 import useStore from '../hooks/useStore';
 import api from '../api';
-import Channel from '../components/Channel';
-import { ChannelContextProvider } from '../contexts/ChannelContext';
+
+const nowIso = () => new Date().toISOString();
 
 const PrivateMessageLayout = () => {
   const store = useStore();
@@ -13,7 +13,15 @@ const PrivateMessageLayout = () => {
   const [activeThreadId, setActiveThreadId] = useState(null);
   const [loadingThreads, setLoadingThreads] = useState(true);
   const [threadError, setThreadError] = useState('');
+  const [loadingMessages, setLoadingMessages] = useState(false);
+  const [messageError, setMessageError] = useState('');
   const [newRecipientId, setNewRecipientId] = useState('');
+  const [messageText, setMessageText] = useState('');
+  const [replyingId, setReplyingId] = useState(null);
+  const [editingId, setEditingId] = useState(null);
+  const [editText, setEditText] = useState('');
+  const [messages, setMessages] = useState([]);
+  const messagesRef = useRef(null);
   const memberCacheRef = useRef(new Map());
 
   const normalizeUser = useCallback((user) => {
@@ -23,6 +31,29 @@ const PrivateMessageLayout = () => {
       name: user.name || user.username || 'Unknown',
     };
   }, []);
+
+  const normalizeMessage = useCallback((message) => {
+    if (!message) return null;
+    const authorFallbackId =
+      message.author_id || message.user_id || message.sender_id || message.from_id;
+    const authorFallback =
+      authorFallbackId != null ? { id: authorFallbackId } : null;
+    return {
+      id: message.id,
+      author: normalizeUser(
+        message.author ||
+          message.user ||
+          message.sender ||
+          message.from ||
+          authorFallback
+      ),
+      content: message.content || message.body || '',
+      reply_to: message.reply_to || message.replyTo || null,
+      created_at:
+        message.created_at || message.createdAt || message.timestamp || nowIso(),
+      updated_at: message.updated_at || message.updatedAt || null,
+    };
+  }, [normalizeUser]);
 
   const resolveMemberInfo = useCallback(async (memberId) => {
     if (!memberId) return null;
@@ -51,7 +82,7 @@ const PrivateMessageLayout = () => {
   const hydrateThreadUsers = useCallback(async (threads) => {
     const targets = (threads || []).filter(
       (thread) =>
-        (thread?.recipientId || thread?.user?.id) &&
+        thread?.user?.id &&
         (!thread.user.username ||
           thread.user.name === 'Unknown' ||
           thread.user.name?.startsWith('DM '))
@@ -59,7 +90,7 @@ const PrivateMessageLayout = () => {
     if (targets.length === 0) return;
 
     const results = await Promise.all(
-      targets.map((thread) => resolveMemberInfo(thread.recipientId || thread.user.id))
+      targets.map((thread) => resolveMemberInfo(thread.user.id))
     );
     const resolved = new Map(
       results.filter(Boolean).map((info) => [info.id, info])
@@ -68,8 +99,53 @@ const PrivateMessageLayout = () => {
 
     setDmThreads((prev) =>
       prev.map((thread) => {
-        const info = resolved.get(thread.recipientId || thread.user?.id);
+        const info = resolved.get(thread.user?.id);
         return info ? { ...thread, user: { ...thread.user, ...info } } : thread;
+      })
+    );
+  }, [currentUser.id, resolveMemberInfo]);
+
+  const hydrateAuthorInfo = useCallback(async (threadId, messages) => {
+    const missingIds = new Set(
+      (messages || [])
+        .map((message) => message?.author)
+        .filter(
+          (author) =>
+            author?.id &&
+            String(author.id) !== String(currentUser.id) &&
+            (!author?.username && (!author?.name || author.name === 'Unknown'))
+        )
+        .map((author) => author.id)
+    );
+
+    if (missingIds.size === 0) return;
+
+    const results = await Promise.all(
+      Array.from(missingIds).map((memberId) => resolveMemberInfo(memberId))
+    );
+    const resolved = new Map(
+      results.filter(Boolean).map((info) => [info.id, info])
+    );
+
+    if (resolved.size === 0) return;
+
+    setDmThreads((prev) =>
+      prev.map((thread) => {
+        if (thread.id !== threadId) return thread;
+        const nextMessages = thread.messages.map((message) => {
+          const info = resolved.get(message.author?.id);
+          if (!info) return message;
+          return {
+            ...message,
+            author: { ...message.author, ...info },
+          };
+        });
+        const threadInfo = resolved.get(thread.user?.id);
+        return {
+          ...thread,
+          messages: nextMessages,
+          user: threadInfo ? { ...thread.user, ...threadInfo } : thread.user,
+        };
       })
     );
   }, [resolveMemberInfo]);
@@ -77,12 +153,6 @@ const PrivateMessageLayout = () => {
   const normalizeThread = useCallback((thread) => {
     if (!thread) return null;
     const threadId = thread.id || thread.channel_id || thread.channelId;
-    const recipientId =
-      thread.recipient_id ||
-      thread.recipient?.id ||
-      thread.user_id ||
-      thread.user?.id ||
-      null;
     const recipients =
       thread.recipients || thread.users || thread.members || thread.participants || [];
     const fallbackUser =
@@ -96,13 +166,22 @@ const PrivateMessageLayout = () => {
       recipients[0] ||
       fallbackUser ||
       { id: threadId, name: `DM ${threadId || ''}`.trim() };
+    const rawMessages =
+      thread.messages ||
+      thread.direct_messages ||
+      thread.directmessage_messages ||
+      thread.message_history ||
+      [];
+    const messages = rawMessages
+      .map(normalizeMessage)
+      .filter(Boolean);
     return {
       id: threadId,
-      channel_id: thread.channel_id || thread.channelId || threadId,
-      recipientId,
+      channelId: thread.channel_id || thread.channelId || threadId,
       user: normalizeUser(otherUser),
+      messages,
     };
-  }, [currentUser.id, normalizeUser]);
+  }, [currentUser.id, normalizeMessage, normalizeUser]);
 
   const loadThreads = useCallback(async () => {
     setLoadingThreads(true);
@@ -144,24 +223,220 @@ const PrivateMessageLayout = () => {
     }
   }, [normalizeThread]);
 
+  const loadMessages = useCallback(async (channelId) => {
+    if (!channelId) return;
+    setLoadingMessages(true);
+    setMessageError('');
+    try {
+      const { data } = await api.get(`channels/${channelId}/messages`);
+      console.log('DM messages response', channelId, data);
+      const messages = (Array.isArray(data) ? data : data?.data || [])
+        .map(normalizeMessage)
+        .filter(Boolean);
+      const authorIds = messages
+        .map((message) => message.author?.id)
+        .filter(Boolean);
+      if (authorIds.length > 0) {
+        console.log('DM message author ids', channelId, authorIds);
+        const receiverId = authorIds.find((id) => String(id) !== String(currentUser.id));
+        if (receiverId) {
+          const receiverInfo = await resolveMemberInfo(receiverId);
+          if (receiverInfo) {
+            setDmThreads((prev) =>
+              prev.map((thread) =>
+                thread.id === channelId
+                  ? { ...thread, user: { ...thread.user, ...receiverInfo } }
+                  : thread
+              )
+            );
+          }
+        }
+      }
+      const otherAuthor = messages.find(
+        (message) => message.author?.id && message.author.id !== currentUser.id
+      )?.author;
+      setDmThreads((prev) =>
+        prev.map((thread) =>
+          thread.id === channelId
+            ? { ...thread, messages, user: otherAuthor ? normalizeUser(otherAuthor) : thread.user }
+            : thread
+        )
+      );
+      setMessages(messages);
+      hydrateAuthorInfo(channelId, messages);
+    } catch (error) {
+      console.error(error);
+      setMessageError('Unable to load messages.');
+    } finally {
+      setLoadingMessages(false);
+    }
+  }, [currentUser.id, hydrateAuthorInfo, normalizeMessage, normalizeUser, resolveMemberInfo]);
+
   const activeThread = useMemo(
     () => dmThreads.find((thread) => thread.id === activeThreadId) || null,
     [activeThreadId, dmThreads]
   );
-
-  const activeChannel = useMemo(() => {
-    if (!activeThread) return null;
-    const name = activeThread.user?.username || activeThread.user?.name || 'Direct Message';
-    return {
-      ...activeThread,
-      channel_id: activeThread.channel_id || activeThread.id,
-      name,
-    };
-  }, [activeThread]);
+  const activeChannelId = activeThread?.channelId || activeThreadId;
 
   useEffect(() => {
     loadThreads();
   }, [loadThreads]);
+
+  useEffect(() => {
+    if (!activeChannelId) return;
+    setMessages([]);
+    loadMessages(activeChannelId);
+  }, [activeChannelId, loadMessages]);
+
+  useEffect(() => {
+    if (!messagesRef.current) return;
+    messagesRef.current.scrollTop = messagesRef.current.scrollHeight;
+  }, [messages.length, activeThreadId]);
+
+  useEffect(() => {
+    if (!activeChannelId || !window.Echo) {
+      return;
+    }
+
+    const channelName = `channel.${activeChannelId}`;
+
+    window.Echo.private(channelName)
+      .listen('.message.created', (event) => {
+        if (event?.channel?.id != activeChannelId && event?.message?.channel_id != activeChannelId) {
+          return;
+        }
+        const nextMessage = event.message || event.payload?.message;
+        if (!nextMessage) return;
+        const normalized = normalizeMessage(nextMessage);
+        if (!normalized) return;
+        setMessages((prev) => [...prev, normalized]);
+        setDmThreads((prev) =>
+          prev.map((thread) =>
+            thread.id === activeThreadId
+              ? { ...thread, messages: [...thread.messages, normalized] }
+              : thread
+          )
+        );
+      })
+      .listen('.message.updated', (event) => {
+        if (event?.channel?.id != activeChannelId && event?.message?.channel_id != activeChannelId) {
+          return;
+        }
+        const updatedMessage = event.message || event.payload?.message;
+        if (!updatedMessage) return;
+        const normalized = normalizeMessage(updatedMessage);
+        if (!normalized) return;
+        setMessages((prev) =>
+          prev.map((msg) => (msg.id === normalized.id ? { ...msg, ...normalized } : msg))
+        );
+        setDmThreads((prev) =>
+          prev.map((thread) =>
+            thread.id === activeThreadId
+              ? {
+                  ...thread,
+                  messages: thread.messages.map((msg) =>
+                    msg.id === normalized.id ? { ...msg, ...normalized } : msg
+                  ),
+                }
+              : thread
+          )
+        );
+      })
+      .listen('.message.deleted', (event) => {
+        if (event?.channel?.id != activeChannelId && event?.message?.channel_id != activeChannelId) {
+          return;
+        }
+        const deletedId = event.message?.id || event.message_id || event.payload?.message_id;
+        if (!deletedId) return;
+        setMessages((prev) => prev.filter((msg) => msg.id !== deletedId));
+        setDmThreads((prev) =>
+          prev.map((thread) =>
+            thread.id === activeThreadId
+              ? {
+                  ...thread,
+                  messages: thread.messages.filter((msg) => msg.id !== deletedId),
+                }
+              : thread
+          )
+        );
+      });
+
+    return () => {
+      window.Echo.leave(channelName);
+    };
+  }, [activeChannelId, activeThreadId, normalizeMessage]);
+
+  const updateThread = (threadId, updater) => {
+    setDmThreads((prev) =>
+      prev.map((thread) => (thread.id === threadId ? updater(thread) : thread))
+    );
+  };
+
+  const sendMessage = async (event) => {
+    event.preventDefault();
+    if (!activeThread || !messageText.trim()) return;
+    const content = messageText.trim();
+    const replyTo = replyingId;
+    setMessageText('');
+    setReplyingId(null);
+    setMessageError('');
+    try {
+      const channelId = activeThread.channelId || activeThread.id;
+      const { data } = await api.post(`channels/${channelId}/messages`, {
+        content,
+        reply_to: replyTo,
+      });
+      const created = normalizeMessage(data) || {
+        id: `msg-${Date.now()}`,
+        author: { id: currentUser.id, name: currentUser.username || currentUser.name || 'You' },
+        content,
+        reply_to: replyTo,
+        created_at: nowIso(),
+      };
+      updateThread(activeThread.id, (thread) => ({
+        ...thread,
+        messages: [...thread.messages, created],
+      }));
+      setMessages((prev) => [...prev, created]);
+    } catch (error) {
+      console.error(error);
+      setMessageError('Unable to send message.');
+      setMessageText(content);
+    }
+  };
+
+  const startEdit = (message) => {
+    setEditingId(message.id);
+    setEditText(message.content);
+  };
+
+  const saveEdit = (event) => {
+    event.preventDefault();
+    if (!activeThread || !editingId) return;
+    const content = editText.trim();
+    if (!content) return;
+    updateThread(activeThread.id, (thread) => ({
+      ...thread,
+      messages: thread.messages.map((msg) =>
+        msg.id === editingId ? { ...msg, content, updated_at: nowIso() } : msg
+      ),
+    }));
+    setEditingId(null);
+    setEditText('');
+  };
+
+  const deleteMessage = (messageId) => {
+    if (!activeThread) return;
+    updateThread(activeThread.id, (thread) => ({
+      ...thread,
+      messages: thread.messages.filter((msg) => msg.id !== messageId),
+    }));
+  };
+
+  const replyPreview = useMemo(() => {
+    if (!activeThread || !replyingId) return null;
+    return messages.find((msg) => msg.id === replyingId) || null;
+  }, [activeThread, messages, replyingId]);
 
   return (
     <BaseAuthLayout>
@@ -207,11 +482,12 @@ const PrivateMessageLayout = () => {
               dmThreads.map((thread) => {
                 const isActive = thread.id === activeThreadId;
                 const name = thread.user?.username || thread.user?.name || 'Unknown';
+                const lastMessage = thread.messages[thread.messages.length - 1]?.content;
                 return (
                   <button
                     key={thread.id}
                     type="button"
-                    onClick={() => setActiveThreadId(thread.channel_id || thread.id)}
+                    onClick={() => setActiveThreadId(thread.channelId || thread.id)}
                     className={`mb-2 flex w-full items-center gap-3 rounded px-3 py-2 text-left text-sm transition-colors ${
                       isActive ? 'bg-gray-700 text-white' : 'text-gray-400 hover:bg-gray-800/60'
                     }`}
@@ -226,7 +502,7 @@ const PrivateMessageLayout = () => {
                     <div className="min-w-0">
                       <div className="truncate font-medium text-gray-200">{name}</div>
                       <div className="truncate text-xs text-gray-500">
-                        Open to view messages
+                        {lastMessage || 'No messages yet'}
                       </div>
                     </div>
                   </button>
@@ -237,10 +513,118 @@ const PrivateMessageLayout = () => {
         </aside>
 
         <main className="flex min-w-0 flex-1 flex-col bg-gray-700">
-          {activeChannel ? (
-            <ChannelContextProvider>
-              <Channel channel={activeChannel} />
-            </ChannelContextProvider>
+          {activeThread ? (
+            <>
+              <div className="flex items-center border-b border-gray-800 px-6 py-4">
+                <div className="text-sm font-semibold text-gray-100">
+                  {activeThread.user?.username || activeThread.user?.name || 'Direct Message'}
+                </div>
+              </div>
+              <div className="flex-1 overflow-y-auto px-6 py-4 text-sm text-gray-300" ref={messagesRef}>
+                {loadingMessages ? (
+                  <div className="rounded bg-gray-800/60 px-3 py-2 text-xs text-gray-400">
+                    Loading messages...
+                  </div>
+                ) : messageError ? (
+                  <div className="rounded bg-red-500/10 px-3 py-2 text-xs text-red-300">
+                    {messageError}
+                  </div>
+                ) : messages.length === 0 ? (
+                  <div className="rounded bg-gray-800/60 px-3 py-2 text-xs text-gray-400">
+                    No messages yet.
+                  </div>
+                ) : (
+                  messages.map((message) => {
+                    const isEditing = editingId === message.id;
+                    const replyTarget = message.reply_to
+                      ? messages.find((msg) => msg.id === message.reply_to)
+                      : null;
+                    return (
+                      <div key={message.id} className="group mb-3 rounded p-2 hover:bg-gray-800/60">
+                        <div className="flex items-center gap-2 text-xs text-gray-500">
+                          <span className="font-semibold text-gray-200">{message.author.name}</span>
+                          <span>{new Date(message.created_at).toLocaleTimeString()}</span>
+                          {message.updated_at && (
+                            <span className="text-[10px] text-gray-500">(edited)</span>
+                          )}
+                        </div>
+                        {replyTarget && (
+                          <div className="mt-1 rounded border border-gray-800 bg-gray-900/60 px-2 py-1 text-[11px] text-gray-400">
+                            Replying to {replyTarget.author.name}: {replyTarget.content}
+                          </div>
+                        )}
+                        {isEditing ? (
+                          <form onSubmit={saveEdit} className="mt-2">
+                            <input
+                              value={editText}
+                              onChange={(event) => setEditText(event.target.value)}
+                              className="w-full rounded bg-gray-600 px-3 py-2 text-sm text-white outline-none"
+                            />
+                          </form>
+                        ) : (
+                          <div className="mt-1 text-sm text-gray-200">{message.content}</div>
+                        )}
+                        <div className="mt-2 hidden gap-2 text-[10px] text-gray-400 group-hover:flex">
+                          <button
+                            type="button"
+                            className="rounded border border-gray-700 px-2 py-1 hover:bg-gray-800"
+                            onClick={() => setReplyingId(message.id)}
+                          >
+                            Reply
+                          </button>
+                          {message.author.id === currentUser.id && (
+                            <>
+                              <button
+                                type="button"
+                                className="rounded border border-gray-700 px-2 py-1 hover:bg-gray-800"
+                                onClick={() => startEdit(message)}
+                              >
+                                Edit
+                              </button>
+                              <button
+                                type="button"
+                                className="rounded border border-gray-700 px-2 py-1 hover:bg-gray-800"
+                                onClick={() => deleteMessage(message.id)}
+                              >
+                                Delete
+                              </button>
+                            </>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })
+                )}
+              </div>
+              <div className="px-6 pb-6">
+                {replyPreview && (
+                  <div className="mb-2 flex items-center justify-between rounded bg-gray-800 px-3 py-2 text-xs text-gray-300">
+                    Replying to {replyPreview.author.name}: {replyPreview.content}
+                    <button
+                      type="button"
+                      className="text-gray-400 hover:text-gray-200"
+                      onClick={() => setReplyingId(null)}
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                )}
+                <form onSubmit={sendMessage} className="flex items-center gap-2 rounded bg-gray-600 px-3 py-2">
+                  <input
+                    value={messageText}
+                    onChange={(event) => setMessageText(event.target.value)}
+                    className="w-full bg-transparent text-sm text-white outline-none placeholder:text-gray-400"
+                    placeholder="Message..."
+                  />
+                  <button
+                    type="submit"
+                    className="rounded bg-gray-800 px-3 py-1 text-xs text-gray-200 hover:bg-gray-700"
+                  >
+                    Send
+                  </button>
+                </form>
+              </div>
+            </>
           ) : (
             <div className="flex flex-1 items-center justify-center text-sm text-gray-400">
               Select a conversation to start messaging.
