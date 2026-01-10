@@ -3,6 +3,7 @@ import ServerInfo from './ServerInfo';
 import ServerRoleManager from './ServerRoleManager';
 import ServerChannelManager from './ServerChannelManager';
 import ServerMemberManager from './ServerMemberManager';
+import ServerInviteManager from './ServerInviteManager';
 
 const ServerSettings = ({ isOpen, onClose, guild, initialTab = 'info', editChannelId, onEditChannelChange }) => {
   const [activeTab, setActiveTab] = useState('info');
@@ -12,6 +13,7 @@ const ServerSettings = ({ isOpen, onClose, guild, initialTab = 'info', editChann
       { id: 'info', label: 'Server Info', component: <ServerInfo guild={guild} /> },
       { id: 'roles', label: 'Role Manager', component: <ServerRoleManager guild={guild} /> },
       { id: 'members', label: 'Member Management', component: <ServerMemberManager guild={guild} /> },
+      { id: 'invites', label: 'Invites', component: <ServerInviteManager guild={guild} /> },
       {
         id: 'channels',
         label: 'Channel Manager',

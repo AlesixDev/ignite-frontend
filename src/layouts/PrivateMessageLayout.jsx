@@ -27,7 +27,7 @@ const PrivateMessageLayout = () => {
         {
           id: 'msg-3',
           author: { id: 'user-2', name: 'Nova' },
-          content: 'Test DM',
+          content: 'Test DM.',
           created_at: nowIso(),
         },
       ],
