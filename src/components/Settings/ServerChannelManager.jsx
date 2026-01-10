@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { FormProvider, useForm } from 'react-hook-form';
 import api from '../../api';
 import FormError from '../Form/FormError';
@@ -10,8 +10,13 @@ const ServerChannelManager = ({ guild, editChannelId, onEditChannelChange }) => 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [channels, setChannels] = useState([]);
+  const [roles, setRoles] = useState([]);
+  const [channelPermissions, setChannelPermissions] = useState([]);
+  const [permissionsLoading, setPermissionsLoading] = useState(false);
+  const [permissionsError, setPermissionsError] = useState('');
   const createForm = useForm({ defaultValues: { name: '', type: '0' } });
   const editForm = useForm({ defaultValues: { name: '', position: '' } });
+  const permissionsForm = useForm({ defaultValues: { roleId: '', allowed: '', denied: '' } });
   const [editingChannelId, setEditingChannelId] = useState(null);
 
   useEffect(() => {
@@ -22,10 +27,14 @@ const ServerChannelManager = ({ guild, editChannelId, onEditChannelChange }) => 
     setError('');
     setChannels([]);
 
-    api.get(`/guilds/${guild.id}/channels`)
-      .then((response) => {
+    Promise.all([
+      api.get(`/guilds/${guild.id}/channels`),
+      api.get(`/guilds/${guild.id}/roles`),
+    ])
+      .then(([channelsResponse, rolesResponse]) => {
         if (!active) return;
-        setChannels(Array.isArray(response.data) ? response.data : []);
+        setChannels(Array.isArray(channelsResponse.data) ? channelsResponse.data : []);
+        setRoles(Array.isArray(rolesResponse.data) ? rolesResponse.data : []);
       })
       .catch((err) => {
         if (!active) return;
@@ -80,6 +89,7 @@ const ServerChannelManager = ({ guild, editChannelId, onEditChannelChange }) => 
   const cancelEditChannel = () => {
     setEditingChannelId(null);
     editForm.reset({ name: '', position: '' });
+    permissionsForm.reset({ roleId: '', allowed: '', denied: '' });
     onEditChannelChange?.(null);
   };
 
@@ -167,6 +177,78 @@ const ServerChannelManager = ({ guild, editChannelId, onEditChannelChange }) => 
     );
     if (nextChannel) startEditChannel(nextChannel);
   }, [channels, editChannelId, editingChannelId]);
+
+  useEffect(() => {
+    if (!editingChannelId) {
+      setChannelPermissions([]);
+      setPermissionsError('');
+      return;
+    }
+
+    let active = true;
+    setPermissionsLoading(true);
+    setPermissionsError('');
+
+    api.get(`/channels/${editingChannelId}/permissions`)
+      .then((response) => {
+        if (!active) return;
+        setChannelPermissions(Array.isArray(response.data) ? response.data : []);
+      })
+      .catch((err) => {
+        if (!active) return;
+        const msg = err.response?.data?.message || err.message || 'Could not load channel permissions.';
+        setPermissionsError(msg);
+      })
+      .finally(() => {
+        if (!active) return;
+        setPermissionsLoading(false);
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [editingChannelId]);
+
+  const roleNameById = useMemo(() => {
+    return roles.reduce((acc, role) => {
+      const roleId = role.id || role.role_id;
+      if (roleId) acc[roleId] = role.name || role.role_name || roleId;
+      return acc;
+    }, {});
+  }, [roles]);
+
+  const handleAddPermission = async (data) => {
+    if (!editingChannelId || !data.roleId) return;
+    setPermissionsError('');
+
+    try {
+      const params = {};
+      if (data.allowed?.trim()) params.allowed_permissions = data.allowed.trim();
+      if (data.denied?.trim()) params.denied_permissions = data.denied.trim();
+      await api.put(`/channels/${editingChannelId}/permissions/${data.roleId}`, null, { params });
+      permissionsForm.reset({ roleId: '', allowed: '', denied: '' });
+      const response = await api.get(`/channels/${editingChannelId}/permissions`);
+      setChannelPermissions(Array.isArray(response.data) ? response.data : []);
+    } catch (err) {
+      const msg = err.response?.data?.message || err.message || 'Could not update channel permissions.';
+      setPermissionsError(msg);
+    }
+  };
+
+  const handleRemovePermission = async (roleId) => {
+    if (!editingChannelId || !roleId) return;
+    setPermissionsError('');
+
+    try {
+      await api.delete(`/channels/${editingChannelId}/permissions/${roleId}`);
+      setChannelPermissions((prev) =>
+        prev.filter((perm) => (perm.role_id || perm.id || perm.roleId) !== roleId)
+      );
+    } catch (err) {
+      const msg = err.response?.data?.message || err.message || 'Could not remove channel permission.';
+      setPermissionsError(msg);
+    }
+  };
 
   return (
     <div className="space-y-6">
@@ -256,6 +338,84 @@ const ServerChannelManager = ({ guild, editChannelId, onEditChannelChange }) => 
               </div>
             </form>
           </FormProvider>
+        )}
+        {editingChannelId && (
+          <div className="mb-4 rounded border border-gray-800 bg-gray-900/40 p-3 text-xs text-gray-300">
+            <FormProvider {...permissionsForm}>
+              <form onSubmit={permissionsForm.handleSubmit(handleAddPermission)} className="grid gap-3 sm:grid-cols-[1fr_1fr_1fr_auto] sm:items-end">
+                <div>
+                  <FormLabel htmlFor="permission-role">Role</FormLabel>
+                  <select
+                    id="permission-role"
+                    {...permissionsForm.register('roleId', { required: true })}
+                    className="w-full rounded-md border border-gray-700 bg-gray-800 px-3 py-2 text-xs text-white"
+                  >
+                    <option value="">Select role</option>
+                    {roles.map((role) => (
+                      <option key={role.id || role.role_id} value={role.id || role.role_id}>
+                        {role.name || role.role_name || 'Unnamed role'}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <FormLabel htmlFor="permission-allowed">Allowed</FormLabel>
+                  <FormInput
+                    id="permission-allowed"
+                    type="text"
+                    name="allowed"
+                    placeholder="4"
+                    className="text-xs"
+                  />
+                </div>
+                <div>
+                  <FormLabel htmlFor="permission-denied">Denied</FormLabel>
+                  <FormInput
+                    id="permission-denied"
+                    type="text"
+                    name="denied"
+                    placeholder="0"
+                    className="text-xs"
+                  />
+                </div>
+                <FormSubmit form={permissionsForm} label="Add Permission" />
+              </form>
+            </FormProvider>
+            {permissionsLoading && <div className="mt-2 text-xs text-gray-400">Loading permissions...</div>}
+            {permissionsError && <div className="mt-2 text-xs text-red-400">{permissionsError}</div>}
+            {!permissionsLoading && !permissionsError && (
+              <div className="mt-3 space-y-2">
+                {channelPermissions.length === 0 ? (
+                  <div className="text-xs text-gray-400">No permissions assigned.</div>
+                ) : (
+                  channelPermissions.map((perm) => {
+                    const roleId = perm.role_id || perm.id || perm.roleId;
+                    return (
+                      <div
+                        key={roleId}
+                        className="flex items-center justify-between rounded border border-gray-800 bg-gray-950/40 px-3 py-2"
+                      >
+                        <div className="text-xs text-gray-200">
+                          {roleNameById[roleId] || roleId}
+                          <span className="ml-2 text-[10px] text-gray-500">
+                            allowed: {perm.allowed_permissions ?? perm.allowed ?? 0} | denied:{' '}
+                            {perm.denied_permissions ?? perm.denied ?? 0}
+                          </span>
+                        </div>
+                        <button
+                          type="button"
+                          className="rounded border border-red-500/60 px-2 py-1 text-[10px] text-red-200 hover:bg-red-500/10"
+                          onClick={() => handleRemovePermission(roleId)}
+                        >
+                          Remove
+                        </button>
+                      </div>
+                    );
+                  })
+                )}
+              </div>
+            )}
+          </div>
         )}
         {loading && <div className="text-xs text-gray-400">Loading channels...</div>}
         {error && <div className="text-xs text-red-400">{error}</div>}

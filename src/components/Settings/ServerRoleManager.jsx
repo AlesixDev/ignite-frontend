@@ -4,14 +4,15 @@ import api from '../../api';
 import FormError from '../Form/FormError';
 import FormInput from '../Form/FormInput';
 import FormLabel from '../Form/FormLabel';
+import FormToggle from '../Form/FormToggle';
 import FormSubmit from '../Form/FormSubmit';
 
 const ServerRoleManager = ({ guild }) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [rolesResponse, setRolesResponse] = useState(null);
-  const createForm = useForm({ defaultValues: { name: '', permissions: '' } });
-  const editForm = useForm({ defaultValues: { name: '', permissions: '' } });
+  const createForm = useForm({ defaultValues: { name: '', permissions: '', mentionable: false } });
+  const editForm = useForm({ defaultValues: { name: '', permissions: '', mentionable: false } });
   const [editingRoleId, setEditingRoleId] = useState(null);
 
   const fetchRoles = useCallback(async () => {
@@ -49,8 +50,11 @@ const ServerRoleManager = ({ guild }) => {
       if (data.permissions?.trim()) {
         params.permissions = data.permissions.trim();
       }
+      if (typeof data.mentionable === 'boolean') {
+        params.mentionable = data.mentionable ? 1 : 0;
+      }
       await api.post(`/guilds/${guild.id}/roles`, null, { params });
-      createForm.reset({ name: '', permissions: '' });
+      createForm.reset({ name: '', permissions: '', mentionable: false });
       await fetchRoles();
     } catch (err) {
       const msg = err.response?.data?.message || err.message || 'Could not create role.';
@@ -66,6 +70,7 @@ const ServerRoleManager = ({ guild }) => {
     editForm.reset({
       name: role.name || role.role_name || '',
       permissions: role.permissions ?? '',
+      mentionable: Boolean(role.mentionable),
     });
   };
 
@@ -83,10 +88,11 @@ const ServerRoleManager = ({ guild }) => {
       const params = {};
       if (data.name?.trim()) params.name = data.name.trim();
       if (data.permissions?.trim()) params.permissions = data.permissions.trim();
+      params.mentionable = data.mentionable ? 1 : 0;
       await api.patch(`/guilds/${guild.id}/roles/${editingRoleId}`, null, { params });
       await fetchRoles();
       setEditingRoleId(null);
-      editForm.reset({ name: '', permissions: '' });
+      editForm.reset({ name: '', permissions: '', mentionable: false });
     } catch (err) {
       const msg = err.response?.data?.message || err.message || 'Could not update role.';
       setError(msg);
@@ -154,6 +160,9 @@ const ServerRoleManager = ({ guild }) => {
                 className="text-xs"
               />
             </div>
+            <div className="flex items-center">
+              <FormToggle name="mentionable" label="Mentionable" />
+            </div>
             <FormSubmit form={createForm} label="Add Role" />
           </form>
         </FormProvider>
@@ -189,6 +198,9 @@ const ServerRoleManager = ({ guild }) => {
                   />
                 </div>
               </div>
+              <div className="mt-3">
+                <FormToggle name="mentionable" label="Mentionable" />
+              </div>
               <div className="mt-3 flex items-center gap-2">
                 <FormSubmit form={editForm} label="Save" />
                 <button
@@ -221,7 +233,7 @@ const ServerRoleManager = ({ guild }) => {
                       {role.name || role.role_name || 'Unnamed role'}
                     </div>
                     <div className="text-[10px] text-gray-500">
-                      Permissions: {role.permissions ?? 0}
+                      Permissions: {role.permissions ?? 0} · Mentionable: {role.mentionable ? 'Yes' : 'No'}
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
