@@ -240,6 +240,37 @@ const PrivateMessageLayout = () => {
   }, [activeThread]);
 
   useEffect(() => {
+    console.log('Current User:', currentUser);
+
+    window.Echo.private(`user.${currentUser.id}`)
+      .listen('.friendrequest.created', (event) => {
+        // {"friendRequest":{"sender_id":"1357682785875132416","receiver_id":"1","id":"1357686439940194304","created_at":"2026-01-11T12:01:11.000000Z"}}
+        if (event.friendRequest?.receiver_id == currentUser.id) {
+          toast.info('You have a new friend request.');
+          loadFriendRequests();
+
+          // console.log("Old Friend Requests:", friendRequests);
+          // setFriendRequests(friendRequests.concat([event.friendRequest]));
+          // console.log("New Friend Requests:", friendRequests);
+        }
+      })
+      .listen('.message.updated', (event) => {
+        if (event.channel.id == channel.channel_id) {
+          setMessages(messages.map((m) => m.id === event.message.id ? { ...m, content: event.message.content, updated_at: event.message.updated_at } : m));
+        }
+      })
+      .listen('.message.deleted', (event) => {
+        if (event.channel.id == channel.channel_id) {
+          setMessages(messages.filter((m) => m.id !== event.message.id));
+        }
+      });
+
+    return () => {
+      window.Echo.leave(`user.${currentUser.id}}`);
+    };
+  }, [currentUser]);
+
+  useEffect(() => {
     loadThreads();
     loadFriends();
     loadFriendRequests();
@@ -257,9 +288,8 @@ const PrivateMessageLayout = () => {
           />
         )}
         <aside
-          className={`fixed inset-y-0 left-0 z-40 flex h-full w-64 shrink-0 flex-col border-r border-gray-800 bg-gray-800 text-gray-100 transition-transform duration-300 ease-out md:static md:translate-x-0 ${
-            isSidebarOpen ? 'translate-x-0' : '-translate-x-full'
-          }`}
+          className={`fixed inset-y-0 left-0 z-40 flex h-full w-64 shrink-0 flex-col border-r border-gray-800 bg-gray-800 text-gray-100 transition-transform duration-300 ease-out md:static md:translate-x-0 ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'
+            }`}
         >
           <div className="p-4 text-sm font-semibold text-gray-200">Direct Messages</div>
           <div className="p-4">
@@ -296,15 +326,15 @@ const PrivateMessageLayout = () => {
                 {friendRequests.map((request) => {
                   const requestId =
                     request?.id || request?.request_id || request?.requestId;
-                  const receiver = request?.receiver || {};
-                  const receiverId = receiver?.id || request?.receiver_id || requestId;
-                  const receiverName = receiver?.username || receiver?.name || 'Unknown';
+                  const sender = request?.sender || {};
+                  const senderId = sender?.id || request?.sender_id || requestId;
+                  const senderName = sender?.username || sender?.name || 'Unknown';
                   return (
                     <div
-                      key={receiverId || requestId}
+                      key={senderId || requestId}
                       className="flex items-center justify-between rounded bg-gray-800/70 p-2"
                     >
-                      <span className="truncate">{receiverName}</span>
+                      <span className="truncate">{senderName}</span>
                       <button
                         type="button"
                         onClick={() => acceptFriendRequest(requestId)}
@@ -387,9 +417,8 @@ const PrivateMessageLayout = () => {
                       setActiveThreadId(thread.channel_id || thread.id);
                       setIsSidebarOpen(false);
                     }}
-                    className={`mb-2 flex w-full items-center gap-3 rounded px-3 py-2 text-left text-sm transition-colors ${
-                      isActive ? 'bg-gray-700 text-white' : 'text-gray-400 hover:bg-gray-800/60'
-                    }`}
+                    className={`mb-2 flex w-full items-center gap-3 rounded px-3 py-2 text-left text-sm transition-colors ${isActive ? 'bg-gray-700 text-white' : 'text-gray-400 hover:bg-gray-800/60'
+                      }`}
                   >
                     {thread.user?.avatar ? (
                       <img src={thread.user.avatar} alt={name} className="size-9 rounded-full" />
