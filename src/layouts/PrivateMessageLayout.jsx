@@ -192,6 +192,17 @@ const PrivateMessageLayout = () => {
     }
   }, [loadFriendRequests, loadFriends, toastResponse]);
 
+  const cancelFriendRequest = useCallback(async (requestId) => {
+    if (!requestId) return;
+    try {
+      const { data } = await api.delete(`@me/friends/requests/${requestId}`);
+      toastResponse('Friend request canceled', data);
+      loadFriendRequests();
+    } catch {
+      toast.error('Unable to cancel friend request.');
+    }
+  }, [loadFriendRequests, toastResponse]);
+
   const deleteFriend = useCallback(async (friendId) => {
     if (!friendId) return;
     try {
@@ -323,30 +334,75 @@ const PrivateMessageLayout = () => {
                 <div className="text-[10px] uppercase tracking-wide text-gray-500">
                   Requests
                 </div>
-                {friendRequests.map((request) => {
-                  const requestId =
-                    request?.id || request?.request_id || request?.requestId;
-                  const sender = request?.sender || {};
-                  const senderId = sender?.id || request?.sender_id || requestId;
-                  const senderName = sender?.username || sender?.name || 'Unknown';
-                  return (
-                    <div
-                      key={senderId || requestId}
-                      className="flex items-center justify-between rounded bg-gray-800/70 p-2"
-                    >
-                      <span className="truncate">{senderName}</span>
-                      <button
-                        type="button"
-                        onClick={() => acceptFriendRequest(requestId)}
-                        className="rounded bg-green-600/80 px-2 py-1 text-[10px] text-white hover:bg-green-500"
+                {friendRequests
+                  .filter((request) => {
+                    const sender = request?.sender || {};
+                    const senderId = sender?.id || request?.sender_id || request?.id || request?.request_id || request?.requestId;
+                    return senderId !== currentUser.id;
+                  })
+                  .map((request) => {
+                    const requestId =
+                      request?.id || request?.request_id || request?.requestId;
+                    const sender = request?.sender || {};
+                    const senderId = sender?.id || request?.sender_id || requestId;
+                    const senderName = sender?.username || sender?.name || 'Unknown';
+                    return (
+                      <div
+                        key={senderId || requestId}
+                        className="flex items-center justify-between rounded bg-gray-800/70 p-2"
                       >
-                        Accept
-                      </button>
-                    </div>
-                  );
-                })}
+                        <span className="truncate">{senderName}</span>
+                        <button
+                          type="button"
+                          onClick={() => acceptFriendRequest(requestId)}
+                          className="rounded bg-green-600/80 px-2 py-1 text-[10px] text-white hover:bg-green-500"
+                        >
+                          Accept
+                        </button>
+                      </div>
+                    );
+                  })}
               </div>
             )}
+
+            {friendRequests.length > 0 && (
+              <div className="mb-4 space-y-2 text-xs text-gray-200">
+                {/* Section header for outgoing requests */}
+                <div className="text-[10px] uppercase tracking-wide text-gray-500">
+                  Outgoing Requests
+                </div>
+                {friendRequests
+                  .filter((request) => {
+                    // Determine sender ID and filter requests sent by the current user
+                    const sender = request?.sender || {};
+                    const senderId = sender?.id || request?.sender_id || request?.id || request?.request_id || request?.requestId;
+                    return senderId === currentUser.id;
+                  })
+                  .map((request) => {
+                    // Extract request and recipient details
+                    const requestId = request?.id || request?.request_id || request?.requestId;
+                    const recipient = request?.recipient || {};
+                    const recipientName = recipient?.username || recipient?.name || request?.username || request?.name || 'Unknown';
+                    return (
+                      <div
+                        key={requestId}
+                        className="flex items-center justify-between rounded bg-gray-800/70 p-2"
+                      >
+                        <span className="truncate">{recipientName}</span>
+                        {/* Cancel button for outgoing requests */}
+                        <button
+                          type="button"
+                          onClick={() => cancelFriendRequest(requestId)}
+                          className="rounded bg-red-600/80 px-2 py-1 text-[10px] text-white hover:bg-red-500"
+                        >
+                          Cancel
+                        </button>
+                      </div>
+                    );
+                  })}
+              </div>
+            )}
+
             {friends.length > 0 && (
               <div className="space-y-2 text-xs text-gray-200">
                 <div className="text-[10px] uppercase tracking-wide text-gray-500">
