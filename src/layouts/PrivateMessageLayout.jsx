@@ -6,6 +6,7 @@ import api from '../api';
 import Channel from '../components/Channel';
 import { ChannelContextProvider } from '../contexts/ChannelContext';
 import UserBar from '../components/UserBar';
+import UserSettings from '../components/Settings/UserSettings';
 
 const PrivateMessageLayout = () => {
   const store = useStore();
@@ -16,6 +17,7 @@ const PrivateMessageLayout = () => {
   const [threadError, setThreadError] = useState('');
   const [newRecipientId, setNewRecipientId] = useState('');
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [isUserSettingsOpen, setIsUserSettingsOpen] = useState(false);
   const memberCacheRef = useRef(new Map());
 
   const normalizeUser = useCallback((user) => {
@@ -177,7 +179,7 @@ const PrivateMessageLayout = () => {
           />
         )}
         <aside
-          className={`fixed inset-y-0 left-0 z-40 flex h-full w-64 shrink-0 flex-col border-r border-gray-800 bg-gray-900 text-gray-100 transition-transform md:static md:translate-x-0 ${
+          className={`fixed inset-y-0 left-0 z-40 flex h-full w-64 shrink-0 flex-col border-r border-gray-800 bg-gray-800 text-gray-100 transition-transform duration-300 ease-out md:static md:translate-x-0 ${
             isSidebarOpen ? 'translate-x-0' : '-translate-x-full'
           }`}
         >
@@ -252,19 +254,18 @@ const PrivateMessageLayout = () => {
             )}
           </div>
           <div className="shrink-0">
-            <UserBar />
+            <UserBar onOpenUserSettings={() => setIsUserSettingsOpen(true)} />
           </div>
         </aside>
-
-        <main className="relative flex min-w-0 flex-1 flex-col bg-gray-700 pt-10 md:pt-0">
+        {!isSidebarOpen && (
           <button
             type="button"
-            className="absolute left-3 top-2 z-20 flex items-center gap-1 rounded-full border border-gray-600/60 bg-gray-800/70 px-3 py-1 text-xs font-semibold text-gray-100 shadow-sm md:hidden"
+            className="fixed left-0 top-1/2 z-30 h-24 w-4 -translate-y-1/2 rounded-r border border-gray-600/60 bg-gray-800/70 shadow-sm transition-all duration-300 hover:w-5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary animate-pulse md:hidden"
             onClick={() => setIsSidebarOpen(true)}
-          >
-            Menu
-            <span aria-hidden="true">›</span>
-          </button>
+            aria-label="Open sidebar"
+          />
+        )}
+        <main className="relative flex min-w-0 flex-1 flex-col bg-gray-700">
           {activeChannel ? (
             <ChannelContextProvider>
               <Channel channel={activeChannel} />
@@ -276,8 +277,10 @@ const PrivateMessageLayout = () => {
           )}
         </main>
       </div>
+      <UserSettings isOpen={isUserSettingsOpen} onClose={() => setIsUserSettingsOpen(false)} />
     </BaseAuthLayout>
   );
 };
 
 export default PrivateMessageLayout;
+

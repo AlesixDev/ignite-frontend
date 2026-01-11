@@ -30,11 +30,18 @@ const CreateGuildChannelDialog = ({ isOpen, setIsOpen, guild }) => {
   return (
     <Dialog isOpen={isOpen} setIsOpen={setIsOpen} title="Create A Channel">
       <FormProvider {...form}>
-        <form onSubmit={form.handleSubmit(onSubmit)}>
+        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-3">
           <input type="hidden" name="type" value="0" {...form.register('type')} />
-          <div className="flex gap-4">
-            <FormInput type="text" name="name" placeholder="My Channel" validation={{ required: "Name is required." }} />
-            <FormSubmit form={form} label="Create" icon={<ArrowRight className="size-4" />}/>
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-start">
+            <div className="flex-1">
+              <FormInput type="text" name="name" placeholder="My Channel" validation={{ required: "Name is required." }} />
+            </div>
+            <FormSubmit
+              form={form}
+              label="Create"
+              icon={<ArrowRight className="size-4" />}
+              className="w-full sm:w-auto"
+            />
           </div>
           <FormError name="name" />
         </form>

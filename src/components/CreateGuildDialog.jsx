@@ -75,6 +75,7 @@ const CreateGuildDialog = ({ isOpen, setIsOpen }) => {
                   label={isSubmitting ? 'Creating…' : 'Create'}
                   icon={<ArrowRight className="size-4" />}
                   disabled={!canSubmit}
+                  className="w-full sm:w-auto"
                 />
               </div>
             </div>
@@ -85,10 +86,10 @@ const CreateGuildDialog = ({ isOpen, setIsOpen }) => {
             </div>
           </div>
 
-          <div className="flex items-center justify-between gap-3">
+          <div className="flex flex-col-reverse gap-3 sm:flex-row sm:items-center sm:justify-between">
             <button
               type="button"
-              className="inline-flex items-center justify-center rounded-lg border bg-background px-4 py-2 text-sm shadow-sm transition hover:shadow-md disabled:opacity-50"
+              className="inline-flex w-full items-center justify-center rounded-lg border bg-background px-4 py-2 text-sm shadow-sm transition hover:shadow-md disabled:opacity-50 sm:w-auto"
               onClick={() => {
                 setIsOpen(false);
                 form.reset();
@@ -100,7 +101,7 @@ const CreateGuildDialog = ({ isOpen, setIsOpen }) => {
 
             <button
               type="submit"
-              className="inline-flex items-center justify-center rounded-lg bg-primary px-4 py-2 text-sm text-white shadow-md transition hover:shadow-lg disabled:opacity-50"
+              className="inline-flex w-full items-center justify-center rounded-lg bg-primary px-4 py-2 text-sm text-white shadow-md transition hover:shadow-lg disabled:opacity-50 sm:w-auto"
               disabled={!canSubmit}
             >
               <span className="mr-2">{isSubmitting ? 'Creating…' : 'Create server'}</span>
@@ -114,3 +115,7 @@ const CreateGuildDialog = ({ isOpen, setIsOpen }) => {
 };
 
 export default CreateGuildDialog;
+
+
+
+

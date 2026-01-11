@@ -71,7 +71,7 @@ const GuildDialog = ({ isOpen, setIsOpen }) => {
 
   return (
     <Dialog isOpen={isOpen} setIsOpen={setIsOpen} title={title}>
-      <div className="w-[min(520px,90vw)] overflow-hidden">
+      <div className="w-full max-w-[520px] overflow-x-hidden overflow-y-auto max-h-[75vh]">
         <div
           className="flex transition-transform duration-200 ease-out"
           style={{ transform: `translateX(-${activeIndex * 100}%)` }}
@@ -126,7 +126,7 @@ const GuildDialog = ({ isOpen, setIsOpen }) => {
             <div className="mb-3 flex items-center justify-between">
               <button
                 type="button"
-                className="inline-flex items-center gap-2 rounded-lg border bg-background px-3 py-2 text-sm shadow-sm transition hover:shadow-md"
+                className="inline-flex w-full items-center gap-2 rounded-lg border bg-background px-3 py-2 text-sm shadow-sm transition hover:shadow-md sm:w-auto"
                 onClick={goBack}
                 disabled={isCreateSubmitting}
               >
@@ -155,6 +155,7 @@ const GuildDialog = ({ isOpen, setIsOpen }) => {
                   form={createForm}
                   label={isCreateSubmitting ? 'Creating…' : 'Create'}
                   icon={<ArrowRight className="size-4" />}
+                  className="w-full sm:w-auto"
                 />
               </form>
             </FormProvider>
@@ -164,7 +165,7 @@ const GuildDialog = ({ isOpen, setIsOpen }) => {
             <div className="mb-3 flex items-center justify-between">
               <button
                 type="button"
-                className="inline-flex items-center gap-2 rounded-lg border bg-background px-3 py-2 text-sm shadow-sm transition hover:shadow-md"
+                className="inline-flex w-full items-center gap-2 rounded-lg border bg-background px-3 py-2 text-sm shadow-sm transition hover:shadow-md sm:w-auto"
                 onClick={goBack}
                 disabled={isJoinSubmitting}
               >
@@ -193,6 +194,7 @@ const GuildDialog = ({ isOpen, setIsOpen }) => {
                   form={joinForm}
                   label={isJoinSubmitting ? 'Joining…' : 'Join'}
                   icon={<ArrowRight className="size-4" />}
+                  className="w-full sm:w-auto"              
                 />
               </form>
             </FormProvider>
@@ -204,3 +206,5 @@ const GuildDialog = ({ isOpen, setIsOpen }) => {
 };
 
 export default GuildDialog;
+
+
