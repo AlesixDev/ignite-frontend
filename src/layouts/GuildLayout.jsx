@@ -6,6 +6,7 @@ import BaseAuthLayout from './BaseAuthLayout';
 import UserBar from '../components/UserBar';
 import CreateGuildChannelDialog from '../components/CreateGuildChannelDialog';
 import ServerSettings from '../components/Settings/ServerSettings';
+import UserSettings from '../components/Settings/UserSettings';
 import api from '../api';
 import useGuildStore from '../hooks/useGuildStore';
 
@@ -296,7 +297,7 @@ const GuildSidebarSection = ({
   );
 };
 
-const GuildSidebar = ({ guild, onOpenServerSettings, onEditChannel }) => {
+const GuildSidebar = ({ guild, onOpenServerSettings, onEditChannel, onOpenUserSettings }) => {
   const { channelId } = useParams();
   const [isCreateChannelDialogOpen, setIsCreateChannelDialogOpen] = useState(false);
 
@@ -316,7 +317,7 @@ const GuildSidebar = ({ guild, onOpenServerSettings, onEditChannel }) => {
         <CreateGuildChannelDialog isOpen={isCreateChannelDialogOpen} setIsOpen={setIsCreateChannelDialogOpen} guild={guild} />
       </div>
       <div className="shrink-0">
-        <UserBar />
+        <UserBar onOpenUserSettings={onOpenUserSettings} />
       </div>
     </div>
   );
@@ -324,6 +325,7 @@ const GuildSidebar = ({ guild, onOpenServerSettings, onEditChannel }) => {
 
 const GuildLayout = ({ children, guild }) => {
   const [isServerSettingsOpen, setIsServerSettingsOpen] = useState(false);
+  const [isUserSettingsOpen, setIsUserSettingsOpen] = useState(false);
   const [settingsTab, setSettingsTab] = useState('info');
   const [editChannelId, setEditChannelId] = useState(null);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
@@ -340,7 +342,7 @@ const GuildLayout = ({ children, guild }) => {
           />
         )}
         <div
-          className={`fixed inset-y-0 left-0 z-40 w-64 shrink-0 transition-transform md:static md:translate-x-0 ${
+          className={`fixed inset-y-0 left-0 z-40 w-64 shrink-0 transition-transform duration-300 ease-out md:static md:translate-x-0 ${
             isSidebarOpen ? 'translate-x-0' : '-translate-x-full'
           }`}
         >
@@ -351,6 +353,7 @@ const GuildLayout = ({ children, guild }) => {
               setEditChannelId(null);
               setIsServerSettingsOpen(true);
             }}
+            onOpenUserSettings={() => setIsUserSettingsOpen(true)}
             onEditChannel={(channel) => {
               setEditChannelId(channel.channel_id || channel.id);
               setSettingsTab('channels');
@@ -358,15 +361,15 @@ const GuildLayout = ({ children, guild }) => {
             }}
           />
         </div>
-        <main className="relative flex-1 min-w-0 flex flex-col bg-gray-700 pt-10 md:pt-0">
+        {!isSidebarOpen && (
           <button
             type="button"
-            className="absolute left-3 top-2 z-20 flex items-center gap-1 rounded-full border border-gray-600/60 bg-gray-800/70 px-3 py-1 text-xs font-semibold text-gray-100 shadow-sm md:hidden"
+            className="fixed left-0 top-1/2 z-30 h-24 w-4 -translate-y-1/2 rounded-r border border-gray-600/60 bg-gray-800/70 shadow-sm transition-all duration-300 hover:w-5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary animate-pulse md:hidden"
             onClick={() => setIsSidebarOpen(true)}
-          >
-            Menu
-            <span aria-hidden="true">›</span>
-          </button>
+            aria-label="Open sidebar"
+          />
+        )}
+        <main className="relative flex-1 min-w-0 flex flex-col bg-gray-700">
           {children}
         </main>
       </div>
@@ -378,8 +381,10 @@ const GuildLayout = ({ children, guild }) => {
         editChannelId={editChannelId}
         onEditChannelChange={setEditChannelId}
       />
+      <UserSettings isOpen={isUserSettingsOpen} onClose={() => setIsUserSettingsOpen(false)} />
     </BaseAuthLayout>
   );
 };
 
 export default GuildLayout;
+

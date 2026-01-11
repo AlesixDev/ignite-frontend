@@ -100,14 +100,14 @@ const ServerInfo = ({ guild }) => {
                 <FormLabel htmlFor="profile-name">Name</FormLabel>
                 {editingField === 'name' ? (
                   <>
-                    <div className="flex flex-col gap-2 sm:flex-row sm:items-end">
+                    <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
                       <div className="flex-1">
                         <FormInput id="profile-name" type="text" name="name" placeholder="Server name" />
                       </div>
-                      <FormSubmit form={nameForm} label="Save" />
+                      <FormSubmit form={nameForm} label="Save" className="w-full sm:w-auto" />
                       <button
                         type="button"
-                        className="rounded border border-gray-700 px-3 py-2 text-xs text-gray-200 hover:bg-gray-800"
+                        className="w-full rounded border border-gray-700 px-3 py-2 text-xs text-gray-200 hover:bg-gray-800 sm:w-auto"
                         onClick={() => {
                           nameForm.reset({ name: profile?.name || '' });
                           setEditingField(null);
@@ -119,13 +119,13 @@ const ServerInfo = ({ guild }) => {
                     <FormError name="name" />
                   </>
                 ) : (
-                  <div className="flex items-center justify-between gap-4">
-                    <div className="text-sm text-gray-200">
+                  <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
+                    <div className="text-sm text-gray-200 break-words">
                       {profile?.name || guild?.name || 'Unnamed Server'}
                     </div>
                     <button
                       type="button"
-                      className="rounded border border-gray-700 px-3 py-1 text-xs text-gray-200 hover:bg-gray-800"
+                      className="self-start rounded border border-gray-700 px-3 py-1 text-xs text-gray-200 hover:bg-gray-800"
                       onClick={() => setEditingField('name')}
                     >
                       Edit
@@ -150,7 +150,7 @@ const ServerInfo = ({ guild }) => {
               >
                 <FormLabel htmlFor="profile-description">Description</FormLabel>
                 {editingField === 'description' ? (
-                  <div className="flex flex-col gap-2 sm:flex-row sm:items-end">
+                  <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
                     <div className="flex-1">
                       <FormInput
                         id="profile-description"
@@ -159,10 +159,10 @@ const ServerInfo = ({ guild }) => {
                         placeholder="Short description"
                       />
                     </div>
-                    <FormSubmit form={descriptionForm} label="Save" />
+                    <FormSubmit form={descriptionForm} label="Save" className="w-full sm:w-auto" />
                     <button
                       type="button"
-                      className="rounded border border-gray-700 px-3 py-2 text-xs text-gray-200 hover:bg-gray-800"
+                      className="w-full rounded border border-gray-700 px-3 py-2 text-xs text-gray-200 hover:bg-gray-800 sm:w-auto"
                       onClick={() => {
                         descriptionForm.reset({ description: profile?.description || '' });
                         setEditingField(null);
@@ -172,13 +172,13 @@ const ServerInfo = ({ guild }) => {
                     </button>
                   </div>
                 ) : (
-                  <div className="flex items-center justify-between gap-4">
-                    <div className="text-sm text-gray-300">
+                  <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
+                    <div className="text-sm text-gray-300 break-words">
                       {profile?.description || 'No description set.'}
                     </div>
                     <button
                       type="button"
-                      className="rounded border border-gray-700 px-3 py-1 text-xs text-gray-200 hover:bg-gray-800"
+                      className="self-start rounded border border-gray-700 px-3 py-1 text-xs text-gray-200 hover:bg-gray-800"
                       onClick={() => setEditingField('description')}
                     >
                       Edit
@@ -202,14 +202,14 @@ const ServerInfo = ({ guild }) => {
               >
                 <FormLabel htmlFor="profile-icon">Icon URL</FormLabel>
                 {editingField === 'icon' ? (
-                  <div className="flex flex-col gap-2 sm:flex-row sm:items-end">
+                  <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
                     <div className="flex-1">
                       <FormInput id="profile-icon" type="text" name="icon" placeholder="https://..." />
                     </div>
-                    <FormSubmit form={iconForm} label="Save" />
+                    <FormSubmit form={iconForm} label="Save" className="w-full sm:w-auto" />
                     <button
                       type="button"
-                      className="rounded border border-gray-700 px-3 py-2 text-xs text-gray-200 hover:bg-gray-800"
+                      className="w-full rounded border border-gray-700 px-3 py-2 text-xs text-gray-200 hover:bg-gray-800 sm:w-auto"
                       onClick={() => {
                         iconForm.reset({ icon: profile?.icon || '' });
                         setEditingField(null);
@@ -219,13 +219,13 @@ const ServerInfo = ({ guild }) => {
                     </button>
                   </div>
                 ) : (
-                  <div className="flex items-center justify-between gap-4">
-                    <div className="text-sm text-gray-300">
+                  <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
+                    <div className="text-sm text-gray-300 break-words">
                       {profile?.icon || 'No icon set.'}
                     </div>
                     <button
                       type="button"
-                      className="rounded border border-gray-700 px-3 py-1 text-xs text-gray-200 hover:bg-gray-800"
+                      className="self-start rounded border border-gray-700 px-3 py-1 text-xs text-gray-200 hover:bg-gray-800"
                       onClick={() => setEditingField('icon')}
                     >
                       Edit
@@ -266,14 +266,14 @@ const ServerInfo = ({ guild }) => {
                 </FormLabel>
                 {editingField === 'owner_id' ? (
                   <>
-                    <div className="flex flex-col gap-2 sm:flex-row sm:items-end">
+                    <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
                       <div className="flex-1">
                         <FormInput id="profile-owner" type="text" name="owner_id" placeholder="User ID" />
                       </div>
-                      <FormSubmit form={ownerForm} label="Save" />
+                      <FormSubmit form={ownerForm} label="Save" className="w-full sm:w-auto" />
                       <button
                         type="button"
-                        className="rounded border border-gray-700 px-3 py-2 text-xs text-gray-200 hover:bg-gray-800"
+                        className="w-full rounded border border-gray-700 px-3 py-2 text-xs text-gray-200 hover:bg-gray-800 sm:w-auto"
                         onClick={() => {
                           ownerForm.reset({
                             owner_id: profile?.owner_id ? String(profile.owner_id) : '',
@@ -293,13 +293,13 @@ const ServerInfo = ({ guild }) => {
                     </label>
                   </>
                 ) : (
-                  <div className="flex items-center justify-between gap-4">
-                    <div className="text-sm text-gray-300">
+                  <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
+                    <div className="text-sm text-gray-300 break-words">
                       {profile?.owner_id ? String(profile.owner_id) : 'Unknown'}
                     </div>
                     <button
                       type="button"
-                      className="rounded border border-gray-700 px-3 py-1 text-xs text-gray-200 hover:bg-gray-800"
+                      className="self-start rounded border border-gray-700 px-3 py-1 text-xs text-gray-200 hover:bg-gray-800"
                       onClick={() => {
                         setOwnerWarning('');
                         setEditingField('owner_id');

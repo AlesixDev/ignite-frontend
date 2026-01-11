@@ -135,7 +135,7 @@ const ServerRoleManager = ({ guild }) => {
           <div className="text-sm font-medium">Roles</div>
         </div>
         <FormProvider {...createForm}>
-          <form onSubmit={createForm.handleSubmit(handleAddRole)} className="mb-4 grid gap-3 text-xs text-gray-300 sm:grid-cols-[1fr_1fr_auto] sm:items-end">
+          <form onSubmit={createForm.handleSubmit(handleAddRole)} className="mb-4 grid gap-3 text-xs text-gray-300 sm:grid-cols-[1fr_1fr_auto] sm:items-center">
             <div>
               <FormLabel htmlFor="role-name">Role name</FormLabel>
               <FormInput
@@ -144,6 +144,7 @@ const ServerRoleManager = ({ guild }) => {
                 name="name"
                 placeholder="Role name"
                 validation={{ required: 'Role name is required.' }}
+                size="sm"
                 className="text-xs"
               />
               <FormError name="name" />
@@ -157,13 +158,14 @@ const ServerRoleManager = ({ guild }) => {
                 type="text"
                 name="permissions"
                 placeholder="Permissions"
+                size="sm"
                 className="text-xs"
               />
             </div>
             <div className="flex items-center">
               <FormToggle name="mentionable" label="Mentionable" />
             </div>
-            <FormSubmit form={createForm} label="Add Role" />
+            <FormSubmit form={createForm} label="Add Role" className="w-full sm:w-auto" />
           </form>
         </FormProvider>
         {editingRoleId && (
@@ -181,6 +183,7 @@ const ServerRoleManager = ({ guild }) => {
                     name="name"
                     placeholder="Role name"
                     validation={{ required: 'Role name is required.' }}
+                    size="sm"
                     className="text-xs"
                   />
                   <FormError name="name" />
@@ -194,6 +197,7 @@ const ServerRoleManager = ({ guild }) => {
                     type="text"
                     name="permissions"
                     placeholder="Permissions"
+                    size="sm"
                     className="text-xs"
                   />
                 </div>
@@ -201,11 +205,11 @@ const ServerRoleManager = ({ guild }) => {
               <div className="mt-3">
                 <FormToggle name="mentionable" label="Mentionable" />
               </div>
-              <div className="mt-3 flex items-center gap-2">
-                <FormSubmit form={editForm} label="Save" />
+              <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:items-center">
+                <FormSubmit form={editForm} label="Save" className="w-full sm:w-auto" />
                 <button
                   type="button"
-                  className="rounded border border-gray-700 px-3 py-2 text-xs text-gray-200 hover:bg-gray-800"
+                  className="w-full rounded border border-gray-700 px-3 py-2 text-xs text-gray-200 hover:bg-gray-800 sm:w-auto"
                   onClick={cancelEditRole}
                 >
                   Cancel
@@ -226,17 +230,17 @@ const ServerRoleManager = ({ guild }) => {
               roles.map((role) => (
                 <div
                   key={role.id || role.role_id || role.name}
-                  className="flex items-center justify-between rounded bg-gray-900/60 px-3 py-2"
+                  className="flex flex-col gap-2 rounded bg-gray-900/60 px-3 py-2 sm:flex-row sm:items-center sm:justify-between"
                 >
                   <div className="min-w-0">
-                    <div className="truncate text-xs text-gray-200">
+                    <div className="break-words text-xs text-gray-200">
                       {role.name || role.role_name || 'Unnamed role'}
                     </div>
                     <div className="text-[10px] text-gray-500">
                       Permissions: {role.permissions ?? 0} · Mentionable: {role.mentionable ? 'Yes' : 'No'}
                     </div>
                   </div>
-                  <div className="flex items-center gap-2">
+                  <div className="flex flex-wrap items-center gap-2">
                     <button
                       type="button"
                       className="rounded border border-gray-700 px-2 py-1 text-[10px] text-gray-200 hover:bg-gray-800"

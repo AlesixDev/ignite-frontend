@@ -142,7 +142,7 @@ const ServerInviteManager = ({ guild }) => {
         <FormProvider {...createForm}>
           <form
             onSubmit={createForm.handleSubmit(handleCreateInvite)}
-            className="mb-4 grid gap-3 text-xs text-gray-300 sm:grid-cols-[1fr_1fr_1fr_auto] sm:items-end"
+            className="mb-4 grid gap-3 text-xs text-gray-300 sm:grid-cols-[1fr_1fr_1fr_auto] sm:items-center"
           >
             <div>
               <FormLabel htmlFor="invite-expires" help="ISO timestamp or duration (e.g. 1h, 1d, 1w, 1y)">
@@ -153,6 +153,7 @@ const ServerInviteManager = ({ guild }) => {
                 type="text"
                 name="expires_at"
                 placeholder="1d or 2026-01-10T19:58:25Z"
+                size="sm"
                 className="text-xs"
               />
             </div>
@@ -163,6 +164,7 @@ const ServerInviteManager = ({ guild }) => {
                 type="text"
                 name="max_uses"
                 placeholder="0"
+                size="sm"
                 className="text-xs"
               />
             </div>
@@ -173,10 +175,11 @@ const ServerInviteManager = ({ guild }) => {
                 type="text"
                 name="channel_id"
                 placeholder="Optional"
+                size="sm"
                 className="text-xs"
               />
             </div>
-            <FormSubmit form={createForm} label="Create Invite" />
+            <FormSubmit form={createForm} label="Create Invite" className="w-full sm:w-auto" />
           </form>
         </FormProvider>
         {loading && <div className="text-xs text-gray-400">Loading invites...</div>}
@@ -195,21 +198,21 @@ const ServerInviteManager = ({ guild }) => {
                 return (
                   <div
                     key={inviteId}
-                    className="flex items-center justify-between rounded bg-gray-900/60 px-3 py-2"
+                    className="flex flex-col gap-2 rounded bg-gray-900/60 px-3 py-2 sm:flex-row sm:items-center sm:justify-between"
                   >
                     <div className="min-w-0">
-                      <div className="truncate text-xs text-gray-200">
+                      <div className="break-words text-xs text-gray-200">
                         {inviteCode}
                       </div>
-                      <div className="text-[10px] text-gray-500">
+                      <div className="break-words text-[10px] text-gray-500">
                         Uses: {invite.uses ?? 0} · Max: {invite.max_uses ?? '∞'} · Expires:{' '}
                         {invite.expires_at ? new Date(invite.expires_at).toLocaleString() : 'Never'}
                       </div>
-                      <div className="text-[10px] text-gray-500">
+                      <div className="break-words text-[10px] text-gray-500">
                         Created: {createdAt} · Channel: {invite.channel_id || 'None'}
                       </div>
                     </div>
-                    <div className="flex items-center gap-2">
+                    <div className="flex flex-wrap items-center gap-2">
                       <button
                         type="button"
                         className="rounded border border-gray-700 px-2 py-1 text-[10px] text-gray-200 hover:bg-gray-800"
@@ -236,7 +239,7 @@ const ServerInviteManager = ({ guild }) => {
           {detailLoading && <div className="text-xs text-gray-400">Loading invite...</div>}
           {detailError && <div className="text-xs text-red-400">{detailError}</div>}
           {!detailLoading && !detailError && (
-            <pre className="max-h-64 overflow-auto text-[11px] text-gray-300">
+            <pre className="max-h-64 overflow-auto whitespace-pre-wrap break-words text-[11px] text-gray-300">
               {selectedInvite ? JSON.stringify(selectedInvite, null, 2) : 'Select an invite to view details.'}
             </pre>
           )}

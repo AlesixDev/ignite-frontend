@@ -1,10 +1,12 @@
 const FormLabel = ({ htmlFor, help, children }) => {
   return (
-    <div className="mb-2">
+    <div>
       <label htmlFor={htmlFor} className="text-base font-medium text-white">
         {children}
       </label>
-      {help && <p className="text-xs text-gray-text">{help}</p>}
+      <p className="min-h-[1.5rem] truncate text-xs text-gray-text">
+        {help || ''}
+      </p>
     </div>
   );
 };

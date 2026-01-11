@@ -125,8 +125,8 @@ const ServerMemberManager = ({ guild }) => {
             {memberOptions.length === 0 ? (
               <div className="text-xs text-gray-400">No members found.</div>
             ) : (
-              <div className="overflow-hidden rounded border border-gray-800">
-                <table className="w-full text-left text-xs text-gray-300">
+              <div className="overflow-x-auto rounded border border-gray-800">
+                <table className="min-w-[520px] text-left text-xs text-gray-300">
                   <thead className="bg-gray-900/60 text-[10px] uppercase text-gray-500">
                     <tr>
                       <th className="px-3 py-2">Member</th>
@@ -139,7 +139,7 @@ const ServerMemberManager = ({ guild }) => {
                       const assignedRoles = memberRoles[member.id] || new Set();
                       return (
                         <tr key={member.id} className="border-t border-gray-800">
-                          <td className="px-3 py-2 text-sm text-gray-100">{member.name}</td>
+                          <td className="px-3 py-2 text-sm text-gray-100 break-words">{member.name}</td>
                           <td className="px-3 py-2">
                             <div className="flex flex-wrap gap-2">
                               {roleOptions.length === 0 && (
@@ -148,7 +148,7 @@ const ServerMemberManager = ({ guild }) => {
                               {roleOptions.map((role) => (
                                 <span
                                   key={role.id}
-                                  className={`rounded border px-2 py-0.5 text-[10px] ${
+                                  className={`break-words rounded border px-2 py-0.5 text-[10px] ${
                                     assignedRoles.has(role.id)
                                       ? 'border-primary/60 bg-primary/10 text-primary'
                                       : 'border-gray-700 text-gray-400'
@@ -201,7 +201,7 @@ const ServerMemberManager = ({ guild }) => {
                 <div className="mt-3">
                   <button
                     type="button"
-                    className="inline-flex min-w-32 items-center justify-center gap-2 rounded-lg border border-transparent bg-primary px-5 py-2.5 text-sm text-white shadow-md disabled:opacity-60"
+                    className="inline-flex w-full min-w-32 items-center justify-center gap-2 rounded-lg border border-transparent bg-primary px-5 py-2.5 text-sm text-white shadow-md disabled:opacity-60 sm:w-auto"
                     onClick={() => handleSave(editingMemberId)}
                     disabled={saving}
                   >

@@ -276,7 +276,7 @@ const ServerChannelManager = ({ guild, editChannelId, onEditChannelChange }) => 
                 setError(msg);
               }
             })}
-            className="mb-4 grid gap-3 text-xs text-gray-300 sm:grid-cols-[1fr_auto] sm:items-end"
+            className="mb-4 grid gap-3 text-xs text-gray-300 sm:grid-cols-[1fr_auto] sm:items-center"
           >
             <input type="hidden" name="type" value="0" {...createForm.register('type')} />
             <div>
@@ -287,11 +287,12 @@ const ServerChannelManager = ({ guild, editChannelId, onEditChannelChange }) => 
                 name="name"
                 placeholder="general"
                 validation={{ required: 'Channel name is required.' }}
+                size="sm"
                 className="text-xs"
               />
               <FormError name="name" />
             </div>
-            <FormSubmit form={createForm} label="Add Channel" />
+            <FormSubmit form={createForm} label="Add Channel" className="w-full sm:w-auto" />
           </form>
         </FormProvider>
         {editingChannelId && (
@@ -309,6 +310,7 @@ const ServerChannelManager = ({ guild, editChannelId, onEditChannelChange }) => 
                     name="name"
                     placeholder="general"
                     validation={{ required: 'Channel name is required.' }}
+                    size="sm"
                     className="text-xs"
                   />
                   <FormError name="name" />
@@ -322,15 +324,16 @@ const ServerChannelManager = ({ guild, editChannelId, onEditChannelChange }) => 
                     type="text"
                     name="position"
                     placeholder="0"
+                    size="sm"
                     className="text-xs"
                   />
                 </div>
               </div>
-              <div className="mt-3 flex items-center gap-2">
-                <FormSubmit form={editForm} label="Save" />
+              <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:items-center">
+                <FormSubmit form={editForm} label="Save" className="w-full sm:w-auto" />
                 <button
                   type="button"
-                  className="rounded border border-gray-700 px-3 py-2 text-xs text-gray-200 hover:bg-gray-800"
+                  className="w-full rounded border border-gray-700 px-3 py-2 text-xs text-gray-200 hover:bg-gray-800 sm:w-auto"
                   onClick={cancelEditChannel}
                 >
                   Cancel
@@ -342,13 +345,13 @@ const ServerChannelManager = ({ guild, editChannelId, onEditChannelChange }) => 
         {editingChannelId && (
           <div className="mb-4 rounded border border-gray-800 bg-gray-900/40 p-3 text-xs text-gray-300">
             <FormProvider {...permissionsForm}>
-              <form onSubmit={permissionsForm.handleSubmit(handleAddPermission)} className="grid gap-3 sm:grid-cols-[1fr_1fr_1fr_auto] sm:items-end">
+              <form onSubmit={permissionsForm.handleSubmit(handleAddPermission)} className="grid gap-3 sm:grid-cols-[1fr_1fr_1fr_auto] sm:items-center">
                 <div>
                   <FormLabel htmlFor="permission-role">Role</FormLabel>
                   <select
                     id="permission-role"
                     {...permissionsForm.register('roleId', { required: true })}
-                    className="w-full rounded-md border border-gray-700 bg-gray-800 px-3 py-2 text-xs text-white"
+                    className="w-full rounded-md border border-gray-700 bg-gray-800 px-3 py-1.5 text-xs text-white"
                   >
                     <option value="">Select role</option>
                     {roles.map((role) => (
@@ -365,6 +368,7 @@ const ServerChannelManager = ({ guild, editChannelId, onEditChannelChange }) => 
                     type="text"
                     name="allowed"
                     placeholder="4"
+                    size="sm"
                     className="text-xs"
                   />
                 </div>
@@ -375,10 +379,11 @@ const ServerChannelManager = ({ guild, editChannelId, onEditChannelChange }) => 
                     type="text"
                     name="denied"
                     placeholder="0"
+                    size="sm"
                     className="text-xs"
                   />
                 </div>
-                <FormSubmit form={permissionsForm} label="Add Permission" />
+                <FormSubmit form={permissionsForm} label="Add Permission" className="w-full sm:w-auto" />
               </form>
             </FormProvider>
             {permissionsLoading && <div className="mt-2 text-xs text-gray-400">Loading permissions...</div>}
@@ -393,9 +398,9 @@ const ServerChannelManager = ({ guild, editChannelId, onEditChannelChange }) => 
                     return (
                       <div
                         key={roleId}
-                        className="flex items-center justify-between rounded border border-gray-800 bg-gray-950/40 px-3 py-2"
+                        className="flex flex-col gap-2 rounded border border-gray-800 bg-gray-950/40 px-3 py-2 sm:flex-row sm:items-center sm:justify-between"
                       >
-                        <div className="text-xs text-gray-200">
+                        <div className="text-xs text-gray-200 break-words">
                           {roleNameById[roleId] || roleId}
                           <span className="ml-2 text-[10px] text-gray-500">
                             allowed: {perm.allowed_permissions ?? perm.allowed ?? 0} | denied:{' '}
@@ -429,13 +434,13 @@ const ServerChannelManager = ({ guild, editChannelId, onEditChannelChange }) => 
               sortedChannels.map((channel, index) => (
                 <div
                   key={channel.channel_id || channel.id || channel.name}
-                  className="flex items-center justify-between rounded bg-gray-900/60 px-3 py-2"
+                  className="flex flex-col gap-2 rounded bg-gray-900/60 px-3 py-2 sm:flex-row sm:items-center sm:justify-between"
                 >
                   <div className="min-w-0">
-                    <div className="truncate">#{channel.name || channel.channel_name || 'unnamed'}</div>
+                    <div className="break-words">#{channel.name || channel.channel_name || 'unnamed'}</div>
                     <div className="text-[10px] text-gray-500">Position: {Number(channel.position ?? 0)}</div>
                   </div>
-                  <div className="flex items-center gap-2">
+                  <div className="flex flex-wrap items-center gap-2">
                     <button
                       type="button"
                       className="rounded border border-gray-700 px-2 py-1 text-[10px] text-gray-200 hover:bg-gray-800 disabled:opacity-50"

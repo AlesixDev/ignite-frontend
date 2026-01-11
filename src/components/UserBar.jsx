@@ -1,7 +1,6 @@
 import { Microphone, Headphones, Gear } from '@phosphor-icons/react';
 import { useEffect, useRef, useState } from 'react';
 import useStore from '../hooks/useStore';
-import UserSettings from './Settings/UserSettings';
 
 const UserIcon = () => {
   const store = useStore();
@@ -104,9 +103,7 @@ const ActionsIcons = ({ onOpenSettings }) => {
   );
 };
 
-const UserBar = () => {
-  const [isUserSettingsOpen, setIsUserSettingsOpen] = useState(false);
-
+const UserBar = ({ onOpenUserSettings }) => {
   return (
     <div className="flex h-14 w-full items-center bg-gray-200 dark:bg-gray-900">
       <div className="flex flex-auto items-center p-2">
@@ -114,9 +111,8 @@ const UserBar = () => {
           <UserIcon />
           <UserName />
         </div>
-        <ActionsIcons onOpenSettings={() => setIsUserSettingsOpen(true)} />
+        <ActionsIcons onOpenSettings={onOpenUserSettings} />
       </div>
-      <UserSettings isOpen={isUserSettingsOpen} onClose={() => setIsUserSettingsOpen(false)} />
     </div>
   );
 };
