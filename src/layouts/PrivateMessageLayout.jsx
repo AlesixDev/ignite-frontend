@@ -296,23 +296,15 @@ const PrivateMessageLayout = () => {
                 {friendRequests.map((request) => {
                   const requestId =
                     request?.id || request?.request_id || request?.requestId;
-                  const requester =
-                    request?.sender ||
-                    request?.from ||
-                    request?.user ||
-                    request?.requester ||
-                    {};
-                  const requesterName =
-                    requester?.username ||
-                    requester?.name ||
-                    request?.username ||
-                    'Unknown';
+                  const receiver = request?.receiver || {};
+                  const receiverId = receiver?.id || request?.receiver_id || requestId;
+                  const receiverName = receiver?.username || receiver?.name || 'Unknown';
                   return (
                     <div
-                      key={requestId || requesterName}
+                      key={receiverId || requestId}
                       className="flex items-center justify-between rounded bg-gray-800/70 p-2"
                     >
-                      <span className="truncate">{requesterName}</span>
+                      <span className="truncate">{receiverName}</span>
                       <button
                         type="button"
                         onClick={() => acceptFriendRequest(requestId)}
