@@ -16,9 +16,22 @@ const PrivateMessageLayout = () => {
   const [loadingThreads, setLoadingThreads] = useState(true);
   const [threadError, setThreadError] = useState('');
   const [newRecipientId, setNewRecipientId] = useState('');
+  const [friendUsername, setFriendUsername] = useState('');
+  const [friendRequests, setFriendRequests] = useState([]);
+  const [friends, setFriends] = useState([]);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isUserSettingsOpen, setIsUserSettingsOpen] = useState(false);
   const memberCacheRef = useRef(new Map());
+
+  const toastResponse = useCallback((label, payload) => {
+    let serialized = '';
+    try {
+      serialized = JSON.stringify(payload);
+    } catch {
+      serialized = '[unserializable payload]';
+    }
+    toast.info(`${label}: ${serialized}`);
+  }, []);
 
   const normalizeUser = useCallback((user) => {
     if (!user) return { id: null, name: 'Unknown' };
@@ -35,8 +48,8 @@ const PrivateMessageLayout = () => {
 
     try {
       const { data } = await api.get(`/users/${memberId}`);
-      console.log('DM user lookup', memberId, data);
-      toast.info(`DM user lookup ${memberId}: ${JSON.stringify(data)}`);
+      toast.success(`DM user lookup ${memberId}`);
+      toastResponse(`DM user lookup ${memberId}`, data);
       const payload = data?.user || data;
       const info = {
         id: memberId,
@@ -46,11 +59,11 @@ const PrivateMessageLayout = () => {
       };
       memberCacheRef.current.set(memberId, info);
       return info;
-    } catch (error) {
-      console.error(error);
+    } catch {
+      toast.error('Unable to load DM user info.');
       return null;
     }
-  }, []);
+  }, [toastResponse]);
 
   const hydrateThreadUsers = useCallback(async (threads) => {
     const targets = (threads || []).filter(
@@ -118,13 +131,77 @@ const PrivateMessageLayout = () => {
       setDmThreads(normalized);
       setActiveThreadId((prev) => prev || normalized[0]?.id || null);
       hydrateThreadUsers(normalized);
-    } catch (error) {
-      console.error(error);
+    } catch {
+      toast.error('Unable to load direct messages.');
       setThreadError('Unable to load direct messages.');
     } finally {
       setLoadingThreads(false);
     }
   }, [hydrateThreadUsers, normalizeThread]);
+
+  const sendFriendRequest = useCallback(async () => {
+    const trimmed = friendUsername.trim();
+    if (!trimmed) {
+      toast.error('Enter a username to send a friend request.');
+      return;
+    }
+    try {
+      const { data } = await api.post('@me/friends/requests', null, {
+        params: { username: trimmed },
+      });
+      toastResponse('Friend request sent', data);
+      setFriendUsername('');
+    } catch {
+      toast.error('Unable to send friend request.');
+    }
+  }, [friendUsername, toastResponse]);
+
+  const loadFriendRequests = useCallback(async () => {
+    try {
+      const { data } = await api.get('@me/friends/requests');
+      const requests = Array.isArray(data)
+        ? data
+        : data?.data || data?.requests || [];
+      setFriendRequests(requests);
+    } catch {
+      toast.error('Unable to load friend requests.');
+    }
+  }, [toastResponse]);
+
+  const loadFriends = useCallback(async () => {
+    try {
+      const { data } = await api.get('@me/friends');
+      const list = Array.isArray(data)
+        ? data
+        : data?.data || data?.friends || [];
+      setFriends(list);
+    } catch {
+      toast.error('Unable to load friends.');
+    }
+  }, [toastResponse]);
+
+  const acceptFriendRequest = useCallback(async (requestId) => {
+    if (!requestId) return;
+    try {
+      const { data } = await api.post(`@me/friends/requests/${requestId}/accept`);
+      toastResponse('Friend request accepted', data);
+      loadFriendRequests();
+      loadFriends();
+    } catch {
+      toast.error('Unable to accept friend request.');
+    }
+  }, [loadFriendRequests, loadFriends, toastResponse]);
+
+  const deleteFriend = useCallback(async (friendId) => {
+    if (!friendId) return;
+    try {
+      const { data } = await api.delete(`@me/friends/${friendId}`);
+      toastResponse('Friend deleted', data);
+      loadFriends();
+    } catch {
+      toast.error('Unable to delete friend.');
+    }
+  }, [loadFriends, toastResponse]);
 
   const createDmThread = useCallback(async (recipientId) => {
     if (!recipientId) return;
@@ -142,8 +219,8 @@ const PrivateMessageLayout = () => {
         setActiveThreadId(normalized.id);
       }
       setNewRecipientId('');
-    } catch (error) {
-      console.error(error);
+    } catch {
+      toast.error('Unable to create direct message.');
       setThreadError('Unable to create direct message.');
     }
   }, [normalizeThread]);
@@ -205,6 +282,125 @@ const PrivateMessageLayout = () => {
                 New
               </button>
             </form>
+          </div>
+          <div className="px-4 pb-4">
+            <div className="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-400">
+              Friends
+            </div>
+            <form
+              onSubmit={(event) => {
+                event.preventDefault();
+                sendFriendRequest();
+              }}
+              className="flex items-center gap-2 rounded bg-gray-800/70 px-2 py-2"
+            >
+              <input
+                value={friendUsername}
+                onChange={(event) => setFriendUsername(event.target.value)}
+                placeholder="Username"
+                className="w-full bg-transparent text-xs text-gray-100 outline-none placeholder:text-gray-500"
+              />
+              <button
+                type="submit"
+                className="rounded bg-gray-700 px-2 py-1 text-[10px] text-gray-200 hover:bg-gray-600"
+              >
+                Send
+              </button>
+            </form>
+            <div className="mt-2 flex flex-wrap gap-2">
+              <button
+                type="button"
+                onClick={loadFriendRequests}
+                className="rounded bg-gray-700 px-2 py-1 text-[10px] text-gray-200 hover:bg-gray-600"
+              >
+                Friend requests
+              </button>
+              <button
+                type="button"
+                onClick={loadFriends}
+                className="rounded bg-gray-700 px-2 py-1 text-[10px] text-gray-200 hover:bg-gray-600"
+              >
+                Friends list
+              </button>
+            </div>
+            {friendRequests.length > 0 && (
+              <div className="mt-3 space-y-2 text-xs text-gray-200">
+                <div className="text-[10px] uppercase tracking-wide text-gray-500">
+                  Requests
+                </div>
+                {friendRequests.map((request) => {
+                  const requestId =
+                    request?.id || request?.request_id || request?.requestId;
+                  const requester =
+                    request?.sender ||
+                    request?.from ||
+                    request?.user ||
+                    request?.requester ||
+                    {};
+                  const requesterName =
+                    requester?.username ||
+                    requester?.name ||
+                    request?.username ||
+                    'Unknown';
+                  return (
+                    <div
+                      key={requestId || requesterName}
+                      className="flex items-center justify-between rounded bg-gray-800/70 px-2 py-2"
+                    >
+                      <span className="truncate">{requesterName}</span>
+                      <button
+                        type="button"
+                        onClick={() => acceptFriendRequest(requestId)}
+                        className="rounded bg-green-600/80 px-2 py-1 text-[10px] text-white hover:bg-green-500"
+                      >
+                        Accept
+                      </button>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+            {friends.length > 0 && (
+              <div className="mt-3 space-y-2 text-xs text-gray-200">
+                <div className="text-[10px] uppercase tracking-wide text-gray-500">
+                  Friends
+                </div>
+                {friends.map((friend) => {
+                  const friendId =
+                    friend?.id || friend?.user_id || friend?.userId || friend?.user?.id;
+                  const friendName =
+                    friend?.username ||
+                    friend?.name ||
+                    friend?.user?.username ||
+                    friend?.user?.name ||
+                    'Unknown';
+                  return (
+                    <div
+                      key={friendId || friendName}
+                      className="flex items-center justify-between rounded bg-gray-800/70 px-2 py-2"
+                    >
+                      <button
+                        type="button"
+                        onClick={() => {
+                          createDmThread(friendId);
+                          setIsSidebarOpen(false);
+                        }}
+                        className="truncate text-left text-gray-200 hover:text-white"
+                      >
+                        {friendName}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => deleteFriend(friendId)}
+                        className="rounded bg-red-600/80 px-2 py-1 text-[10px] text-white hover:bg-red-500"
+                      >
+                        Delete
+                      </button>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
           </div>
           <div className="flex-1 overflow-y-auto px-2 pb-4">
             {loadingThreads ? (
