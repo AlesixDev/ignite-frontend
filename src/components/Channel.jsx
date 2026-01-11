@@ -6,6 +6,7 @@ import useStore from '../hooks/useStore';
 import { create } from 'zustand';
 import ChannelBar from './ChannelBar.jsx';
 import { useChannelContext } from '../contexts/ChannelContext.jsx';
+import { useNavigate } from 'react-router-dom';
 
 const useChannelStore = create((set) => ({
   channel: null,
@@ -22,8 +23,10 @@ const useChannelStore = create((set) => ({
   setPinId: (pinId) => set({ pinId }),
 }));
 
-const ChannelMessage = ({ message, prevMessage, pending }) => {
+const ChannelMessage = ({ message, prevMessage, pending, onStartDm }) => {
   const store = useStore();
+  const authorMenuRef = useRef(null);
+  const [authorMenuOpen, setAuthorMenuOpen] = useState(false);
 
   const { messages, setMessages, editingId, setEditingId, setReplyingId, setPinId } = useChannelContext();
 
@@ -102,6 +105,25 @@ const ChannelMessage = ({ message, prevMessage, pending }) => {
     toast.info('Pinning is not available yet.');
   }, [message.channel_id, message.id, messages, setPinId]);
 
+  useEffect(() => {
+    if (!authorMenuOpen) return;
+    const onDown = (event) => {
+      if (!authorMenuRef.current) return;
+      if (!authorMenuRef.current.contains(event.target)) {
+        setAuthorMenuOpen(false);
+      }
+    };
+    const onKey = (event) => {
+      if (event.key === 'Escape') setAuthorMenuOpen(false);
+    };
+    document.addEventListener('mousedown', onDown);
+    document.addEventListener('keydown', onKey);
+    return () => {
+      document.removeEventListener('mousedown', onDown);
+      document.removeEventListener('keydown', onKey);
+    };
+  }, [authorMenuOpen]);
+
   return (
     <div className={`group relative py-0.5 ${isEditing ? 'bg-gray-800/60' : 'hover:bg-gray-800/60'} ${shouldStack ? '' : 'mt-3.5'}`}>
       <div className="flex px-4">
@@ -121,10 +143,32 @@ const ChannelMessage = ({ message, prevMessage, pending }) => {
 
         <div className="flex flex-1 flex-col items-start justify-start">
           {shouldStack ? null : (
-            <div className="mb-1 flex justify-start leading-none">
-              <h6 className="font-semibold leading-none">
+            <div className="relative mb-1 flex justify-start leading-none" ref={authorMenuRef}>
+              <button
+                type="button"
+                className="font-semibold leading-none text-gray-100 hover:underline"
+                onClick={(event) => {
+                  event.stopPropagation();
+                  setAuthorMenuOpen((open) => !open);
+                }}
+              >
                 {message?.author.name} {message?.author.is_webhook ? ' APP' : ''}
-              </h6>
+              </button>
+              {authorMenuOpen && (
+                <div className="absolute left-0 top-5 z-20 w-40 rounded-md border border-gray-800 bg-gray-900 py-1 text-xs text-gray-100 shadow-lg">
+                  <button
+                    type="button"
+                    className="block w-full px-3 py-2 text-left hover:bg-gray-800"
+                    onClick={() => {
+                      if (!message?.author?.id) return;
+                      setAuthorMenuOpen(false);
+                      onStartDm?.(message.author);
+                    }}
+                  >
+                    Send a DM
+                  </button>
+                </div>
+              )}
               <p className="ml-2 self-end text-xs font-medium leading-tight text-gray-600 dark:text-gray-500">
                 {formattedDateTime}
               </p>
@@ -183,7 +227,7 @@ const ChannelMessage = ({ message, prevMessage, pending }) => {
   );
 };
 
-const ChannelMessages = ({ messagesRef, highlightId, onLoadMore, loadingMore, hasMore }) => {
+const ChannelMessages = ({ messagesRef, highlightId, onLoadMore, loadingMore, hasMore, onStartDm }) => {
   const { messages, pendingMessages, setEditingId, replyingId, setReplyingId } = useChannelContext();
   const [atTop, setAtTop] = useState(false);
 
@@ -243,14 +287,14 @@ const ChannelMessages = ({ messagesRef, highlightId, onLoadMore, loadingMore, ha
         const prevMessage = messages[index - 1] || null;
         return (
           <div key={message.id} id={`msg-${message.id}`} className={highlightId === message.id ? 'ring-2 ring-primary rounded' : ''}>
-            <ChannelMessage message={message} prevMessage={prevMessage} />
+            <ChannelMessage message={message} prevMessage={prevMessage} onStartDm={onStartDm} />
           </div>
         );
       })}
       {pendingMessages && pendingMessages.map((message, index) => {
         const prevMessage = pendingMessages[index - 1] || messages[messages.length - 1] || null;
         return (
-          <ChannelMessage key={message.nonce} message={message} prevMessage={prevMessage} pending={true} />
+          <ChannelMessage key={message.nonce} message={message} prevMessage={prevMessage} pending={true} onStartDm={onStartDm} />
         );
       })}
     </div>
@@ -346,6 +390,8 @@ const Channel = ({ channel }) => {
   const [highlightId, setHighlightId] = useState(null);
   const [loadingMore, setLoadingMore] = useState(false);
   const [hasMore, setHasMore] = useState(true);
+  const store = useStore();
+  const navigate = useNavigate();
 
   const messagesRef = useRef();
 
@@ -521,6 +567,23 @@ const Channel = ({ channel }) => {
     }
   }, [fetchMessages, messages, scrollToMessage, setMessages]);
 
+  const handleStartDm = useCallback(async (author) => {
+    const authorId = author?.id;
+    if (!authorId) return;
+    if (String(authorId) === String(store.user.id)) {
+      toast.info('You cannot DM yourself.');
+      return;
+    }
+    try {
+      await api.post('@me/channels', { recipients: [authorId] });
+      toast.success('Direct message opened.');
+      navigate('/channels/@me');
+    } catch (error) {
+      console.error(error);
+      toast.error(error.response?.data?.message || 'Could not create direct message.');
+    }
+  }, [navigate, store.user.id]);
+
   return (
     <div className="relative flex w-full flex-1 min-h-0 flex-col dark:bg-gray-700">
       <ChannelBar channel={channel} onJumpToMessage={handleJumpToMessage} />
@@ -531,6 +594,7 @@ const Channel = ({ channel }) => {
         onLoadMore={loadMore}
         loadingMore={loadingMore}
         hasMore={hasMore}
+        onStartDm={handleStartDm}
       />
       <ChannelInput channel={channel} fetchMessages={fetchMessages} />
     </div>
