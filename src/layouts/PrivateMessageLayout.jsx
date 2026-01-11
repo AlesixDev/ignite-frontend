@@ -15,7 +15,6 @@ const PrivateMessageLayout = () => {
   const [activeThreadId, setActiveThreadId] = useState(null);
   const [loadingThreads, setLoadingThreads] = useState(true);
   const [threadError, setThreadError] = useState('');
-  const [newRecipientId, setNewRecipientId] = useState('');
   const [friendUsername, setFriendUsername] = useState('');
   const [friendRequests, setFriendRequests] = useState([]);
   const [friends, setFriends] = useState([]);
@@ -139,6 +138,18 @@ const PrivateMessageLayout = () => {
     }
   }, [hydrateThreadUsers, normalizeThread]);
 
+  const loadFriendRequests = useCallback(async () => {
+    try {
+      const { data } = await api.get('@me/friends/requests');
+      const requests = Array.isArray(data)
+        ? data
+        : data?.data || data?.requests || [];
+      setFriendRequests(requests);
+    } catch {
+      toast.error('Unable to load friend requests.');
+    }
+  }, []);
+
   const sendFriendRequest = useCallback(async () => {
     const trimmed = friendUsername.trim();
     if (!trimmed) {
@@ -151,22 +162,11 @@ const PrivateMessageLayout = () => {
       });
       toastResponse('Friend request sent', data);
       setFriendUsername('');
+      loadFriendRequests();
     } catch {
       toast.error('Unable to send friend request.');
     }
-  }, [friendUsername, toastResponse]);
-
-  const loadFriendRequests = useCallback(async () => {
-    try {
-      const { data } = await api.get('@me/friends/requests');
-      const requests = Array.isArray(data)
-        ? data
-        : data?.data || data?.requests || [];
-      setFriendRequests(requests);
-    } catch {
-      toast.error('Unable to load friend requests.');
-    }
-  }, [toastResponse]);
+  }, [friendUsername, loadFriendRequests, toastResponse]);
 
   const loadFriends = useCallback(async () => {
     try {
@@ -178,7 +178,7 @@ const PrivateMessageLayout = () => {
     } catch {
       toast.error('Unable to load friends.');
     }
-  }, [toastResponse]);
+  }, []);
 
   const acceptFriendRequest = useCallback(async (requestId) => {
     if (!requestId) return;
@@ -218,7 +218,6 @@ const PrivateMessageLayout = () => {
         });
         setActiveThreadId(normalized.id);
       }
-      setNewRecipientId('');
     } catch {
       toast.error('Unable to create direct message.');
       setThreadError('Unable to create direct message.');
@@ -242,7 +241,9 @@ const PrivateMessageLayout = () => {
 
   useEffect(() => {
     loadThreads();
-  }, [loadThreads]);
+    loadFriends();
+    loadFriendRequests();
+  }, [loadThreads, loadFriends, loadFriendRequests]);
 
   return (
     <BaseAuthLayout>
@@ -260,71 +261,35 @@ const PrivateMessageLayout = () => {
             isSidebarOpen ? 'translate-x-0' : '-translate-x-full'
           }`}
         >
-          <div className="px-4 py-4 text-sm font-semibold text-gray-200">Direct Messages</div>
-          <div className="px-4 pb-3">
-            <form
-              onSubmit={(event) => {
-                event.preventDefault();
-                createDmThread(newRecipientId.trim());
-              }}
-              className="flex items-center gap-2 rounded bg-gray-800/70 px-2 py-2"
-            >
-              <input
-                value={newRecipientId}
-                onChange={(event) => setNewRecipientId(event.target.value)}
-                placeholder="Recipient user ID"
-                className="w-full bg-transparent text-xs text-gray-100 outline-none placeholder:text-gray-500"
-              />
-              <button
-                type="submit"
-                className="rounded bg-gray-700 px-2 py-1 text-[10px] text-gray-200 hover:bg-gray-600"
+          <div className="p-4 text-sm font-semibold text-gray-200">Direct Messages</div>
+          <div className="p-4">
+            <div className="mb-3 space-y-2">
+              <div className="text-[10px] uppercase tracking-wide text-gray-500">
+                Add friend
+              </div>
+              <form
+                onSubmit={(event) => {
+                  event.preventDefault();
+                  sendFriendRequest();
+                }}
+                className="flex items-center gap-2 rounded bg-gray-800/70 p-2"
               >
-                New
-              </button>
-            </form>
-          </div>
-          <div className="px-4 pb-4">
-            <div className="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-400">
-              Friends
-            </div>
-            <form
-              onSubmit={(event) => {
-                event.preventDefault();
-                sendFriendRequest();
-              }}
-              className="flex items-center gap-2 rounded bg-gray-800/70 px-2 py-2"
-            >
-              <input
-                value={friendUsername}
-                onChange={(event) => setFriendUsername(event.target.value)}
-                placeholder="Username"
-                className="w-full bg-transparent text-xs text-gray-100 outline-none placeholder:text-gray-500"
-              />
-              <button
-                type="submit"
-                className="rounded bg-gray-700 px-2 py-1 text-[10px] text-gray-200 hover:bg-gray-600"
-              >
-                Send
-              </button>
-            </form>
-            <div className="mt-2 flex flex-wrap gap-2">
-              <button
-                type="button"
-                onClick={loadFriendRequests}
-                className="rounded bg-gray-700 px-2 py-1 text-[10px] text-gray-200 hover:bg-gray-600"
-              >
-                Friend requests
-              </button>
-              <button
-                type="button"
-                onClick={loadFriends}
-                className="rounded bg-gray-700 px-2 py-1 text-[10px] text-gray-200 hover:bg-gray-600"
-              >
-                Friends list
-              </button>
+                <input
+                  value={friendUsername}
+                  onChange={(event) => setFriendUsername(event.target.value)}
+                  placeholder="Username"
+                  className="w-full bg-transparent text-xs text-gray-100 outline-none placeholder:text-gray-500"
+                />
+                <button
+                  type="submit"
+                  className="rounded bg-gray-700 px-2 py-1 text-[10px] text-gray-200 hover:bg-gray-600"
+                >
+                  Send
+                </button>
+              </form>
             </div>
             {friendRequests.length > 0 && (
-              <div className="mt-3 space-y-2 text-xs text-gray-200">
+              <div className="mb-4 space-y-2 text-xs text-gray-200">
                 <div className="text-[10px] uppercase tracking-wide text-gray-500">
                   Requests
                 </div>
@@ -345,7 +310,7 @@ const PrivateMessageLayout = () => {
                   return (
                     <div
                       key={requestId || requesterName}
-                      className="flex items-center justify-between rounded bg-gray-800/70 px-2 py-2"
+                      className="flex items-center justify-between rounded bg-gray-800/70 p-2"
                     >
                       <span className="truncate">{requesterName}</span>
                       <button
@@ -361,7 +326,7 @@ const PrivateMessageLayout = () => {
               </div>
             )}
             {friends.length > 0 && (
-              <div className="mt-3 space-y-2 text-xs text-gray-200">
+              <div className="space-y-2 text-xs text-gray-200">
                 <div className="text-[10px] uppercase tracking-wide text-gray-500">
                   Friends
                 </div>
@@ -377,25 +342,28 @@ const PrivateMessageLayout = () => {
                   return (
                     <div
                       key={friendId || friendName}
-                      className="flex items-center justify-between rounded bg-gray-800/70 px-2 py-2"
+                      className="flex items-center justify-between rounded bg-gray-800/70 p-2"
                     >
-                      <button
-                        type="button"
-                        onClick={() => {
-                          createDmThread(friendId);
-                          setIsSidebarOpen(false);
-                        }}
-                        className="truncate text-left text-gray-200 hover:text-white"
-                      >
-                        {friendName}
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => deleteFriend(friendId)}
-                        className="rounded bg-red-600/80 px-2 py-1 text-[10px] text-white hover:bg-red-500"
-                      >
-                        Delete
-                      </button>
+                      <span className="truncate text-gray-200">{friendName}</span>
+                      <div className="flex items-center gap-2">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            createDmThread(friendId);
+                            setIsSidebarOpen(false);
+                          }}
+                          className="rounded bg-blue-600/80 px-2 py-1 text-[10px] text-white hover:bg-blue-500"
+                        >
+                          Message
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => deleteFriend(friendId)}
+                          className="rounded bg-red-600/80 px-2 py-1 text-[10px] text-white hover:bg-red-500"
+                        >
+                          Delete
+                        </button>
+                      </div>
                     </div>
                   );
                 })}
@@ -456,7 +424,7 @@ const PrivateMessageLayout = () => {
         {!isSidebarOpen && (
           <button
             type="button"
-            className="fixed left-0 top-1/2 z-30 h-24 w-4 -translate-y-1/2 rounded-r border border-gray-600/60 bg-gray-800/70 shadow-sm transition-all duration-300 hover:w-5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary animate-pulse md:hidden"
+            className="fixed left-0 top-1/2 z-30 h-24 w-4 -translate-y-1/2 rounded-r border border-gray-600/60 bg-gray-800/70 shadow-sm transition-all duration-300 animate-pulse hover:w-5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary md:hidden"
             onClick={() => setIsSidebarOpen(true)}
             aria-label="Open sidebar"
           />
@@ -479,4 +447,3 @@ const PrivateMessageLayout = () => {
 };
 
 export default PrivateMessageLayout;
-
