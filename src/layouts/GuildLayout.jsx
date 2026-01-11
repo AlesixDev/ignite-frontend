@@ -9,8 +9,9 @@ import ServerSettings from '../components/Settings/ServerSettings';
 import UserSettings from '../components/Settings/UserSettings';
 import api from '../api';
 import useGuildStore from '../hooks/useGuildStore';
+import useStore from '../hooks/useStore';
 
-const GuildSidebarHeader = ({ guildName = '', guild, onOpenServerSettings }) => {
+const GuildSidebarHeader = ({ guildName = '', guild, onOpenServerSettings, canOpenServerSettings }) => {
   const navigate = useNavigate();
 
   const [menuOpen, setMenuOpen] = useState(false);
@@ -112,11 +113,14 @@ const GuildSidebarHeader = ({ guildName = '', guild, onOpenServerSettings }) => 
         <div className="absolute left-2 right-2 top-12 z-10 rounded bg-gray-700 py-2 shadow-lg">
           <button
             type="button"
-            className="block w-full px-4 py-2 text-left text-sm text-gray-100 hover:bg-gray-600"
+            className="block w-full px-4 py-2 text-left text-sm text-gray-100 hover:bg-gray-600 disabled:cursor-not-allowed disabled:text-gray-400 disabled:hover:bg-gray-700"
             onClick={() => {
               setMenuOpen(false);
               onOpenServerSettings?.();
             }}
+            disabled={!canOpenServerSettings}
+            aria-disabled={!canOpenServerSettings}
+            title={!canOpenServerSettings ? 'Only the server owner can open settings.' : undefined}
           >
             Server Settings
           </button>
@@ -192,6 +196,7 @@ const GuildSidebarSection = ({
   setIsCreateChannelDialogOpen,
   guild,
   onEditChannel,
+  canManageChannels,
 }) => {
   const [expanded, setExpanded] = useState(true);
   const navigate = useNavigate();
@@ -201,6 +206,10 @@ const GuildSidebarSection = ({
     async (channel, event) => {
       event.preventDefault();
       event.stopPropagation();
+      if (!canManageChannels) {
+        toast.error('Only the server owner can manage channels.');
+        return;
+      }
       if (!guild?.id || !channel) return;
 
       const confirmDelete = window.confirm('Delete this channel?');
@@ -248,9 +257,11 @@ const GuildSidebarSection = ({
           <span className="text-xs font-bold uppercase">{sectionName}</span>
         </button>
 
-        <button type="button" onClick={() => setIsCreateChannelDialogOpen(true)} aria-label="Create channel">
-          <Plus className="mr-2 size-3 text-gray-400" />
-        </button>
+        {canManageChannels && (
+          <button type="button" onClick={() => setIsCreateChannelDialogOpen(true)} aria-label="Create channel">
+            <Plus className="mr-2 size-3 text-gray-400" />
+          </button>
+        )}
       </div>
 
       {sortedChannels.map((channel) => (
@@ -268,28 +279,30 @@ const GuildSidebarSection = ({
           >
             <Hash className="size-6 text-gray-500" />
             <p className="ml-1 truncate text-base font-medium">{channel.name}</p>
-            <div className="absolute right-2 hidden items-center gap-1 rounded bg-gray-800/80 px-1 py-0.5 group-hover:flex">
-              <button
-                type="button"
-                aria-label={`Edit ${channel.name}`}
-                className="rounded p-1 text-sm text-white/90 hover:bg-primary/10 hover:text-primary"
-                onClick={(event) => {
-                  event.preventDefault();
-                  event.stopPropagation();
-                  onEditChannel?.(channel);
-                }}
-              >
-                <NotePencil className="size-4" />
-              </button>
-              <button
-                type="button"
-                aria-label={`Delete ${channel.name}`}
-                className="rounded p-1 text-sm text-white/90 hover:bg-primary/10 hover:text-primary"
-                onClick={(event) => handleDeleteChannel(channel, event)}
-              >
-                <Trash className="size-4" />
-              </button>
-            </div>
+            {canManageChannels && (
+              <div className="absolute right-2 hidden items-center gap-1 rounded bg-gray-800/80 px-1 py-0.5 group-hover:flex">
+                <button
+                  type="button"
+                  aria-label={`Edit ${channel.name}`}
+                  className="rounded p-1 text-sm text-white/90 hover:bg-primary/10 hover:text-primary"
+                  onClick={(event) => {
+                    event.preventDefault();
+                    event.stopPropagation();
+                    onEditChannel?.(channel);
+                  }}
+                >
+                  <NotePencil className="size-4" />
+                </button>
+                <button
+                  type="button"
+                  aria-label={`Delete ${channel.name}`}
+                  className="rounded p-1 text-sm text-white/90 hover:bg-primary/10 hover:text-primary"
+                  onClick={(event) => handleDeleteChannel(channel, event)}
+                >
+                  <Trash className="size-4" />
+                </button>
+              </div>
+            )}
           </div>
         </Link>
       ))}
@@ -297,14 +310,26 @@ const GuildSidebarSection = ({
   );
 };
 
-const GuildSidebar = ({ guild, onOpenServerSettings, onEditChannel, onOpenUserSettings }) => {
+const GuildSidebar = ({
+  guild,
+  onOpenServerSettings,
+  onEditChannel,
+  onOpenUserSettings,
+  canOpenServerSettings,
+  canManageChannels,
+}) => {
   const { channelId } = useParams();
   const [isCreateChannelDialogOpen, setIsCreateChannelDialogOpen] = useState(false);
 
   return (
     <div className="relative top-0 flex h-full min-w-[240px] flex-col bg-gray-800 text-gray-100">
       <div className="flex flex-col flex-1 overflow-y-auto items-center">
-        <GuildSidebarHeader guildName={guild?.name} guild={guild} onOpenServerSettings={onOpenServerSettings} />
+        <GuildSidebarHeader
+          guildName={guild?.name}
+          guild={guild}
+          onOpenServerSettings={onOpenServerSettings}
+          canOpenServerSettings={canOpenServerSettings}
+        />
         <hr className="m-0 w-full border border-gray-900 bg-gray-900 p-0" />
         <GuildSidebarSection
           sectionName="Text Channels"
@@ -313,8 +338,15 @@ const GuildSidebar = ({ guild, onOpenServerSettings, onEditChannel, onOpenUserSe
           setIsCreateChannelDialogOpen={setIsCreateChannelDialogOpen}
           guild={guild}
           onEditChannel={onEditChannel}
+          canManageChannels={canManageChannels}
         />
-        <CreateGuildChannelDialog isOpen={isCreateChannelDialogOpen} setIsOpen={setIsCreateChannelDialogOpen} guild={guild} />
+        {canManageChannels && (
+          <CreateGuildChannelDialog
+            isOpen={isCreateChannelDialogOpen}
+            setIsOpen={setIsCreateChannelDialogOpen}
+            guild={guild}
+          />
+        )}
       </div>
       <div className="shrink-0">
         <UserBar onOpenUserSettings={onOpenUserSettings} />
@@ -324,11 +356,29 @@ const GuildSidebar = ({ guild, onOpenServerSettings, onEditChannel, onOpenUserSe
 };
 
 const GuildLayout = ({ children, guild }) => {
+  const store = useStore();
   const [isServerSettingsOpen, setIsServerSettingsOpen] = useState(false);
   const [isUserSettingsOpen, setIsUserSettingsOpen] = useState(false);
   const [settingsTab, setSettingsTab] = useState('info');
   const [editChannelId, setEditChannelId] = useState(null);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const isGuildOwner =
+    guild?.owner_id != null &&
+    store.user?.id != null &&
+    String(guild.owner_id) === String(store.user.id);
+
+  const openServerSettings = useCallback(
+    ({ tab = 'info', channelId = null } = {}) => {
+      if (!isGuildOwner) {
+        toast.error('Only the server owner can open server settings.');
+        return;
+      }
+      setSettingsTab(tab);
+      setEditChannelId(channelId);
+      setIsServerSettingsOpen(true);
+    },
+    [isGuildOwner]
+  );
 
   return (
     <BaseAuthLayout>
@@ -348,17 +398,13 @@ const GuildLayout = ({ children, guild }) => {
         >
           <GuildSidebar
             guild={guild}
-            onOpenServerSettings={() => {
-              setSettingsTab('info');
-              setEditChannelId(null);
-              setIsServerSettingsOpen(true);
-            }}
+            onOpenServerSettings={() => openServerSettings({ tab: 'info', channelId: null })}
             onOpenUserSettings={() => setIsUserSettingsOpen(true)}
             onEditChannel={(channel) => {
-              setEditChannelId(channel.channel_id || channel.id);
-              setSettingsTab('channels');
-              setIsServerSettingsOpen(true);
+              openServerSettings({ tab: 'channels', channelId: channel.channel_id || channel.id });
             }}
+            canOpenServerSettings={isGuildOwner}
+            canManageChannels={isGuildOwner}
           />
         </div>
         {!isSidebarOpen && (
