@@ -251,8 +251,8 @@ const PrivateMessageLayout = () => {
   }, [activeThread]);
 
   useEffect(() => {
-    console.log('Current User:', currentUser);
-
+    if (!currentUser || !currentUser.id) return;
+    
     window.Echo.private(`user.${currentUser.id}`)
       .listen('.friendrequest.created', (event) => {
         // {"friendRequest":{"sender_id":"1357682785875132416","receiver_id":"1","id":"1357686439940194304","created_at":"2026-01-11T12:01:11.000000Z"}}
@@ -265,21 +265,30 @@ const PrivateMessageLayout = () => {
           // console.log("New Friend Requests:", friendRequests);
         }
       })
-      .listen('.message.updated', (event) => {
-        if (event.channel.id == channel.channel_id) {
-          setMessages(messages.map((m) => m.id === event.message.id ? { ...m, content: event.message.content, updated_at: event.message.updated_at } : m));
-        }
+      .listen('.friendrequest.deleted', (event) => {
+        console.log('Received friendrequest.deleted event:', event);
+
+        toast.info('A friend request was canceled or declined.');
+        loadFriendRequests();
       })
-      .listen('.message.deleted', (event) => {
-        if (event.channel.id == channel.channel_id) {
-          setMessages(messages.filter((m) => m.id !== event.message.id));
-        }
+      .listen('.friendrequest.accepted', (event) => {
+        console.log('Received friendrequest.accepted event:', event);
+
+        toast.info('A friend request was accepted.');
+        loadFriendRequests();
+        loadFriends();
+      })
+      .listen('.channel.created', (event) => {
+        console.log('Received channel.created event:', event);
+
+        toast.info('A new direct message channel was created.');
+        loadThreads();
       });
 
     return () => {
       window.Echo.leave(`user.${currentUser.id}}`);
     };
-  }, [currentUser]);
+  }, [currentUser?.id]);
 
   useEffect(() => {
     loadThreads();
