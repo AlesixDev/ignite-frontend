@@ -7,6 +7,7 @@ import { create } from 'zustand';
 import ChannelBar from './ChannelBar.jsx';
 import { useChannelContext } from '../contexts/ChannelContext.jsx';
 import { useNavigate } from 'react-router-dom';
+import { ContextMenu, ContextMenuShortcut, ContextMenuContent, ContextMenuItem, ContextMenuSeparator, ContextMenuSub, ContextMenuSubContent, ContextMenuSubTrigger, ContextMenuTrigger  } from './ui/context-menu';
 
 const useChannelStore = create((set) => ({
   channel: null,
@@ -103,7 +104,7 @@ const ChannelMessage = ({ message, prevMessage, pending, onStartDm }) => {
       toast.error(error.response?.data?.message || 'Could not pin message.');
     }
     toast.info('Pinning is not available yet.');
-  }, [message.channel_id, message.id, messages, setPinId]);
+  }, [message.channel_id, message.id, setPinId]);
 
   useEffect(() => {
     if (!authorMenuOpen) return;
@@ -125,105 +126,155 @@ const ChannelMessage = ({ message, prevMessage, pending, onStartDm }) => {
   }, [authorMenuOpen]);
 
   return (
-    <div className={`group relative py-0.5 ${isEditing ? 'bg-gray-800/60' : 'hover:bg-gray-800/60'} ${shouldStack ? '' : 'mt-3.5'}`}>
-      <div className="flex px-4">
-        {shouldStack ? (
-          <div className="w-14" />
-        ) : (
-          <>
-            {message?.author.avatar ? (
-              <img className="h-10 rounded-full bg-transparent" src={message?.author.avatar} alt="User avatar" />
-            ) : (
-              <div className="mr-4 flex size-10 items-center justify-center rounded-full bg-gray-800 text-gray-300">
-                {message?.author?.name?.slice(0, 1).toUpperCase()}
-              </div>
-            )}
-          </>
-        )}
-
-        <div className="flex flex-1 flex-col items-start justify-start">
-          {shouldStack ? null : (
-            <div className="relative mb-1 flex justify-start leading-none" ref={authorMenuRef}>
-              <button
-                type="button"
-                className="font-semibold leading-none text-gray-100 hover:underline"
-                onClick={(event) => {
-                  event.stopPropagation();
-                  setAuthorMenuOpen((open) => !open);
-                }}
-              >
-                {message?.author.name} {message?.author.is_webhook ? ' APP' : ''}
-              </button>
-              {authorMenuOpen && (
-                <div className="absolute left-0 top-5 z-20 w-40 rounded-md border border-gray-800 bg-gray-900 py-1 text-xs text-gray-100 shadow-lg">
-                  <button
-                    type="button"
-                    className="block w-full px-3 py-2 text-left hover:bg-gray-800"
-                    onClick={() => {
-                      if (!message?.author?.id) return;
-                      setAuthorMenuOpen(false);
-                      onStartDm?.(message.author);
-                    }}
-                  >
-                    Send a DM
-                  </button>
+    <ContextMenu>
+      <ContextMenuTrigger className={`group relative block py-1 data-[state=open]:bg-gray-800/60 ${isEditing ? 'bg-gray-800/60' : 'hover:bg-gray-800/60'} ${shouldStack ? '' : 'mt-3.5'}`}>
+        <div className="flex px-4">
+          {shouldStack ? (
+            <div className="w-14" />
+          ) : (
+            <>
+              {message?.author.avatar ? (
+                <img className="h-10 rounded-full bg-transparent" src={message?.author.avatar} alt="User avatar" />
+              ) : (
+                <div className="mr-4 flex size-10 items-center justify-center rounded-full bg-gray-800 text-gray-300">
+                  {message?.author?.name?.slice(0, 1).toUpperCase()}
                 </div>
               )}
-              <p className="ml-2 self-end text-xs font-medium leading-tight text-gray-600 dark:text-gray-500">
-                {formattedDateTime}
-              </p>
-            </div>
+            </>
           )}
 
-          {isEditing ? (
-            <div className="my-2 w-full">
-              <div className="mb-1 flex items-center rounded-lg bg-gray-600 px-4 py-2">
-                <form onSubmit={(e) => onEdit(e)} className="w-full">
-                  <input
-                    className="w-full border-0 bg-inherit p-0 text-white outline-none placeholder:text-gray-400 focus:ring-0"
-                    type="text"
-                    value={editedMessage}
-                    onChange={(e) => setEditedMessage(e.target.value)}
-                    autoFocus
-                  />
-                </form>
+          <div className="flex flex-1 flex-col items-start justify-start">
+            {shouldStack ? null : (
+              <div className="relative mb-1 flex justify-start leading-none" ref={authorMenuRef}>
+                <button
+                  type="button"
+                  className="font-semibold leading-none text-gray-100 hover:underline"
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    setAuthorMenuOpen((open) => !open);
+                  }}
+                >
+                  {message?.author.name} {message?.author.is_webhook ? ' APP' : ''}
+                </button>
+                {authorMenuOpen && (
+                  <div className="absolute left-0 top-5 z-20 w-40 rounded-md border border-gray-800 bg-gray-900 py-1 text-xs text-gray-100 shadow-lg">
+                    <button
+                      type="button"
+                      className="block w-full px-3 py-2 text-left hover:bg-gray-800"
+                      onClick={() => {
+                        if (!message?.author?.id) return;
+                        setAuthorMenuOpen(false);
+                        onStartDm?.(message.author);
+                      }}
+                    >
+                      Send a DM
+                    </button>
+                  </div>
+                )}
+                <p className="ml-2 self-end text-xs font-medium leading-tight text-gray-600 dark:text-gray-500">
+                  {formattedDateTime}
+                </p>
               </div>
-              <p className="text-xs text-gray-400">
-                escape to <button onClick={() => setEditingId(null)} className="text-primary hover:underline">cancel</button> •
-                enter to <button onClick={(e) => onEdit(e)} className="text-primary hover:underline">save</button>
-              </p>
-            </div>
-          ) : (
-            <div className={`text-gray-400 ${pending ? 'opacity-50' : ''}`}>
-              {message.content}
-              {(message.updated_at && message.created_at !== message.updated_at) && (
-                <span className="ml-1 text-[0.65rem] text-gray-500">(edited)</span>
-              )}
-            </div>
-          )}
+            )}
+
+            {isEditing ? (
+              <div className="my-2 w-full">
+                <div className="mb-1 flex items-center rounded-lg bg-gray-600 px-4 py-2">
+                  <form onSubmit={(e) => onEdit(e)} className="w-full">
+                    <input
+                      className="w-full border-0 bg-inherit p-0 text-white outline-none placeholder:text-gray-400 focus:ring-0"
+                      type="text"
+                      value={editedMessage}
+                      onChange={(e) => setEditedMessage(e.target.value)}
+                      autoFocus
+                    />
+                  </form>
+                </div>
+                <p className="text-xs text-gray-400">
+                  escape to <button onClick={() => setEditingId(null)} className="text-primary hover:underline">cancel</button> •
+                  enter to <button onClick={(e) => onEdit(e)} className="text-primary hover:underline">save</button>
+                </p>
+              </div>
+            ) : (
+              <div className={`text-gray-400 ${pending ? 'opacity-50' : ''}`}>
+                {message.content}
+                {(message.updated_at && message.created_at !== message.updated_at) && (
+                  <span className="ml-1 text-[0.65rem] text-gray-500">(edited)</span>
+                )}
+              </div>
+            )}
+          </div>
         </div>
-      </div>
-      {(!isEditing && !pending) && (
-        <div className="absolute -top-4 right-4 hidden rounded-md border border-gray-800 bg-gray-700 group-hover:flex">
-          <button type="button" onClick={onPin} className="rounded-md p-2 text-sm text-white/90 hover:bg-primary/10 hover:text-primary">
-            <PushPin className="size-5" />
-          </button>
-          {canEdit && (
-            <button type="button" onClick={() => setEditingId(message.id)} className="rounded-md p-2 text-sm text-white/90 hover:bg-primary/10 hover:text-primary">
-              <NotePencil className="size-5" />
+        {(!isEditing && !pending) && (
+          <div className="absolute -top-4 right-4 hidden rounded-md border border-gray-800 bg-gray-700 group-hover:flex">
+            <button type="button" onClick={onPin} className="rounded-md p-2 text-sm text-white/90 hover:bg-primary/10 hover:text-primary">
+              <PushPin className="size-5" />
             </button>
-          )}
-          {canDelete && (
-            <button type="button" onClick={onDelete} className="rounded-md p-2 text-sm text-white/90 hover:bg-primary/10 hover:text-primary">
-              <Trash className="size-5" />
+            {canEdit && (
+              <button type="button" onClick={() => setEditingId(message.id)} className="rounded-md p-2 text-sm text-white/90 hover:bg-primary/10 hover:text-primary">
+                <NotePencil className="size-5" />
+              </button>
+            )}
+            {canDelete && (
+              <button type="button" onClick={onDelete} className="rounded-md p-2 text-sm text-white/90 hover:bg-primary/10 hover:text-primary">
+                <Trash className="size-5" />
+              </button>
+            )}
+            <button type="button" onClick={onReply} className="rounded-md p-2 text-sm text-white/90 hover:bg-primary/10 hover:text-primary">
+              <ArrowBendUpLeft className="size-5" />
             </button>
-          )}
-          <button type="button" onClick={onReply} className="rounded-md p-2 text-sm text-white/90 hover:bg-primary/10 hover:text-primary">
-            <ArrowBendUpLeft className="size-5" />
-          </button>
-        </div>
-      )}
-    </div>
+          </div>
+        )}
+      </ContextMenuTrigger>
+      <ContextMenuContent className="w-52">
+        <ContextMenuItem>
+          Add Reaction
+        </ContextMenuItem>
+        <ContextMenuSeparator />
+        {canEdit && (
+          <ContextMenuItem onSelect={() => setEditingId(message.id)}>
+            Edit Message
+          </ContextMenuItem>
+        )}
+        <ContextMenuItem onSelect={onReply}>
+          Reply
+        </ContextMenuItem>
+        <ContextMenuItem>
+          Forward
+        </ContextMenuItem>
+        <ContextMenuSeparator />
+        <ContextMenuItem onSelect={() => {
+          navigator.clipboard.writeText(message.content);
+          toast.success('Message text copied to clipboard.');
+        }}>
+          Copy Text
+        </ContextMenuItem>
+        <ContextMenuItem onSelect={onPin}>
+          Pin Message
+        </ContextMenuItem>
+        <ContextMenuItem>
+          Mark Unread
+        </ContextMenuItem>
+        <ContextMenuItem onSelect={() => {
+          const link = `${window.location.origin}/channels/${message.channel_id}/${message.id}`;
+          navigator.clipboard.writeText(link);
+          toast.success('Message link copied to clipboard.');
+        }}>
+          Copy Message Link
+        </ContextMenuItem>
+        <ContextMenuItem>
+          Speak Message
+        </ContextMenuItem>
+        {canDelete && (
+          <>
+            <ContextMenuSeparator />
+            <ContextMenuItem onSelect={onDelete} className="text-red-500 hover:bg-red-600/20">
+              Delete Message
+            </ContextMenuItem>
+          </>
+        )}
+      </ContextMenuContent>
+    </ContextMenu>
   );
 };
 
