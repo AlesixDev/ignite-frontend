@@ -1,16 +1,16 @@
-import { useEffect, useMemo, useCallback, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { toast } from 'react-toastify';
-import api from '../../api';
+import { GuildsService } from '../../services/guilds.service';
+import { useGuildsStore } from '../../stores/guilds.store';
 import GuildLayout from '../../layouts/GuildLayout';
 import Channel from '../../components/Channel';
-import useGuildStore from '../../hooks/useGuildStore';
 import { ChannelContextProvider } from '../../contexts/ChannelContext';
 import ChannelDialog from '../../components/ChannelDialog';
 
 const GuildChannelPage = () => {
-  const { guilds, editGuild } = useGuildStore();
   const navigate = useNavigate();
+
+  const { guilds } = useGuildsStore();
 
   // get the guild id from the URL
   const { guildId, channelId } = useParams();
@@ -25,21 +25,11 @@ const GuildChannelPage = () => {
     }
   }, [guild, navigate]);
 
-  const fetchGuildChannels = useCallback(async () => {
-    try {
-      const response = await api.get(`/guilds/${guild.id}/channels`);
-      editGuild({ ...guild, channels: response.data });
-    } catch (error) {
-      console.error(error);
-      toast.error(error.response?.data?.message || 'Could not fetch guild channels.');
-    }
-  }, [editGuild, guild]);
-
   useEffect(() => {
     if (guild && !guild.channels) {
-      fetchGuildChannels(true);
+      GuildsService.loadGuildChannels(guild.id);
     }
-  }, [fetchGuildChannels, guild]);
+  }, [guild]);
 
   // if no channel id in url redirect to first channel
   useEffect(() => {

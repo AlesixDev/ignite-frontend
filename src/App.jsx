@@ -7,13 +7,12 @@ import LoginPage from './pages/Login/Login';
 import RegisterPage from './pages/Register/Register';
 import DashboardPage from './pages/Dashboard/Dashboard';
 import GuildChannelPage from './pages/GuildChannel/GuildChannel';
-import useGuildStore from './hooks/useGuildStore';
 import PrivateMessageLayout from './layouts/PrivateMessageLayout';
+import { GuildsService } from './services/guilds.service';
 import { FriendsService } from './services/friends.service';
 
 const AuthRoute = ({ children }) => {
   const store = useStore();
-  const { setGuilds } = useGuildStore();
 
   const [initialized, setInitialized] = useState(false);
 
@@ -29,10 +28,7 @@ const AuthRoute = ({ children }) => {
           if (user?.username) {
             store.login(user, localToken);
 
-            // todo: move to service
-            const { data: guilds } = await api.get('guilds');
-            setGuilds(guilds);
-
+            GuildsService.loadGuilds();
             FriendsService.loadFriends();
             FriendsService.loadRequests();
           } else {

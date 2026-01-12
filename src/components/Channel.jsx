@@ -426,6 +426,7 @@ const Channel = ({ channel }) => {
   const [highlightId, setHighlightId] = useState(null);
   const [loadingMore, setLoadingMore] = useState(false);
   const [hasMore, setHasMore] = useState(true);
+  const [memberListOpen, setMemberListOpen] = useState(false);
   const messagesRef = useRef();
 
   const fetchMessages = useCallback(async (opts = {}) => {
@@ -602,16 +603,32 @@ const Channel = ({ channel }) => {
 
   return (
     <div className="relative flex min-h-0 w-full flex-1 flex-col dark:bg-gray-700">
-      <ChannelBar channel={channel} onJumpToMessage={handleJumpToMessage} />
+      <ChannelBar channel={channel} onJumpToMessage={handleJumpToMessage} memberListOpen={memberListOpen} setMemberListOpen={setMemberListOpen} />
       <hr className="m-0 w-full border border-gray-800 bg-gray-800 p-0" />
-      <ChannelMessages
-        messagesRef={messagesRef}
-        highlightId={highlightId}
-        onLoadMore={loadMore}
-        loadingMore={loadingMore}
-        hasMore={hasMore}
-      />
-      <ChannelInput channel={channel} fetchMessages={fetchMessages} />
+      <div className="flex min-h-0 flex-1">
+        <div className="flex w-full flex-1 flex-col">
+          <ChannelMessages
+            messagesRef={messagesRef}
+            highlightId={highlightId}
+            onLoadMore={loadMore}
+            loadingMore={loadingMore}
+            hasMore={hasMore}
+          />
+          <ChannelInput channel={channel} fetchMessages={fetchMessages} />
+        </div>
+        <div className={`relative z-0 transition-all duration-300 ${memberListOpen ? 'w-60 md:w-72' : 'w-0'}`}>
+          {memberListOpen && (
+            <div className="flex h-full flex-col border-l border-gray-800 bg-gray-800">
+              <div className="flex h-12 items-center border-b border-gray-700 px-4 text-sm font-semibold text-gray-300">
+                Members
+              </div>
+              <div className="flex-1 p-4 text-gray-400">
+                Member list is not implemented yet.
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
     </div>
   );
 };

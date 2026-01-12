@@ -1,6 +1,6 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { Compass, Fire, Plus } from '@phosphor-icons/react';
-import useGuildStore from '../hooks/useGuildStore';
+import { useGuildsStore } from '../stores/guilds.store';
 import GuildDialog from '../components/GuildDialog';
 import { useNavigate } from 'react-router-dom';
 
@@ -23,23 +23,13 @@ const SidebarIcon = ({ icon = '', iconUrl = '', onClick, isActive = false, isSer
 );
 
 const Sidebar = () => {
-  const { guilds, selectedGuildId, setSelectedGuildId } =
-    useGuildStore((state) => ({
-      guilds: state.guilds,
-      selectedGuildId: state.selectedGuildId,
-      setSelectedGuildId: state.setSelectedGuildId
-    }));
-
   const navigate = useNavigate();
+  const { guilds, activeGuildId, setActiveGuildId } = useGuildsStore();
 
   const [isGuildDialogOpen, setIsGuildDialogOpen] = useState(false);
 
-  useEffect(() => {
-    console.log(selectedGuildId);
-  }, [selectedGuildId]);
-
   const handleGuildClick = (guildId) => {
-    setSelectedGuildId(guildId);
+    setActiveGuildId(guildId);
     navigate(`/channels/${guildId}`);
   }
 
@@ -50,9 +40,9 @@ const Sidebar = () => {
           icon={<Fire className="size-6" />}
           isServerIcon={true}
           text="Direct Messages"
-          isActive={selectedGuildId === '@me'}
+          isActive={activeGuildId === '@me'}
           onClick={() => {
-            setSelectedGuildId('@me');
+            setActiveGuildId('@me');
             navigate('/channels/@me');
           }}
         />
@@ -63,7 +53,7 @@ const Sidebar = () => {
             text={guild.name}
             iconUrl={guild.icon || ''}
             onClick={() => handleGuildClick(guild.id)}
-            isActive={selectedGuildId == guild.id}
+            isActive={activeGuildId == guild.id}
             isServerIcon={true}
           />
         ))}

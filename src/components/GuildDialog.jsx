@@ -3,15 +3,13 @@ import { FormProvider, useForm } from 'react-hook-form';
 import { toast } from 'react-toastify';
 import { ArrowLeft, ArrowRight } from '@phosphor-icons/react';
 import api from '../api';
+import { GuildsService } from '../services/guilds.service';
 import Dialog from './Dialog';
 import FormInput from './Form/FormInput';
 import FormError from './Form/FormError';
 import FormSubmit from './Form/FormSubmit';
-import useGuildStore from '../hooks/useGuildStore';
 
 const GuildDialog = ({ isOpen, setIsOpen }) => {
-  const { addGuild } = useGuildStore();
-
   const [view, setView] = useState('menu');
   const createForm = useForm({ mode: 'onChange', defaultValues: { name: '' } });
   const joinForm = useForm({ mode: 'onChange', defaultValues: { invite: '' } });
@@ -37,32 +35,23 @@ const GuildDialog = ({ isOpen, setIsOpen }) => {
 
   const onCreate = useCallback(
     async (data) => {
-      try {
-        const response = await api.post('guilds', data);
-        addGuild(response.data);
-        toast.success('Server created successfully.');
-        closeAll();
-      } catch (error) {
-        console.error(error);
-        toast.error(error.response?.data?.message || 'An error occurred.');
-      }
-    },
-    [addGuild, closeAll]
+      GuildsService.createGuild(data);
+      closeAll();
+    },[closeAll]
   );
 
   const onJoin = useCallback(
     async (data) => {
       try {
-        const response = await api.post(`/invites/${data.invite}`);
-        if (response?.data) addGuild(response.data);
+        await api.post(`/invites/${data.invite}`);
+        GuildsService.loadGuilds();
         toast.success('Joined server successfully.');
         closeAll();
       } catch (error) {
         console.error(error);
         toast.error(error.response?.data?.message || 'An error occurred.');
       }
-    },
-    [addGuild, closeAll]
+    }, [closeAll]
   );
 
   const activeIndex = view === 'menu' ? 0 : view === 'create' ? 1 : 2;
@@ -71,7 +60,7 @@ const GuildDialog = ({ isOpen, setIsOpen }) => {
 
   return (
     <Dialog isOpen={isOpen} setIsOpen={setIsOpen} title={title}>
-      <div className="w-full max-w-[520px] overflow-x-hidden overflow-y-auto max-h-[75vh]">
+      <div className="max-h-[75vh] w-full max-w-[520px] overflow-y-auto overflow-x-hidden">
         <div
           className="flex transition-transform duration-200 ease-out"
           style={{ transform: `translateX(-${activeIndex * 100}%)` }}
@@ -206,5 +195,3 @@ const GuildDialog = ({ isOpen, setIsOpen }) => {
 };
 
 export default GuildDialog;
-
-

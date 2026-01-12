@@ -1,6 +1,5 @@
 import { Bell, Chats, Hash, MagnifyingGlass, PushPin, Question, Tray, Users } from '@phosphor-icons/react';
 import { useState } from 'react';
-import GuildMembersModal from './Modals/GuildMembersModal.jsx';
 import SearchModal from './Modals/SearchModal.jsx';
 
 const Tooltip = ({ text = 'Hello' }) => {
@@ -56,9 +55,8 @@ const IconButton = ({ icon, tooltipText, onClick }) => {
   );
 };
 
-const ChannelBar = ({ channel, onJumpToMessage }) => {
+const ChannelBar = ({ channel, onJumpToMessage, memberListOpen, setMemberListOpen }) => {
   const [searchOpen, setSearchOpen] = useState(false);
-  const [membersOpen, setMembersOpen] = useState(false);
 
   return (
     <>
@@ -75,17 +73,12 @@ const ChannelBar = ({ channel, onJumpToMessage }) => {
             <IconButton icon="threads" tooltipText="Threads" />
             <IconButton icon="bell" tooltipText="Notification Settings" />
             <IconButton icon="pin" tooltipText="Pinned Messages" />
-            <IconButton icon="users" tooltipText="Show Member List" onClick={() => setMembersOpen(true)} />
+            <IconButton icon="users" tooltipText="Show Member List" onClick={() => setMemberListOpen(!memberListOpen)} />
             <IconButton icon="search" tooltipText="Search" onClick={() => setSearchOpen(true)} />
             <IconButton icon="inbox" tooltipText="Inbox" />
             <IconButton icon="question" tooltipText="Help" />
           </div>
         </div>
-        <GuildMembersModal
-          open={membersOpen}
-          onClose={() => setMembersOpen(false)}
-          guildId={channel?.guild_id}
-        />
       </div>
 
       <SearchModal

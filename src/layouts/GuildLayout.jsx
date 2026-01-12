@@ -8,8 +8,8 @@ import CreateGuildChannelDialog from '../components/CreateGuildChannelDialog';
 import ServerSettings from '../components/Settings/ServerSettings';
 import UserSettings from '../components/Settings/UserSettings';
 import api from '../api';
-import useGuildStore from '../hooks/useGuildStore';
 import useStore from '../hooks/useStore';
+import { GuildsService } from '../services/guilds.service';
 
 const GuildSidebarHeader = ({ guildName = '', guild, onOpenServerSettings, canOpenServerSettings }) => {
   const navigate = useNavigate();
@@ -110,7 +110,7 @@ const GuildSidebarHeader = ({ guildName = '', guild, onOpenServerSettings, canOp
       </button>
 
       {menuOpen && (
-        <div className="absolute left-2 right-2 top-12 z-10 rounded bg-gray-700 py-2 shadow-lg">
+        <div className="absolute inset-x-2 top-12 z-10 rounded bg-gray-700 py-2 shadow-lg">
           <button
             type="button"
             className="block w-full px-4 py-2 text-left text-sm text-gray-100 hover:bg-gray-600 disabled:cursor-not-allowed disabled:text-gray-400 disabled:hover:bg-gray-700"
@@ -146,7 +146,7 @@ const GuildSidebarHeader = ({ guildName = '', guild, onOpenServerSettings, canOp
       )}
 
       {inviteInfo && (
-        <div className="absolute left-2 right-2 top-28 z-20 rounded border border-gray-700 bg-gray-800 p-4 shadow-lg">
+        <div className="absolute inset-x-2 top-28 z-20 rounded border border-gray-700 bg-gray-800 p-4 shadow-lg">
           <div className="mb-2 text-sm font-semibold text-gray-100">Invite Created</div>
           <div className="mb-2 flex items-center gap-2">
             <span className="break-all font-mono text-xs text-gray-300">{inviteInfo.code}</span>
@@ -171,7 +171,7 @@ const GuildSidebarHeader = ({ guildName = '', guild, onOpenServerSettings, canOp
       )}
 
       {error && !inviteInfo && (
-        <div className="absolute left-2 right-2 top-28 z-20 rounded border border-red-700 bg-red-800 p-4 shadow-lg">
+        <div className="absolute inset-x-2 top-28 z-20 rounded border border-red-700 bg-red-800 p-4 shadow-lg">
           <div className="mb-2 text-sm font-semibold text-red-100">Error</div>
           <div className="mb-2 break-all text-xs text-red-200">{error}</div>
           <div className="flex justify-end">
@@ -200,7 +200,6 @@ const GuildSidebarSection = ({
 }) => {
   const [expanded, setExpanded] = useState(true);
   const navigate = useNavigate();
-  const { editGuild } = useGuildStore();
 
   const handleDeleteChannel = useCallback(
     async (channel, event) => {
@@ -220,7 +219,7 @@ const GuildSidebarSection = ({
         const nextChannels = channels.filter(
           (item) => (item.channel_id || item.id) !== (channel.channel_id || channel.id)
         );
-        editGuild({ ...guild, channels: nextChannels });
+        GuildsService.editGuild(guild.id, { channels: nextChannels });
         if (String(channel.channel_id) === String(activeChannelId)) {
           navigate(`/channels/${guild.id}`);
         }
@@ -230,7 +229,7 @@ const GuildSidebarSection = ({
         toast.error(msg);
       }
     },
-    [activeChannelId, channels, editGuild, guild, navigate]
+    [activeChannelId, canManageChannels, channels, guild.id, navigate]
   );
 
   const sortedChannels = [...(channels || [])].sort((a, b) => {
@@ -323,7 +322,7 @@ const GuildSidebar = ({
 
   return (
     <div className="relative top-0 flex h-full min-w-[240px] flex-col bg-gray-800 text-gray-100">
-      <div className="flex flex-col flex-1 overflow-y-auto items-center">
+      <div className="flex flex-1 flex-col items-center overflow-y-auto">
         <GuildSidebarHeader
           guildName={guild?.name}
           guild={guild}
@@ -410,12 +409,12 @@ const GuildLayout = ({ children, guild }) => {
         {!isSidebarOpen && (
           <button
             type="button"
-            className="fixed left-0 top-1/2 z-30 h-24 w-4 -translate-y-1/2 rounded-r border border-gray-600/60 bg-gray-800/70 shadow-sm transition-all duration-300 hover:w-5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary animate-pulse md:hidden"
+            className="fixed left-0 top-1/2 z-30 h-24 w-4 -translate-y-1/2 animate-pulse rounded-r border border-gray-600/60 bg-gray-800/70 shadow-sm transition-all duration-300 hover:w-5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary md:hidden"
             onClick={() => setIsSidebarOpen(true)}
             aria-label="Open sidebar"
           />
         )}
-        <main className="relative flex-1 min-w-0 flex flex-col bg-gray-700">
+        <main className="relative flex min-w-0 flex-1 flex-col bg-gray-700">
           {children}
         </main>
       </div>

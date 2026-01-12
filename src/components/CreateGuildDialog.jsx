@@ -1,17 +1,13 @@
 import { useCallback, useEffect, useMemo } from 'react';
 import { FormProvider, useForm } from 'react-hook-form';
-import { toast } from 'react-toastify';
 import { ArrowRight } from '@phosphor-icons/react';
-import api from '../api';
+import { GuildsService } from '../services/guilds.service';
 import Dialog from './Dialog';
 import FormInput from './Form/FormInput';
 import FormError from './Form/FormError';
 import FormSubmit from './Form/FormSubmit';
-import useGuildStore from '../hooks/useGuildStore';
 
 const CreateGuildDialog = ({ isOpen, setIsOpen }) => {
-  const { addGuild } = useGuildStore();
-
   const form = useForm({
     mode: 'onChange',
     defaultValues: { name: '' },
@@ -28,20 +24,10 @@ const CreateGuildDialog = ({ isOpen, setIsOpen }) => {
 
   const onSubmit = useCallback(
     async (data) => {
-      const payload = { ...data, name: data.name?.trim() };
-
-      try {
-        const response = await api.post('guilds', payload);
-        addGuild(response.data);
-        toast.success('Server created successfully.');
-        setIsOpen(false);
-        form.reset();
-      } catch (error) {
-        console.error(error);
-        toast.error(error.response?.data?.message || 'An error occurred.');
-      }
-    },
-    [addGuild, form, setIsOpen]
+      GuildsService.createGuild(data);
+      setIsOpen(false);
+      form.reset();
+    }, [form, setIsOpen]
   );
 
   return (
@@ -115,7 +101,3 @@ const CreateGuildDialog = ({ isOpen, setIsOpen }) => {
 };
 
 export default CreateGuildDialog;
-
-
-
-
