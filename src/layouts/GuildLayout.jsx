@@ -229,7 +229,7 @@ const GuildSidebarSection = ({
         toast.error(msg);
       }
     },
-    [activeChannelId, canManageChannels, channels, guild.id, navigate]
+    [activeChannelId, canManageChannels, channels, guild?.id, navigate]
   );
 
   const sortedChannels = [...(channels || [])].sort((a, b) => {

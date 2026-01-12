@@ -13,7 +13,6 @@ type GuildsStore = {
 export const useGuildsStore = create<GuildsStore>((set) => ({
   guilds: [],
   activeGuildId: null,
-
   setGuilds: (guilds) => set({ guilds }),
   setActiveGuildId: (guildId) => set({ activeGuildId: guildId }),
   addGuild: (guild) => set((state) => ({ guilds: [...state.guilds, guild] })),

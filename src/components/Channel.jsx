@@ -9,7 +9,9 @@ import { useChannelContext } from '../contexts/ChannelContext.jsx';
 import { useNavigate } from 'react-router-dom';
 import { ContextMenu, ContextMenuShortcut, ContextMenuContent, ContextMenuItem, ContextMenuSeparator, ContextMenuSub, ContextMenuSubContent, ContextMenuSubTrigger, ContextMenuTrigger  } from './ui/context-menu';
 import { FriendsService } from '../services/friends.service';
+import { GuildsService } from '../services/guilds.service';
 import GuildMemberContextMenu from './GuildMemberContextMenu';
+import { useGuildsStore } from '../stores/guilds.store';
 
 const useChannelStore = create((set) => ({
   channel: null,
@@ -601,6 +603,22 @@ const Channel = ({ channel }) => {
     }
   }, [fetchMessages, messages, scrollToMessage, setMessages]);
 
+  const { guilds, activeGuildId } = useGuildsStore();
+
+  const activeGuild = guilds.find((g) => g.id === activeGuildId);
+
+  useEffect(() => {
+    if (!memberListOpen || !activeGuildId) return;
+
+    GuildsService.loadGuildMembers(activeGuildId);
+
+    const interval = setInterval(() => {
+      GuildsService.loadGuildMembers(activeGuildId);
+    }, 5000);
+
+    return () => clearInterval(interval);
+  }, [memberListOpen, activeGuildId]);
+
   return (
     <div className="relative flex min-h-0 w-full flex-1 flex-col dark:bg-gray-700">
       <ChannelBar channel={channel} onJumpToMessage={handleJumpToMessage} memberListOpen={memberListOpen} setMemberListOpen={setMemberListOpen} />
@@ -623,7 +641,21 @@ const Channel = ({ channel }) => {
                 Members
               </div>
               <div className="flex-1 p-4 text-gray-400">
-                Member list is not implemented yet.
+                {activeGuild?.members?.map((member) => (
+                  <div key={member.user.id} className="mb-3 flex items-center">
+                    {member.user.avatar_url ? (
+                      <img className="size-8 rounded-full bg-transparent" src={member.user.avatar_url} alt="User avatar" />
+                    ) : (
+                      <div className="mr-3 flex size-8 items-center justify-center rounded-full bg-gray-700 text-gray-300">
+                        {member.user.username?.slice(0, 1).toUpperCase()}
+                      </div>
+                    )}
+                    <div className="ml-3">
+                      <p className="text-sm font-medium text-gray-100">{member.user.name}</p>
+                      <p className="text-xs text-gray-400">#{member.user.username}</p>
+                    </div>
+                  </div>
+                ))}
               </div>
             </div>
           )}
