@@ -77,6 +77,18 @@ function App() {
     window.scrollTo(0, 0);
   }, [pathname]);
 
+  useEffect(() => {
+    const handleContextMenu = (e) => {
+      e.preventDefault();
+    };
+
+    document.addEventListener('contextmenu', handleContextMenu);
+
+    return () => {
+      document.removeEventListener('contextmenu', handleContextMenu);
+    };
+  }, []);
+
   return <Routes>
     <Route
       index
