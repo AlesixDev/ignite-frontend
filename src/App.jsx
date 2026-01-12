@@ -9,6 +9,7 @@ import DashboardPage from './pages/Dashboard/Dashboard';
 import GuildChannelPage from './pages/GuildChannel/GuildChannel';
 import useGuildStore from './hooks/useGuildStore';
 import PrivateMessageLayout from './layouts/PrivateMessageLayout';
+import { FriendsService } from './services/friends.service';
 
 const AuthRoute = ({ children }) => {
   const store = useStore();
@@ -28,8 +29,12 @@ const AuthRoute = ({ children }) => {
           if (user?.username) {
             store.login(user, localToken);
 
+            // todo: move to service
             const { data: guilds } = await api.get('guilds');
             setGuilds(guilds);
+
+            FriendsService.loadFriends();
+            FriendsService.loadRequests();
           } else {
             localStorage.removeItem('token');
           }

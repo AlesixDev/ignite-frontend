@@ -8,6 +8,8 @@ import ChannelBar from './ChannelBar.jsx';
 import { useChannelContext } from '../contexts/ChannelContext.jsx';
 import { useNavigate } from 'react-router-dom';
 import { ContextMenu, ContextMenuShortcut, ContextMenuContent, ContextMenuItem, ContextMenuSeparator, ContextMenuSub, ContextMenuSubContent, ContextMenuSubTrigger, ContextMenuTrigger  } from './ui/context-menu';
+import { FriendsService } from '../services/friends.service';
+import GuildMemberContextMenu from './GuildMemberContextMenu';
 
 const useChannelStore = create((set) => ({
   channel: null,
@@ -24,7 +26,7 @@ const useChannelStore = create((set) => ({
   setPinId: (pinId) => set({ pinId }),
 }));
 
-const ChannelMessage = ({ message, prevMessage, pending, onStartDm }) => {
+const ChannelMessage = ({ message, prevMessage, pending }) => {
   const store = useStore();
   const authorMenuRef = useRef(null);
   const [authorMenuOpen, setAuthorMenuOpen] = useState(false);
@@ -133,89 +135,27 @@ const ChannelMessage = ({ message, prevMessage, pending, onStartDm }) => {
             <div className="w-14" />
           ) : (
             <ContextMenu>
-            <ContextMenuTrigger>
-              {message?.author.avatar ? (
-                <img className="h-10 cursor-pointer rounded-full bg-transparent" src={message?.author.avatar} alt="User avatar" />
-              ) : (
-                <div className="mr-4 flex size-10 cursor-pointer items-center justify-center rounded-full bg-gray-800 text-gray-300">
-                  {message?.author?.name?.slice(0, 1).toUpperCase()}
-                </div>
-              )}
-            </ContextMenuTrigger>
-            <ContextMenuContent>
-              <ContextMenuItem onSelect={() => {
-                toast.info('Profile feature is not available yet.');
-              }}>
-                View Profile
-              </ContextMenuItem>
-              <ContextMenuItem onSelect={() => {
-                navigator.clipboard.writeText(`@${message?.author.username}`);
-                toast.success('Mention copied to clipboard.');
-              }}>
-                Copy Mention
-              </ContextMenuItem>
-              {message?.author.id !== store.user.id && (
-                <>
-                  <ContextMenuItem onSelect={() => {
-                    onStartDm?.(message.author);
-                  }}>
-                    Send Message
-                  </ContextMenuItem>
-                  <ContextMenuSeparator />
-                  <ContextMenuItem onSelect={() => {
-                    toast.info('Change Nickname feature is not available yet.');
-                  }}>
-                    Change Nickname
-                  </ContextMenuItem>
-                  <ContextMenuItem onSelect={() => {
-                    toast.info('Add Friend feature is not available yet.');
-                  }}>
-                    Add Friend
-                  </ContextMenuItem>
-                  <ContextMenuItem onSelect={() => {
-                    toast.info('Ignore feature is not available yet.');
-                  }}>
-                    Ignore
-                  </ContextMenuItem>
-                  <ContextMenuItem onSelect={() => {
-                    toast.info('Block feature is not available yet.');
-                  }}>
-                    Block
-                  </ContextMenuItem>
-                  </>
+              <ContextMenuTrigger>
+                {message?.author.avatar ? (
+                  <img className="h-10 cursor-pointer rounded-full bg-transparent" src={message?.author.avatar} alt="User avatar" />
+                ) : (
+                  <div className="mr-4 flex size-10 cursor-pointer items-center justify-center rounded-full bg-gray-800 text-gray-300">
+                    {message?.author?.name?.slice(0, 1).toUpperCase()}
+                  </div>
                 )}
+              </ContextMenuTrigger>
+              <ContextMenuContent>
+                <GuildMemberContextMenu user={message.author} />
               </ContextMenuContent>
             </ContextMenu>
           )}
 
           <div className="flex flex-1 flex-col items-start justify-start">
             {shouldStack ? null : (
-              <div className="relative mb-1 flex justify-start leading-none" ref={authorMenuRef}>
-                <button
-                  type="button"
-                  className="font-semibold leading-none text-gray-100 hover:underline"
-                  onClick={(event) => {
-                    event.stopPropagation();
-                    setAuthorMenuOpen((open) => !open);
-                  }}
-                >
+              <div className="relative mb-1 flex justify-start leading-none">
+                <span className="font-semibold leading-none text-gray-100">
                   {message?.author.name} {message?.author.is_webhook ? ' APP' : ''}
-                </button>
-                {authorMenuOpen && (
-                  <div className="absolute left-0 top-5 z-20 w-40 rounded-md border border-gray-800 bg-gray-900 py-1 text-xs text-gray-100 shadow-lg">
-                    <button
-                      type="button"
-                      className="block w-full px-3 py-2 text-left hover:bg-gray-800"
-                      onClick={() => {
-                        if (!message?.author?.id) return;
-                        setAuthorMenuOpen(false);
-                        onStartDm?.(message.author);
-                      }}
-                    >
-                      Send a DM
-                    </button>
-                  </div>
-                )}
+                </span>
                 <p className="ml-2 self-end text-xs font-medium leading-tight text-gray-600 dark:text-gray-500">
                   {formattedDateTime}
                 </p>
@@ -323,7 +263,7 @@ const ChannelMessage = ({ message, prevMessage, pending, onStartDm }) => {
   );
 };
 
-const ChannelMessages = ({ messagesRef, highlightId, onLoadMore, loadingMore, hasMore, onStartDm }) => {
+const ChannelMessages = ({ messagesRef, highlightId, onLoadMore, loadingMore, hasMore }) => {
   const { messages, pendingMessages, setEditingId, replyingId, setReplyingId } = useChannelContext();
   const [atTop, setAtTop] = useState(false);
 
@@ -356,17 +296,17 @@ const ChannelMessages = ({ messagesRef, highlightId, onLoadMore, loadingMore, ha
 
   return (
     <div
-      className={`flex-1 min-h-0 overflow-y-auto ${replyingId ? ' md:max-h-[calc(100vh-11.5rem)]' : ' md:max-h-[calc(100vh-9rem)]'}`}
+      className={`min-h-0 flex-1 overflow-y-auto ${replyingId ? ' md:max-h-[calc(100vh-11.5rem)]' : ' md:max-h-[calc(100vh-9rem)]'}`}
       ref={messagesRef}
       onScroll={onScroll}
     >
       {atTop && hasMore && (
-        <div className="sticky top-0 z-10 flex justify-center bg-gray-700/80 backdrop-blur px-4 py-2">
+        <div className="sticky top-0 z-10 flex justify-center bg-gray-700/80 px-4 py-2 backdrop-blur">
           <button
             type="button"
             onClick={onLoadMore}
             disabled={loadingMore}
-            className="rounded bg-gray-800 px-3 py-1 text-xs text-gray-200 hover:bg-gray-750 disabled:opacity-60"
+            className="rounded bg-gray-800 px-3 py-1 text-xs text-gray-200 hover:bg-gray-700 disabled:opacity-60"
           >
             {loadingMore ? 'Loading…' : 'Load history'}
           </button>
@@ -382,15 +322,15 @@ const ChannelMessages = ({ messagesRef, highlightId, onLoadMore, loadingMore, ha
       {messages && messages.map((message, index) => {
         const prevMessage = messages[index - 1] || null;
         return (
-          <div key={message.id} id={`msg-${message.id}`} className={highlightId === message.id ? 'ring-2 ring-primary rounded' : ''}>
-            <ChannelMessage message={message} prevMessage={prevMessage} onStartDm={onStartDm} />
+          <div key={message.id} id={`msg-${message.id}`} className={highlightId === message.id ? 'rounded ring-2 ring-primary' : ''}>
+            <ChannelMessage message={message} prevMessage={prevMessage} />
           </div>
         );
       })}
       {pendingMessages && pendingMessages.map((message, index) => {
         const prevMessage = pendingMessages[index - 1] || messages[messages.length - 1] || null;
         return (
-          <ChannelMessage key={message.nonce} message={message} prevMessage={prevMessage} pending={true} onStartDm={onStartDm} />
+          <ChannelMessage key={message.nonce} message={message} prevMessage={prevMessage} pending={true} />
         );
       })}
     </div>
@@ -442,7 +382,7 @@ const ChannelInput = ({ channel }) => {
       console.error(error);
       toast.error(error.response?.data?.message || 'Could not send message.');
     }
-  }, [channel?.channel_id, message, pendingMessages, replyingId, setPendingMessages, setReplyingId]);
+  }, [channel?.channel_id, message, pendingMessages, replyingId, setMessages, setPendingMessages, setReplyingId]);
 
   useEffect(() => {
     if (replyingId) {
@@ -451,7 +391,7 @@ const ChannelInput = ({ channel }) => {
   }, [replyingId]);
 
   return (
-    <div className="sticky bottom-0 z-10 bg-gray-700/95 px-4 pb-4 pt-3 backdrop-blur md:static md:mx-4 md:my-6 md:bg-transparent md:px-0 md:py-0">
+    <div className="sticky bottom-0 z-10 bg-gray-700/95 px-4 pb-4 pt-3 backdrop-blur md:static md:mx-4 md:my-6 md:bg-transparent md:p-0">
       {replyingId && (
         <div className="flex items-center justify-between gap-2 rounded-t-lg bg-gray-800 px-4 py-2 text-sm text-gray-300">
           <p>Replying to <span className="text-primary">{replyMessage?.author.username}</span></p>
@@ -486,9 +426,6 @@ const Channel = ({ channel }) => {
   const [highlightId, setHighlightId] = useState(null);
   const [loadingMore, setLoadingMore] = useState(false);
   const [hasMore, setHasMore] = useState(true);
-  const store = useStore();
-  const navigate = useNavigate();
-
   const messagesRef = useRef();
 
   const fetchMessages = useCallback(async (opts = {}) => {
@@ -663,25 +600,8 @@ const Channel = ({ channel }) => {
     }
   }, [fetchMessages, messages, scrollToMessage, setMessages]);
 
-  const handleStartDm = useCallback(async (author) => {
-    const authorId = author?.id;
-    if (!authorId) return;
-    if (String(authorId) === String(store.user.id)) {
-      toast.info('You cannot DM yourself.');
-      return;
-    }
-    try {
-      await api.post('@me/channels', { recipients: [authorId] });
-      toast.success('Direct message opened.');
-      navigate('/channels/@me');
-    } catch (error) {
-      console.error(error);
-      toast.error(error.response?.data?.message || 'Could not create direct message.');
-    }
-  }, [navigate, store.user.id]);
-
   return (
-    <div className="relative flex w-full flex-1 min-h-0 flex-col dark:bg-gray-700">
+    <div className="relative flex min-h-0 w-full flex-1 flex-col dark:bg-gray-700">
       <ChannelBar channel={channel} onJumpToMessage={handleJumpToMessage} />
       <hr className="m-0 w-full border border-gray-800 bg-gray-800 p-0" />
       <ChannelMessages
@@ -690,7 +610,6 @@ const Channel = ({ channel }) => {
         onLoadMore={loadMore}
         loadingMore={loadingMore}
         hasMore={hasMore}
-        onStartDm={handleStartDm}
       />
       <ChannelInput channel={channel} fetchMessages={fetchMessages} />
     </div>
