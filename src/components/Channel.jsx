@@ -132,15 +132,60 @@ const ChannelMessage = ({ message, prevMessage, pending, onStartDm }) => {
           {shouldStack ? (
             <div className="w-14" />
           ) : (
-            <>
+            <ContextMenu>
+            <ContextMenuTrigger>
               {message?.author.avatar ? (
-                <img className="h-10 rounded-full bg-transparent" src={message?.author.avatar} alt="User avatar" />
+                <img className="h-10 cursor-pointer rounded-full bg-transparent" src={message?.author.avatar} alt="User avatar" />
               ) : (
-                <div className="mr-4 flex size-10 items-center justify-center rounded-full bg-gray-800 text-gray-300">
+                <div className="mr-4 flex size-10 cursor-pointer items-center justify-center rounded-full bg-gray-800 text-gray-300">
                   {message?.author?.name?.slice(0, 1).toUpperCase()}
                 </div>
               )}
-            </>
+            </ContextMenuTrigger>
+            <ContextMenuContent>
+              <ContextMenuItem onSelect={() => {
+                toast.info('Profile feature is not available yet.');
+              }}>
+                View Profile
+              </ContextMenuItem>
+              <ContextMenuItem onSelect={() => {
+                navigator.clipboard.writeText(`@${message?.author.username}`);
+                toast.success('Mention copied to clipboard.');
+              }}>
+                Copy Mention
+              </ContextMenuItem>
+              {message?.author.id !== store.user.id && (
+                <>
+                  <ContextMenuItem onSelect={() => {
+                    onStartDm?.(message.author);
+                  }}>
+                    Send Message
+                  </ContextMenuItem>
+                  <ContextMenuSeparator />
+                  <ContextMenuItem onSelect={() => {
+                    toast.info('Change Nickname feature is not available yet.');
+                  }}>
+                    Change Nickname
+                  </ContextMenuItem>
+                  <ContextMenuItem onSelect={() => {
+                    toast.info('Add Friend feature is not available yet.');
+                  }}>
+                    Add Friend
+                  </ContextMenuItem>
+                  <ContextMenuItem onSelect={() => {
+                    toast.info('Ignore feature is not available yet.');
+                  }}>
+                    Ignore
+                  </ContextMenuItem>
+                  <ContextMenuItem onSelect={() => {
+                    toast.info('Block feature is not available yet.');
+                  }}>
+                    Block
+                  </ContextMenuItem>
+                  </>
+                )}
+              </ContextMenuContent>
+            </ContextMenu>
           )}
 
           <div className="flex flex-1 flex-col items-start justify-start">
