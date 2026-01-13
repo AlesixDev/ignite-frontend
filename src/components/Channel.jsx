@@ -370,7 +370,7 @@ const ChannelInput = ({ channel }) => {
       console.error(error);
       toast.error(error.response?.data?.message || 'Could not send message.');
     }
-  }, [channel.channel_id, inputMessage, pendingMessages, replyingId, setInputMessage, setMessages, setPendingMessages, setReplyingId]);
+  }, [channel?.channel_id, inputMessage, pendingMessages, replyingId, setInputMessage, setMessages, setPendingMessages, setReplyingId]);
 
   useEffect(() => {
     if (replyingId) {
@@ -462,24 +462,33 @@ const Channel = ({ channel }) => {
     window.Echo.private(`channel.${channel.channel_id}`)
       .listen('.message.created', (event) => {
         if (event.channel.id == channel.channel_id) {
-          setMessages([...messages, event.message]);
+          setMessages(prev => {
+            if (prev.some(m => m.id === event.message.id)) {
+              return prev;
+            }
+            return [...prev, event.message];
+          });
         }
       })
       .listen('.message.updated', (event) => {
+        console.log('message updated');
         if (event.channel.id == channel.channel_id) {
-          setMessages(messages.map((m) => m.id === event.message.id ? { ...m, content: event.message.content, updated_at: event.message.updated_at } : m));
+          setMessages((prev) => prev.map((m) => m.id === event.message.id ? { ...m, content: event.message.content, updated_at: event.message.updated_at } : m));
         }
       })
       .listen('.message.deleted', (event) => {
+        console.log('message deleted');
         if (event.channel.id == channel.channel_id) {
-          setMessages(messages.filter((m) => m.id !== event.message.id));
+          setMessages((prev) => prev.filter((m) => m.id !== event.message.id));
         }
       });
 
     return () => {
+      console.log('Unsubscribing from channel:', channel.channel_id);
       window.Echo.leave(`channel.${channel.channel_id}`);
     };
-  }, [channel, messages, pendingMessages, setMessages, setPendingMessages]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [channel?.channel_id]);
 
   const loadMore = useCallback(async () => {
     if (loadingMore || !hasMore) return;
