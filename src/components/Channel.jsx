@@ -17,7 +17,7 @@ const ChannelMessage = ({ message, prevMessage, pending }) => {
   const authorMenuRef = useRef(null);
   const [authorMenuOpen, setAuthorMenuOpen] = useState(false);
 
-  const { messages, setMessages, editingId, setEditingId, setReplyingId, setPinId } = useChannelContext();
+  const { messages, setMessages, editingId, setEditingId, setReplyingId, setPinId, inputRef, setInputMessage } = useChannelContext();
 
   const formattedDateTime = useMemo(() => {
     const date = new Date(message.created_at);
@@ -113,6 +113,12 @@ const ChannelMessage = ({ message, prevMessage, pending }) => {
     };
   }, [authorMenuOpen]);
 
+  // TODO: This is duplicated
+  const onMention = useCallback((user) => {
+    setInputMessage((prev) => `${prev} @${user.username} `);
+    inputRef.current.focus();
+  }, [inputRef, setInputMessage]);
+
   return (
     <ContextMenu>
       <ContextMenuTrigger className={`group relative block py-1 data-[state=open]:bg-gray-800/60 ${isEditing ? 'bg-gray-800/60' : 'hover:bg-gray-800/60'} ${shouldStack ? '' : 'mt-3.5'}`}>
@@ -131,7 +137,7 @@ const ChannelMessage = ({ message, prevMessage, pending }) => {
                 )}
               </ContextMenuTrigger>
               <ContextMenuContent>
-                <GuildMemberContextMenu user={message.author} />
+                <GuildMemberContextMenu user={message.author} onMention={onMention} />
               </ContextMenuContent>
             </ContextMenu>
           )}
@@ -324,18 +330,14 @@ const ChannelMessages = ({ messagesRef, highlightId, onLoadMore, loadingMore, ha
 };
 
 const ChannelInput = ({ channel }) => {
-  const { messages, setMessages, pendingMessages, setPendingMessages, replyingId, setReplyingId } = useChannelContext();
+  const { messages, setMessages, pendingMessages, setPendingMessages, replyingId, setReplyingId, inputMessage, setInputMessage, inputRef } = useChannelContext();
 
   const replyMessage = useMemo(() => replyingId ? messages.find((m) => m.id == replyingId) : null, [messages, replyingId]);
-
-  const [message, setMessage] = useState('');
-
-  const inputRef = useRef();
 
   const sendMessage = useCallback(async (event) => {
     event.preventDefault();
 
-    if (!channel?.channel_id || !message) {
+    if (!channel?.channel_id || !inputMessage) {
       return;
     }
 
@@ -344,7 +346,7 @@ const ChannelInput = ({ channel }) => {
 
       setPendingMessages([...pendingMessages, {
         nonce: generatedNonce,
-        content: message,
+        content: inputMessage,
         author: {
           id: useStore.getState().user.id,
           name: useStore.getState().user.name ?? useStore.getState().user.username,
@@ -354,7 +356,7 @@ const ChannelInput = ({ channel }) => {
       }]);
 
       api.post(`/channels/${channel.channel_id}/messages`, {
-        content: message,
+        content: inputMessage,
         nonce: generatedNonce,
         reply_to: replyingId
       }).then((response) => {
@@ -362,19 +364,19 @@ const ChannelInput = ({ channel }) => {
         setMessages((messages) => [...messages, response.data]);
       });
 
-      setMessage('');
+      setInputMessage('');
       setReplyingId(null);
     } catch (error) {
       console.error(error);
       toast.error(error.response?.data?.message || 'Could not send message.');
     }
-  }, [channel?.channel_id, message, pendingMessages, replyingId, setMessages, setPendingMessages, setReplyingId]);
+  }, [channel.channel_id, inputMessage, pendingMessages, replyingId, setInputMessage, setMessages, setPendingMessages, setReplyingId]);
 
   useEffect(() => {
     if (replyingId) {
       inputRef.current.focus();
     }
-  }, [replyingId]);
+  }, [inputRef, replyingId]);
 
   return (
     <div className="sticky bottom-0 z-10 bg-gray-700/95 p-4 backdrop-blur md:static md:mt-[22px] md:bg-transparent md:pb-0">
@@ -390,8 +392,8 @@ const ChannelInput = ({ channel }) => {
         <InputGroup className={`h-12 bg-gray-800 ${replyingId ? 'rounded-t-none' : ''}`}>
           <InputGroupInput
             placeholder={`Message #${channel?.name}`}
-            value={message}
-            onChange={(e) => setMessage(e.target.value)}
+            value={inputMessage}
+            onChange={(e) => setInputMessage(e.target.value)}
             ref={inputRef}
           />
         </InputGroup>
@@ -401,7 +403,7 @@ const ChannelInput = ({ channel }) => {
 };
 
 const Channel = ({ channel }) => {
-  const { messages, setMessages, pendingMessages, setPendingMessages } = useChannelContext();
+  const { messages, setMessages, pendingMessages, setPendingMessages, setInputMessage, inputRef } = useChannelContext();
   const [forceScrollDown, setForceScrollDown] = useState(false);
   const [highlightId, setHighlightId] = useState(null);
   const [loadingMore, setLoadingMore] = useState(false);
@@ -581,6 +583,12 @@ const Channel = ({ channel }) => {
     }
   }, [fetchMessages, messages, scrollToMessage, setMessages]);
 
+  // TODO: This is duplicated
+  const onMention = useCallback((user) => {
+    setInputMessage((prev) => `${prev} @${user.username} `);
+    inputRef.current.focus();
+  }, [inputRef, setInputMessage]);
+
   const { guilds, activeGuildId } = useGuildsStore();
 
   const activeGuild = guilds.find((g) => g.id === activeGuildId);
@@ -638,7 +646,7 @@ const Channel = ({ channel }) => {
                         </div>
                       </ContextMenuTrigger>
                       <ContextMenuContent>
-                        <GuildMemberContextMenu user={member.user} />
+                        <GuildMemberContextMenu user={member.user} onMention={onMention} />
                       </ContextMenuContent>
                     </ContextMenu>
                   </div>

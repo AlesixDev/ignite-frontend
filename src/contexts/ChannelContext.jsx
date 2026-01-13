@@ -1,9 +1,7 @@
-import React, { createContext, useContext, useState } from 'react';
+import { createContext, useContext, useState, useRef } from 'react';
 
-// Create the ChannelContext
 export const ChannelContext = createContext();
 
-// Create the ChannelContextProvider component
 export const ChannelContextProvider = ({ children }) => {
     const [channel, setChannel] = useState(null);
     const [messages, setMessages] = useState([]);
@@ -11,17 +9,8 @@ export const ChannelContextProvider = ({ children }) => {
     const [replyingId, setReplyingId] = useState(null);
     const [pinnedMessages, setPinnedMessages] = useState([]);
     const [pendingMessages, setPendingMessages] = useState([]);
-
-    // channel: null,
-    // setChannel: (channel) => set({ channel }),
-    // messages: [],
-    // setMessages: (messages) => set({ messages }),
-    // pendingMessages: [],
-    // setPendingMessages: (pendingMessages) => set({ pendingMessages }),
-    // editingId: null,
-    // setEditingId: (editingId) => set({ editingId }),
-    // replyingId: null,
-    // setReplyingId: (replyingId) => set({ replyingId }),
+    const [inputMessage, setInputMessage] = useState('');
+    const inputRef = useRef(null);
 
     return (
         <ChannelContext.Provider
@@ -38,7 +27,9 @@ export const ChannelContextProvider = ({ children }) => {
                 setPinnedMessages,
                 pendingMessages,
                 setPendingMessages,
-                // Add any other values or functions you want to expose
+                inputMessage,
+                setInputMessage,
+                inputRef,
             }}
         >
             {children}
@@ -46,7 +37,6 @@ export const ChannelContextProvider = ({ children }) => {
     );
 };
 
-// Create the useChannelContext hook
 export const useChannelContext = () => {
     const channelContext = useContext(ChannelContext);
     if (!channelContext) {

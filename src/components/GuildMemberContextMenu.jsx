@@ -7,7 +7,7 @@ import { FriendsService } from '../services/friends.service';
 import { useFriendsStore } from '../stores/friends.store';
 import { ContextMenuItem, ContextMenuSeparator } from './ui/context-menu';
 
-const GuildMemberContextMenu = ({ user }) => {
+const GuildMemberContextMenu = ({ user, onMention = undefined }) => {
   const store = useStore();
   const navigate = useNavigate();
 
@@ -43,12 +43,11 @@ const GuildMemberContextMenu = ({ user }) => {
       }}>
         View Profile
       </ContextMenuItem>
-      <ContextMenuItem onSelect={() => {
-        navigator.clipboard.writeText(`@${user.username}`);
-        toast.success('Mention copied to clipboard.');
-      }}>
-        Copy Mention
-      </ContextMenuItem>
+      {onMention !== undefined && (
+        <ContextMenuItem onSelect={() => onMention(user)}>
+          Mention
+        </ContextMenuItem>
+      )}
       {user.id !== store.user.id && (
         <>
           <ContextMenuItem onSelect={() => onSendMessage(user)}>
