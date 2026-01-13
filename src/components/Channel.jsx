@@ -1,32 +1,16 @@
 import { useState, useCallback, useEffect, useRef, useMemo } from 'react';
 import { toast } from 'react-toastify';
-import { Gif, Gift, PlusCircle, Smiley, Sticker, NotePencil, Trash, ArrowBendUpLeft, XCircle, PushPin } from '@phosphor-icons/react';
+import { NotePencil, Trash, ArrowBendUpLeft, XCircle, PushPin } from '@phosphor-icons/react';
 import api from '../api';
 import useStore from '../hooks/useStore';
-import { create } from 'zustand';
-import ChannelBar from './ChannelBar.jsx';
-import { useChannelContext } from '../contexts/ChannelContext.jsx';
-import { useNavigate } from 'react-router-dom';
-import { ContextMenu, ContextMenuShortcut, ContextMenuContent, ContextMenuItem, ContextMenuSeparator, ContextMenuSub, ContextMenuSubContent, ContextMenuSubTrigger, ContextMenuTrigger  } from './ui/context-menu';
-import { FriendsService } from '../services/friends.service';
 import { GuildsService } from '../services/guilds.service';
-import GuildMemberContextMenu from './GuildMemberContextMenu';
 import { useGuildsStore } from '../stores/guilds.store';
+import { useChannelContext } from '../contexts/ChannelContext.jsx';
+import ChannelBar from './ChannelBar.jsx';
+import { ContextMenu, ContextMenuContent, ContextMenuItem, ContextMenuSeparator, ContextMenuTrigger } from './ui/context-menu';
 
-const useChannelStore = create((set) => ({
-  channel: null,
-  setChannel: (channel) => set({ channel }),
-  messages: [],
-  setMessages: (messages) => set({ messages }),
-  pendingMessages: [],
-  setPendingMessages: (pendingMessages) => set({ pendingMessages }),
-  editingId: null,
-  setEditingId: (editingId) => set({ editingId }),
-  replyingId: null,
-  setReplyingId: (replyingId) => set({ replyingId }),
-  pinId: null,
-  setPinId: (pinId) => set({ pinId }),
-}));
+import GuildMemberContextMenu from './GuildMemberContextMenu';
+import { InputGroup, InputGroupInput } from './ui/input-group';
 
 const ChannelMessage = ({ message, prevMessage, pending }) => {
   const store = useStore();
@@ -393,31 +377,25 @@ const ChannelInput = ({ channel }) => {
   }, [replyingId]);
 
   return (
-    <div className="sticky bottom-0 z-10 bg-gray-700/95 px-4 pb-4 pt-3 backdrop-blur md:static md:mx-4 md:my-6 md:bg-transparent md:p-0">
+    <div className="sticky bottom-0 z-10 bg-gray-700/95 p-4 backdrop-blur md:static md:mt-[22px] md:bg-transparent md:pb-0">
       {replyingId && (
-        <div className="flex items-center justify-between gap-2 rounded-t-lg bg-gray-800 px-4 py-2 text-sm text-gray-300">
+        <div className="flex items-center justify-between gap-2 rounded-t-md border-b border-b-white/5 bg-gray-800 px-4 py-2 text-sm text-gray-300">
           <p>Replying to <span className="text-primary">{replyMessage?.author.username}</span></p>
           <button type="button" onClick={() => setReplyingId(null)} className="text-gray-400 hover:text-gray-200">
             <XCircle weight="fill" className="size-5" />
           </button>
         </div>
       )}
-      <div className={`flex items-center bg-gray-600 py-2 ${replyingId ? 'rounded-b-lg' : 'rounded-lg'}`}>
-        <div className="mr-1"></div>
-
-        <form onSubmit={(e) => sendMessage(e)} className="w-full">
-          <input
-            className="w-full border-0 bg-inherit p-0 text-white outline-none placeholder:text-gray-400 focus:ring-0"
-            type="text"
+      <form onSubmit={(e) => sendMessage(e)} className="w-full">
+        <InputGroup className={`h-12 bg-gray-800 ${replyingId ? 'rounded-t-none' : ''}`}>
+          <InputGroupInput
             placeholder={`Message #${channel?.name}`}
             value={message}
             onChange={(e) => setMessage(e.target.value)}
             ref={inputRef}
           />
-        </form>
-
-        <div className="mr-1 flex"></div>
-      </div>
+        </InputGroup>
+      </form>
     </div>
   );
 };
