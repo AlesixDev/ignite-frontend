@@ -105,9 +105,9 @@ const ActionsIcons = ({ onOpenSettings }) => {
 
 const UserBar = ({ onOpenUserSettings }) => {
   return (
-    <div className="flex h-14 w-full items-center bg-gray-200 dark:bg-gray-900">
+    <div className="flex h-14 w-full items-center bg-gray-900">
       <div className="flex flex-auto items-center p-2">
-        <div className="flex w-full cursor-pointer gap-2 rounded p-1 dark:hover:bg-gray-700">
+        <div className="flex w-full cursor-pointer gap-2 rounded p-1 hover:bg-gray-700">
           <UserIcon />
           <UserName />
         </div>

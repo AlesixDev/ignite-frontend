@@ -158,7 +158,7 @@ const ChannelMessage = ({ message, prevMessage, pending }) => {
                 <span className="font-semibold leading-none text-gray-100">
                   {message?.author.name} {message?.author.is_webhook ? ' APP' : ''}
                 </span>
-                <p className="ml-2 self-end text-xs font-medium leading-tight text-gray-600 dark:text-gray-500">
+                <p className="ml-2 self-end text-xs font-medium leading-tight text-gray-500">
                   {formattedDateTime}
                 </p>
               </div>
@@ -620,7 +620,7 @@ const Channel = ({ channel }) => {
   }, [memberListOpen, activeGuildId]);
 
   return (
-    <div className="relative flex min-h-0 w-full flex-1 flex-col dark:bg-gray-700">
+    <div className="relative flex min-h-0 w-full flex-1 flex-col bg-gray-700">
       <ChannelBar channel={channel} onJumpToMessage={handleJumpToMessage} memberListOpen={memberListOpen} setMemberListOpen={setMemberListOpen} />
       <hr className="m-0 w-full border border-gray-800 bg-gray-800 p-0" />
       <div className="flex min-h-0 flex-1">
