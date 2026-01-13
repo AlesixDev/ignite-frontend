@@ -428,7 +428,7 @@ const Channel = ({ channel }) => {
   const [highlightId, setHighlightId] = useState(null);
   const [loadingMore, setLoadingMore] = useState(false);
   const [hasMore, setHasMore] = useState(true);
-  const [memberListOpen, setMemberListOpen] = useState(false);
+  const [memberListOpen, setMemberListOpen] = useState(true);
   const messagesRef = useRef();
 
   const fetchMessages = useCallback(async (opts = {}) => {
@@ -640,20 +640,29 @@ const Channel = ({ channel }) => {
               <div className="flex h-12 items-center border-b border-gray-700 px-4 text-sm font-semibold text-gray-300">
                 Members
               </div>
-              <div className="flex-1 p-4 text-gray-400">
+              <div className="flex flex-1 flex-col gap-1 p-2 text-gray-400">
                 {activeGuild?.members?.map((member) => (
-                  <div key={member.user.id} className="mb-3 flex items-center">
-                    {member.user.avatar_url ? (
-                      <img className="size-8 rounded-full bg-transparent" src={member.user.avatar_url} alt="User avatar" />
-                    ) : (
-                      <div className="mr-3 flex size-8 items-center justify-center rounded-full bg-gray-700 text-gray-300">
-                        {member.user.username?.slice(0, 1).toUpperCase()}
-                      </div>
-                    )}
-                    <div className="ml-3">
-                      <p className="text-sm font-medium text-gray-100">{member.user.name}</p>
-                      <p className="text-xs text-gray-400">#{member.user.username}</p>
-                    </div>
+                  <div key={member.user.id}>
+                    <ContextMenu>
+                      <ContextMenuTrigger>
+                        <div key={member.user.id} className="flex items-center gap-3 rounded-md p-2 transition hover:bg-gray-700/50">
+                          {member.user.avatar_url ? (
+                            <img className="size-8 rounded-full bg-transparent" src={member.user.avatar_url} alt="User avatar" />
+                          ) : (
+                            <div className="flex size-8 items-center justify-center rounded-full bg-gray-700 text-gray-300">
+                              {member.user.username?.slice(0, 1).toUpperCase()}
+                            </div>
+                          )}
+                          <div>
+                            <p className="text-sm font-medium text-gray-100">{member.user.name ?? member.user.username}</p>
+                            <p className="text-xs text-gray-400">{member.user.status}</p>
+                          </div>
+                        </div>
+                      </ContextMenuTrigger>
+                      <ContextMenuContent>
+                        <GuildMemberContextMenu user={member.user} />
+                      </ContextMenuContent>
+                    </ContextMenu>
                   </div>
                 ))}
               </div>
