@@ -190,7 +190,7 @@ const GuildSidebarHeader = ({ guildName = '', guild, onOpenServerSettings, canOp
 };
 
 const GuildSidebarSection = ({
-  sectionName = 'Text Channels',
+  category,
   channels,
   activeChannelId,
   setIsCreateChannelDialogOpen,
@@ -200,6 +200,7 @@ const GuildSidebarSection = ({
 }) => {
   const [expanded, setExpanded] = useState(true);
   const navigate = useNavigate();
+  const sectionName = category?.name;
 
   const handleDeleteChannel = useCallback(
     async (channel, event) => {
@@ -232,36 +233,41 @@ const GuildSidebarSection = ({
     [activeChannelId, canManageChannels, channels, guild?.id, navigate]
   );
 
-  const sortedChannels = [...(channels || [])].sort((a, b) => {
-    const aPos = Number(a.position ?? 0);
-    const bPos = Number(b.position ?? 0);
-    if (aPos === bPos) {
-      return String(a.name || a.channel_name || '').localeCompare(String(b.name || b.channel_name || ''));
-    }
-    return aPos - bPos;
-  });
+  const sortedChannels = [...(channels || [])]
+    .filter((c) => c.type === 0)
+    .filter((c) => c.parent_id == category?.channel_id)
+    .sort((a, b) => {
+      const aPos = Number(a.position ?? 0);
+      const bPos = Number(b.position ?? 0);
+      if (aPos === bPos) {
+        return String(a.name || a.channel_name || '').localeCompare(String(b.name || b.channel_name || ''));
+      }
+      return aPos - bPos;
+    });
 
   return (
     <div className="flex w-full flex-col">
-      <div className="mb-1 flex items-center pt-4 text-gray-400 hover:text-gray-100">
-        <button
-          type="button"
-          className="flex flex-auto items-center"
-          onClick={() => setExpanded(!expanded)}
-          aria-expanded={expanded}
-        >
-          <div className="flex w-6 items-center justify-center">
-            {expanded ? <CaretDown className="size-2" /> : <CaretRight className="size-2" />}
-          </div>
-          <span className="text-xs font-bold uppercase">{sectionName}</span>
-        </button>
-
-        {canManageChannels && (
-          <button type="button" onClick={() => setIsCreateChannelDialogOpen(true)} aria-label="Create channel">
-            <Plus className="mr-2 size-3 text-gray-400" />
+      {category && (
+        <div className="mb-1 flex items-center pt-4 text-gray-400 hover:text-gray-100">
+          <button
+            type="button"
+            className="flex flex-auto items-center"
+            onClick={() => setExpanded(!expanded)}
+            aria-expanded={expanded}
+          >
+            <div className="flex w-6 items-center justify-center">
+              {expanded ? <CaretDown className="size-2" /> : <CaretRight className="size-2" />}
+            </div>
+            <span className="text-xs font-bold uppercase">{sectionName}</span>
           </button>
-        )}
-      </div>
+
+          {canManageChannels && (
+            <button type="button" onClick={() => setIsCreateChannelDialogOpen(true)} aria-label="Create channel">
+              <Plus className="mr-2 size-3 text-gray-400" />
+            </button>
+          )}
+        </div>
+      )}
 
       {sortedChannels.map((channel) => (
         <Link
@@ -270,11 +276,10 @@ const GuildSidebarSection = ({
           className={`${!expanded && channel.channel_id != activeChannelId ? 'hidden' : ''}`}
         >
           <div
-            className={`group relative mx-2 my-0.5 flex cursor-pointer items-center rounded px-2 py-1 pr-16 ${
-              channel.channel_id == activeChannelId
-                ? 'bg-gray-600 text-gray-100'
-                : 'text-gray-500 hover:bg-gray-700 hover:text-gray-400'
-            }`}
+            className={`group relative mx-2 my-0.5 flex cursor-pointer items-center rounded px-2 py-1 pr-16 ${channel.channel_id == activeChannelId
+              ? 'bg-gray-600 text-gray-100'
+              : 'text-gray-500 hover:bg-gray-700 hover:text-gray-400'
+              }`}
           >
             <Hash className="size-6 text-gray-500" />
             <p className="ml-1 truncate text-base font-medium">{channel.name}</p>
@@ -320,6 +325,9 @@ const GuildSidebar = ({
   const { channelId } = useParams();
   const [isCreateChannelDialogOpen, setIsCreateChannelDialogOpen] = useState(false);
 
+  // Go through all categories (channels with type 3) and render their channels inside them
+  const categories = (guild?.channels || []).filter((c) => c.type === 3);
+
   return (
     <div className="relative top-0 flex h-full min-w-[240px] flex-col bg-gray-800 text-gray-100">
       <div className="flex flex-1 flex-col items-center overflow-y-auto">
@@ -331,7 +339,7 @@ const GuildSidebar = ({
         />
         <hr className="m-0 w-full border border-gray-900 bg-gray-900 p-0" />
         <GuildSidebarSection
-          sectionName="Text Channels"
+          category={null}
           channels={guild?.channels || []}
           activeChannelId={channelId}
           setIsCreateChannelDialogOpen={setIsCreateChannelDialogOpen}
@@ -339,13 +347,28 @@ const GuildSidebar = ({
           onEditChannel={onEditChannel}
           canManageChannels={canManageChannels}
         />
-        {canManageChannels && (
-          <CreateGuildChannelDialog
-            isOpen={isCreateChannelDialogOpen}
-            setIsOpen={setIsCreateChannelDialogOpen}
-            guild={guild}
-          />
-        )}
+
+        {categories.map((category) => (
+          <>
+            <GuildSidebarSection
+              category={category}
+              channels={guild?.channels || []}
+              activeChannelId={channelId}
+              setIsCreateChannelDialogOpen={setIsCreateChannelDialogOpen}
+              guild={guild}
+              onEditChannel={onEditChannel}
+              canManageChannels={canManageChannels}
+            />
+            {canManageChannels && (
+              <CreateGuildChannelDialog
+                isOpen={isCreateChannelDialogOpen}
+                setIsOpen={setIsCreateChannelDialogOpen}
+                guild={guild}
+                categoryId={category.channel_id}
+              />
+            )}
+          </>
+        ))}
       </div>
       <div className="shrink-0">
         <UserBar onOpenUserSettings={onOpenUserSettings} />
@@ -391,9 +414,8 @@ const GuildLayout = ({ children, guild }) => {
           />
         )}
         <div
-          className={`fixed inset-y-0 left-0 z-40 w-64 shrink-0 transition-transform duration-300 ease-out md:static md:translate-x-0 ${
-            isSidebarOpen ? 'translate-x-0' : '-translate-x-full'
-          }`}
+          className={`fixed inset-y-0 left-0 z-40 w-64 shrink-0 transition-transform duration-300 ease-out md:static md:translate-x-0 ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'
+            }`}
         >
           <GuildSidebar
             guild={guild}

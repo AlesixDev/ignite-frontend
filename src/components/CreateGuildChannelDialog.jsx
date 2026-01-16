@@ -7,14 +7,20 @@ import FormInput from './Form/FormInput';
 import FormError from './Form/FormError';
 import FormSubmit from './Form/FormSubmit';
 
-const CreateGuildChannelDialog = ({ isOpen, setIsOpen, guild }) => {
+const CreateGuildChannelDialog = ({ isOpen, setIsOpen, guild, categoryId }) => {
   const form = useForm();
 
   const onSubmit = useCallback(async (data) => {
-    GuildsService.createGuildChannel(guild.id, data);
+    GuildsService.createGuildChannel(guild.id, {
+      ...data,
+      parent_id: categoryId,
+    });
+
     setIsOpen(false);
     form.reset();
   }, [form, guild, setIsOpen]);
+
+  console.log("Category ID:", categoryId);
 
   return (
     <Dialog isOpen={isOpen} setIsOpen={setIsOpen} title="Create A Channel">
