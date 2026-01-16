@@ -1,6 +1,8 @@
 import { Bell, Chats, Hash, MagnifyingGlass, PushPin, Question, Tray, Users } from '@phosphor-icons/react';
 import { useState } from 'react';
-import SearchModal from './Modals/SearchModal.jsx';
+import SearchModal from './Modals/SearchModal';
+import { useChannelContext } from '../contexts/ChannelContext';
+import { useGuildsStore } from '../stores/guilds.store';
 
 const Tooltip = ({ text = 'Hello' }) => {
   return (
@@ -55,7 +57,10 @@ const IconButton = ({ icon, tooltipText, onClick }) => {
   );
 };
 
-const ChannelBar = ({ channel, onJumpToMessage, memberListOpen, setMemberListOpen }) => {
+const ChannelBar = ({ channel, onJumpToMessage }) => {
+  const { activeGuildId } = useGuildsStore();
+  const { memberListOpen, setMemberListOpen } = useChannelContext();
+
   const [searchOpen, setSearchOpen] = useState(false);
 
   return (
@@ -73,7 +78,7 @@ const ChannelBar = ({ channel, onJumpToMessage, memberListOpen, setMemberListOpe
             <IconButton icon="threads" tooltipText="Threads" />
             <IconButton icon="bell" tooltipText="Notification Settings" />
             <IconButton icon="pin" tooltipText="Pinned Messages" />
-            <IconButton icon="users" tooltipText="Show Member List" onClick={() => setMemberListOpen(!memberListOpen)} />
+            {activeGuildId !== '@me' && (<IconButton icon="users" tooltipText="Show Member List" onClick={() => setMemberListOpen(!memberListOpen)} />)}
             <IconButton icon="search" tooltipText="Search" onClick={() => setSearchOpen(true)} />
             <IconButton icon="inbox" tooltipText="Inbox" />
             <IconButton icon="question" tooltipText="Help" />

@@ -403,12 +403,11 @@ const ChannelInput = ({ channel }) => {
 };
 
 const Channel = ({ channel }) => {
-  const { messages, setMessages, pendingMessages, setPendingMessages, setInputMessage, inputRef } = useChannelContext();
+  const { messages, setMessages, pendingMessages, setPendingMessages, memberListOpen, setInputMessage, inputRef } = useChannelContext();
   const [forceScrollDown, setForceScrollDown] = useState(false);
   const [highlightId, setHighlightId] = useState(null);
   const [loadingMore, setLoadingMore] = useState(false);
   const [hasMore, setHasMore] = useState(true);
-  const [memberListOpen, setMemberListOpen] = useState(true);
   const messagesRef = useRef();
 
   const fetchMessages = useCallback(async (opts = {}) => {
@@ -616,7 +615,7 @@ const Channel = ({ channel }) => {
 
   return (
     <div className="relative flex min-h-0 w-full flex-1 flex-col bg-gray-700">
-      <ChannelBar channel={channel} onJumpToMessage={handleJumpToMessage} memberListOpen={memberListOpen} setMemberListOpen={setMemberListOpen} />
+      <ChannelBar channel={channel} onJumpToMessage={handleJumpToMessage} />
       <hr className="m-0 w-full border border-gray-800 bg-gray-800 p-0" />
       <div className="flex min-h-0 flex-1">
         <div className="flex w-full flex-1 flex-col">
