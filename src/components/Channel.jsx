@@ -436,7 +436,7 @@ const Channel = ({ channel }) => {
 
     fetchMessages({ limit: 50 }).then((data) => {
       setMessages(data);
-      setHasMore(data.length === 50);
+      setHasMore(data?.length === 50);
       setTimeout(() => setForceScrollDown(true), 0);
     });
   }, [fetchMessages, setMessages, setPendingMessages]);

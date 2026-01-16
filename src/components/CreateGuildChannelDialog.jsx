@@ -20,8 +20,6 @@ const CreateGuildChannelDialog = ({ isOpen, setIsOpen, guild, categoryId }) => {
     form.reset();
   }, [form, guild, setIsOpen]);
 
-  console.log("Category ID:", categoryId);
-
   return (
     <Dialog isOpen={isOpen} setIsOpen={setIsOpen} title="Create A Channel">
       <FormProvider {...form}>
