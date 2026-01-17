@@ -361,7 +361,12 @@ const ChannelInput = ({ channel }) => {
         reply_to: replyingId
       }).then((response) => {
         setPendingMessages((pendingMessages) => pendingMessages.filter((m) => m.nonce !== generatedNonce));
-        setMessages((messages) => [...messages, response.data]);
+        setMessages((messages) => {
+          if (messages.some((m) => m.nonce === generatedNonce)) {
+            return messages;
+          }
+          return [...messages, response.data];
+        });
       });
 
       setInputMessage('');
@@ -462,12 +467,13 @@ const Channel = ({ channel }) => {
     window.Echo.private(`channel.${channel.channel_id}`)
       .listen('.message.created', (event) => {
         if (event.channel.id == channel.channel_id) {
-          setMessages(prev => {
-            if (prev.some(m => m.id === event.message.id)) {
+          setMessages((prev) => {
+            if (prev.some((m) => m.nonce === event.message.nonce)) {
               return prev;
             }
             return [...prev, event.message];
           });
+          setPendingMessages((prev) => prev.filter((m) => m.nonce !== event.message.nonce));
         }
       })
       .listen('.message.updated', (event) => {
