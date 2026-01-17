@@ -3,13 +3,13 @@ import { useParams, Link, useNavigate } from 'react-router-dom';
 import { Hash, Plus, CaretDown, CaretRight, NotePencil, Trash } from '@phosphor-icons/react';
 import { toast } from 'react-toastify';
 import BaseAuthLayout from './BaseAuthLayout';
-import UserBar from '../components/UserBar';
 import CreateGuildChannelDialog from '../components/CreateGuildChannelDialog';
 import ServerSettings from '../components/Settings/ServerSettings';
 import UserSettings from '../components/Settings/UserSettings';
 import api from '../api';
 import useStore from '../hooks/useStore';
 import { GuildsService } from '../services/guilds.service';
+import { ContextMenu, ContextMenuShortcut, ContextMenuContent, ContextMenuItem, ContextMenuSeparator, ContextMenuSub, ContextMenuSubContent, ContextMenuSubTrigger, ContextMenuTrigger } from '../components/ui/context-menu';
 
 const GuildSidebarHeader = ({ guildName = '', guild, onOpenServerSettings, canOpenServerSettings }) => {
   const navigate = useNavigate();
@@ -193,7 +193,7 @@ const GuildSidebarSection = ({
   category,
   channels,
   activeChannelId,
-  setIsCreateChannelDialogOpen,
+  openCreateChannelDialog,
   guild,
   onEditChannel,
   canManageChannels,
@@ -262,7 +262,7 @@ const GuildSidebarSection = ({
           </button>
 
           {canManageChannels && (
-            <button type="button" onClick={() => setIsCreateChannelDialogOpen(true)} aria-label="Create channel">
+            <button type="button" onClick={openCreateChannelDialog} aria-label="Create channel">
               <Plus className="mr-2 size-3 text-gray-400" />
             </button>
           )}
@@ -324,56 +324,77 @@ const GuildSidebar = ({
 }) => {
   const { channelId } = useParams();
   const [isCreateChannelDialogOpen, setIsCreateChannelDialogOpen] = useState(false);
+  const [categoryId, setCategoryId] = useState(null);
 
   // Go through all categories (channels with type 3) and render their channels inside them
   const categories = (guild?.channels || []).filter((c) => c.type === 3);
 
-  return (
-    <div className="relative top-0 flex h-full min-w-[240px] flex-col bg-gray-800 text-gray-100">
-      <div className="flex flex-1 flex-col items-center overflow-y-auto">
-        <GuildSidebarHeader
-          guildName={guild?.name}
-          guild={guild}
-          onOpenServerSettings={onOpenServerSettings}
-          canOpenServerSettings={canOpenServerSettings}
-        />
-        <hr className="m-0 w-full border border-gray-900 bg-gray-900 p-0" />
-        <GuildSidebarSection
-          category={null}
-          channels={guild?.channels || []}
-          activeChannelId={channelId}
-          setIsCreateChannelDialogOpen={setIsCreateChannelDialogOpen}
-          guild={guild}
-          onEditChannel={onEditChannel}
-          canManageChannels={canManageChannels}
-        />
+  const onCreateChannel = useCallback(() => {
+    setCategoryId(null);
+    setIsCreateChannelDialogOpen(true);
+  }, []);
 
-        {categories.map((category) => (
-          <>
-            <GuildSidebarSection
-              category={category}
-              channels={guild?.channels || []}
-              activeChannelId={channelId}
-              setIsCreateChannelDialogOpen={setIsCreateChannelDialogOpen}
-              guild={guild}
-              onEditChannel={onEditChannel}
-              canManageChannels={canManageChannels}
-            />
-            {canManageChannels && (
-              <CreateGuildChannelDialog
-                isOpen={isCreateChannelDialogOpen}
-                setIsOpen={setIsCreateChannelDialogOpen}
+  const onCreateCategory = useCallback(() => {
+    toast.info('Create Category clicked.');
+  }, []);
+
+  return (
+    <>
+      <ContextMenu>
+        <ContextMenuTrigger>
+          <div className="relative top-0 flex h-full min-w-[240px] flex-col bg-gray-800 text-gray-100">
+            <div className="flex flex-1 flex-col items-center overflow-y-auto">
+              <GuildSidebarHeader
+                guildName={guild?.name}
                 guild={guild}
-                categoryId={category.channel_id}
+                onOpenServerSettings={onOpenServerSettings}
+                canOpenServerSettings={canOpenServerSettings}
               />
-            )}
-          </>
-        ))}
-      </div>
-      <div className="shrink-0">
-        <UserBar onOpenUserSettings={onOpenUserSettings} />
-      </div>
-    </div>
+              <hr className="m-0 w-full border border-gray-900 bg-gray-900 p-0" />
+              <GuildSidebarSection
+                category={null}
+                channels={guild?.channels || []}
+                activeChannelId={channelId}
+                openCreateChannelDialog={() => { setIsCreateChannelDialogOpen(true); setCategoryId(null); }}
+                guild={guild}
+                onEditChannel={onEditChannel}
+                canManageChannels={canManageChannels}
+              />
+
+              {categories.map((category) => (
+                <>
+                  <GuildSidebarSection
+                    category={category}
+                    channels={guild?.channels || []}
+                    activeChannelId={channelId}
+                    openCreateChannelDialog={() => { setIsCreateChannelDialogOpen(true); setCategoryId(category.channel_id); }}
+                    guild={guild}
+                    onEditChannel={onEditChannel}
+                    canManageChannels={canManageChannels}
+                  />
+                </>
+              ))}
+            </div>
+          </div>
+        </ContextMenuTrigger>
+        <ContextMenuContent className="w-52">
+          <ContextMenuItem onSelect={onCreateChannel}>
+            Create Channel
+          </ContextMenuItem>
+          <ContextMenuItem onSelect={onCreateCategory}>
+            Create Category
+          </ContextMenuItem>
+        </ContextMenuContent>
+      </ContextMenu>
+      {canManageChannels && (
+        <CreateGuildChannelDialog
+          isOpen={isCreateChannelDialogOpen}
+          setIsOpen={setIsCreateChannelDialogOpen}
+          guild={guild}
+          categoryId={categoryId}
+        />
+      )}
+    </>
   );
 };
 
@@ -414,7 +435,7 @@ const GuildLayout = ({ children, guild }) => {
           />
         )}
         <div
-          className={`fixed inset-y-0 left-0 z-40 w-64 shrink-0 transition-transform duration-300 ease-out md:static md:translate-x-0 ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'
+          className={`fixed inset-y-0 left-0 w-64 shrink-0 transition-transform duration-300 ease-out md:static md:translate-x-0 ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'
             }`}
         >
           <GuildSidebar

@@ -5,7 +5,6 @@ import useStore from '../hooks/useStore';
 import api from '../api';
 import Channel from '../components/Channel';
 import { ChannelContextProvider } from '../contexts/ChannelContext';
-import UserBar from '../components/UserBar';
 import UserSettings from '../components/Settings/UserSettings';
 
 const PrivateMessageLayout = () => {
@@ -308,7 +307,7 @@ const PrivateMessageLayout = () => {
           />
         )}
         <aside
-          className={`fixed inset-y-0 left-0 z-40 flex h-full w-64 shrink-0 flex-col border-r border-gray-800 bg-gray-800 text-gray-100 transition-transform duration-300 ease-out md:static md:translate-x-0 ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'
+          className={`fixed inset-y-0 left-0 flex h-full w-64 shrink-0 flex-col border-r border-gray-800 bg-gray-800 text-gray-100 transition-transform duration-300 ease-out md:static md:translate-x-0 ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'
             }`}
         >
           <div className="p-4 text-sm font-semibold text-gray-200">Direct Messages</div>
@@ -502,9 +501,6 @@ const PrivateMessageLayout = () => {
                 );
               })
             )}
-          </div>
-          <div className="shrink-0">
-            <UserBar onOpenUserSettings={() => setIsUserSettingsOpen(true)} />
           </div>
         </aside>
         {!isSidebarOpen && (

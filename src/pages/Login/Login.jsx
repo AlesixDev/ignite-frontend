@@ -38,7 +38,7 @@ const LoginPage = () => {
           <div className="mx-auto w-full rounded-lg border border-white/5 bg-dark-bg sm:w-[32rem]">
             <div className="bg-dark-bg-active px-6 py-4 text-center">
               <Link to="/" className="mb-1 block text-3xl font-medium">
-                <span className="text-white">Sell<span className="text-primary">Auth</span></span>
+               <span className="text-primary">Ignite</span>
               </Link>
               <p className="text-xs">Log in to your account.</p>
             </div>

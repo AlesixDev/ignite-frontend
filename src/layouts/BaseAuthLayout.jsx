@@ -3,6 +3,7 @@ import { Compass, Fire, Plus } from '@phosphor-icons/react';
 import { useGuildsStore } from '../stores/guilds.store';
 import GuildDialog from '../components/GuildDialog';
 import { useNavigate } from 'react-router-dom';
+import UserBar from '../components/UserBar';
 
 const SidebarIcon = ({ icon = '', iconUrl = '', onClick, isActive = false, isServerIcon = false, text = 'tooltip' }) => (
   <button className="group relative mb-2 min-w-min px-3" type="button" onClick={onClick}>
@@ -70,6 +71,7 @@ const DefaultLayout = ({ children }) => {
     <div className="flex">
       <Sidebar />
       {children}
+      <UserBar />
     </div>
   );
 };

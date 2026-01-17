@@ -1,4 +1,4 @@
-import { useCallback } from 'react';
+import { useCallback, useState } from 'react';
 import { FormProvider, useForm } from 'react-hook-form';
 import { ArrowRight } from '@phosphor-icons/react';
 import { GuildsService } from '../services/guilds.service';
@@ -6,13 +6,15 @@ import Dialog from './Dialog';
 import FormInput from './Form/FormInput';
 import FormError from './Form/FormError';
 import FormSubmit from './Form/FormSubmit';
+import { InputGroup, InputGroupInput } from './ui/input-group';
 
 const CreateGuildChannelDialog = ({ isOpen, setIsOpen, guild, categoryId }) => {
   const form = useForm();
 
   const onSubmit = useCallback(async (data) => {
     GuildsService.createGuildChannel(guild.id, {
-      ...data,
+      name: data.name,
+      type: 0,
       parent_id: categoryId,
     });
 
@@ -21,14 +23,16 @@ const CreateGuildChannelDialog = ({ isOpen, setIsOpen, guild, categoryId }) => {
   }, [form, guild, setIsOpen]);
 
   return (
-    <Dialog isOpen={isOpen} setIsOpen={setIsOpen} title="Create A Channel">
+    <Dialog isOpen={isOpen} setIsOpen={setIsOpen} title="Create Channel">
       <FormProvider {...form}>
-        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-3">
-          <input type="hidden" name="type" value="0" {...form.register('type')} />
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-start">
-            <div className="flex-1">
-              <FormInput type="text" name="name" placeholder="My Channel" validation={{ required: "Name is required." }} />
-            </div>
+        <form onSubmit={form.handleSubmit(onSubmit)} className="w-full">
+          <div className="flex gap-3 items-center">
+            <InputGroup className={`h-12 bg-gray-800`}>
+              <InputGroupInput
+                placeholder={`new-channel`}
+                {...form.register('name', { required: "Name is required." })}
+              />
+            </InputGroup>
             <FormSubmit
               form={form}
               label="Create"
@@ -36,7 +40,6 @@ const CreateGuildChannelDialog = ({ isOpen, setIsOpen, guild, categoryId }) => {
               className="w-full sm:w-auto"
             />
           </div>
-          <FormError name="name" />
         </form>
       </FormProvider>
     </Dialog>
