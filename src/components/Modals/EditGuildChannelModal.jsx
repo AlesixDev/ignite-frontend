@@ -156,11 +156,19 @@ const PermissionsTab = ({ guild, channel }) => {
     const [selectedRoleId, setSelectedRoleId] = useState();
     
     // Track if changes have been made locally
-    const [hasChanges, setHasChanges] = useState(false);
     const [isSaving, setIsSaving] = useState(false);
 
     const [allowedPermissions, setAllowedPermissions] = useState(0);
     const [deniedPermissions, setDeniedPermissions] = useState(0);
+
+    const hasChanges = useMemo(() => {
+        const rolePerm = channel?.role_permissions?.find(rp => rp.role_id === selectedRoleId);
+        if (!rolePerm) {
+            return allowedPermissions !== 0 || deniedPermissions !== 0;
+        }
+        return allowedPermissions !== Number(rolePerm.allowed_permissions) ||
+                deniedPermissions !== Number(rolePerm.denied_permissions);
+    }, [allowedPermissions, deniedPermissions, selectedRoleId, channel]);
 
     // Load initial permissions when role changes
     useEffect(() => {
@@ -172,7 +180,6 @@ const PermissionsTab = ({ guild, channel }) => {
             setAllowedPermissions(0);
             setDeniedPermissions(0);
         }
-        setHasChanges(false);
     }, [selectedRoleId, channel]);
 
     // Select first role on mount
@@ -185,13 +192,11 @@ const PermissionsTab = ({ guild, channel }) => {
     const handleDenyPermission = (permBit) => {
         setAllowedPermissions(prev => prev & ~permBit);
         setDeniedPermissions(prev => prev | permBit);
-        setHasChanges(true);
     };
 
     const handleAllowPermission = (permBit) => {
         setAllowedPermissions(prev => prev | permBit);
         setDeniedPermissions(prev => prev & ~permBit);
-        setHasChanges(true);
     };
 
     const handleResetPermission = (permBit) => {
@@ -332,7 +337,7 @@ const EditGuildChannelModal = ({ isOpen, onClose, guild, initialTab = 'info', ch
         if (isOpen) setActiveTab(initialTab || 'info');
     }, [initialTab, isOpen]);
 
-    if (!isOpen) return null;
+    if (!isOpen || !channel) return null;
 
     const activeContent = tabs.find((tab) => tab.id === activeTab)?.component;
 

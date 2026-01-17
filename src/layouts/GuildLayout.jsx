@@ -403,7 +403,7 @@ const GuildLayout = ({ children, guild }) => {
   const store = useStore();
   const [isServerSettingsOpen, setIsServerSettingsOpen] = useState(false);
   const [isUserSettingsOpen, setIsUserSettingsOpen] = useState(false);
-  const [isEditChannelModalOpen, setIsEditChannelModalOpen] = useState(true);
+  const [isEditChannelModalOpen, setIsEditChannelModalOpen] = useState(false);
   const [settingsTab, setSettingsTab] = useState('info');
   const [editChannelId, setEditChannelId] = useState(null);
   const isGuildOwner =
