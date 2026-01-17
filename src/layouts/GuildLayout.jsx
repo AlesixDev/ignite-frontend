@@ -404,7 +404,6 @@ const GuildLayout = ({ children, guild }) => {
   const [isUserSettingsOpen, setIsUserSettingsOpen] = useState(false);
   const [settingsTab, setSettingsTab] = useState('info');
   const [editChannelId, setEditChannelId] = useState(null);
-  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const isGuildOwner =
     guild?.owner_id != null &&
     store.user?.id != null &&
@@ -426,17 +425,8 @@ const GuildLayout = ({ children, guild }) => {
   return (
     <BaseAuthLayout>
       <div className="flex h-screen w-screen">
-        {isSidebarOpen && (
-          <button
-            type="button"
-            className="fixed inset-0 z-30 bg-transparent md:hidden"
-            onClick={() => setIsSidebarOpen(false)}
-            aria-label="Close sidebar"
-          />
-        )}
         <div
-          className={`fixed inset-y-0 left-0 w-64 shrink-0 transition-transform duration-300 ease-out md:static md:translate-x-0 ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'
-            }`}
+          className={`inset-y-0 left-0 w-64 shrink-0 transition-transform duration-300 ease-out translate-x-0`}
         >
           <GuildSidebar
             guild={guild}
@@ -449,14 +439,6 @@ const GuildLayout = ({ children, guild }) => {
             canManageChannels={isGuildOwner}
           />
         </div>
-        {!isSidebarOpen && (
-          <button
-            type="button"
-            className="fixed left-0 top-1/2 z-30 h-24 w-4 -translate-y-1/2 animate-pulse rounded-r border border-gray-600/60 bg-gray-800/70 shadow-sm transition-all duration-300 hover:w-5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary md:hidden"
-            onClick={() => setIsSidebarOpen(true)}
-            aria-label="Open sidebar"
-          />
-        )}
         <main className="relative flex min-w-0 flex-1 flex-col bg-gray-700">
           {children}
         </main>
