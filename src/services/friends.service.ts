@@ -33,6 +33,7 @@ export const FriendsService = {
       await api.post('@me/friends/requests', null, {
         params: { username },
       });
+      toast.success('Friend request sent.');
       await this.loadRequests();
     } catch {
       toast.error('Unable to send friend request.');
@@ -42,6 +43,7 @@ export const FriendsService = {
   async acceptRequest(id: string) {
     try {
       await api.post(`@me/friends/requests/${id}/accept`);
+      toast.success('Friend request accepted.');
       await Promise.all([this.loadFriends(), this.loadRequests()]);
     } catch {
       toast.error('Unable to accept friend request.');
@@ -51,6 +53,7 @@ export const FriendsService = {
   async cancelRequest(id: string) {
     try {
       await api.delete(`@me/friends/requests/${id}`);
+      toast.success('Friend request canceled.');
       await this.loadRequests();
     } catch {
       toast.error('Unable to cancel friend request.');
@@ -60,6 +63,7 @@ export const FriendsService = {
   async deleteFriend(id: string) {
     try {
       await api.delete(`@me/friends/${id}`);
+      toast.success('Friend deleted.');
       await this.loadFriends();
     } catch {
       toast.error('Unable to delete friend.');

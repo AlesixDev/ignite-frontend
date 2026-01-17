@@ -13,12 +13,23 @@ const GuildMemberContextMenu = ({ user, onMention = undefined }) => {
 
   const { friends, requests } = useFriendsStore();
 
+  // TODO: Put in some helper file or in friends store
+
   const isFriend = useMemo(() => {
     return friends.some((friend) => friend.id === user.id);
   }, [friends, user.id]);
 
-  const hasPendingRequest = useMemo(() => {
-    return requests.some((request) => request.id === user.id);
+  const hasSentRequest = useMemo(() => {
+    return requests.some((request) => request.receiver_id === user.id);
+  }, [requests, user.id]);
+
+  const hasReceivedRequest = useMemo(() => {
+    return requests.some((request) => request.sender_id === user.id);
+  }, [requests, user.id]);
+
+  const friendRequestId = useMemo(() => {
+    const request = requests.find((request) => request.sender_id === user.id || request.receiver_id === user.id);
+    return request ? request.id : null;
   }, [requests, user.id]);
 
   const onSendMessage = useCallback(async (author) => {
@@ -59,19 +70,24 @@ const GuildMemberContextMenu = ({ user, onMention = undefined }) => {
           }}>
             Change Nickname
           </ContextMenuItem>
-          {!isFriend && !hasPendingRequest && (
-            <ContextMenuItem onSelect={() => FriendsService.sendRequest(user.id)}>
+          {!isFriend && !hasSentRequest && !hasReceivedRequest && (
+            <ContextMenuItem onSelect={() => FriendsService.sendRequest(user.username)}>
               Add Friend
             </ContextMenuItem>
           )}
           {isFriend && (
-            <ContextMenuItem onSelect={() => FriendsService.removeFriend(user.id)}>
+            <ContextMenuItem onSelect={() => FriendsService.removeFriend(friendRequestId)}>
               Remove Friend
             </ContextMenuItem>
           )}
-          {hasPendingRequest && (
-            <ContextMenuItem onSelect={() => FriendsService.cancelRequest(user.id)}>
+          {hasSentRequest && (
+            <ContextMenuItem onSelect={() => FriendsService.cancelRequest(friendRequestId)}>
               Cancel Friend Request
+            </ContextMenuItem>
+          )}
+          {hasReceivedRequest && (
+            <ContextMenuItem onSelect={() => FriendsService.acceptRequest(friendRequestId)}>
+              Accept Friend Request
             </ContextMenuItem>
           )}
           <ContextMenuItem onSelect={() => {

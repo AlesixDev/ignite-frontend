@@ -8,8 +8,10 @@ import { useGuildsStore } from '../stores/guilds.store';
 import { useChannelContext } from '../contexts/ChannelContext.jsx';
 import ChannelBar from './ChannelBar.jsx';
 import { ContextMenu, ContextMenuContent, ContextMenuItem, ContextMenuSeparator, ContextMenuTrigger } from './ui/context-menu';
+import { Popover, PopoverContent, PopoverTrigger } from './ui/popover';
 
 import GuildMemberContextMenu from './GuildMemberContextMenu';
+import GuildMemberPopoverContent from './GuildMemberPopoverContent';
 import { InputGroup, InputGroupInput } from './ui/input-group';
 
 const ChannelMessage = ({ message, prevMessage, pending }) => {
@@ -120,138 +122,147 @@ const ChannelMessage = ({ message, prevMessage, pending }) => {
   }, [inputRef, setInputMessage]);
 
   return (
-    <ContextMenu>
-      <ContextMenuTrigger className={`group relative block py-1 data-[state=open]:bg-gray-800/60 ${isEditing ? 'bg-gray-800/60' : 'hover:bg-gray-800/60'} ${shouldStack ? '' : 'mt-3.5'}`}>
-        <div className="flex px-4">
-          {shouldStack ? (
-            <div className="w-14" />
-          ) : (
-            <ContextMenu>
-              <ContextMenuTrigger>
-                {message?.author.avatar ? (
-                  <img className="h-10 cursor-pointer rounded-full bg-transparent" src={message?.author.avatar} alt="User avatar" />
-                ) : (
-                  <div className="mr-4 flex size-10 cursor-pointer items-center justify-center rounded-full bg-gray-800 text-gray-300">
-                    {message?.author?.name?.slice(0, 1).toUpperCase()}
-                  </div>
-                )}
-              </ContextMenuTrigger>
-              <ContextMenuContent>
-                <GuildMemberContextMenu user={message.author} onMention={onMention} />
-              </ContextMenuContent>
-            </ContextMenu>
-          )}
-
-          <div className="flex flex-1 flex-col items-start justify-start">
-            {shouldStack ? null : (
-              <div className="relative mb-1 flex justify-start leading-none">
-                <span className="font-semibold leading-none text-gray-100">
-                  {message?.author.name} {message?.author.is_webhook ? ' APP' : ''}
-                </span>
-                <p className="ml-2 self-end text-xs font-medium leading-tight text-gray-500">
-                  {formattedDateTime}
-                </p>
-              </div>
-            )}
-
-            {isEditing ? (
-              <div className="my-2 w-full">
-                <div className="mb-1 flex items-center rounded-lg bg-gray-600 px-4 py-2">
-                  <form onSubmit={(e) => onEdit(e)} className="w-full">
-                    <input
-                      className="w-full border-0 bg-inherit p-0 text-white outline-none placeholder:text-gray-400 focus:ring-0"
-                      type="text"
-                      value={editedMessage}
-                      onChange={(e) => setEditedMessage(e.target.value)}
-                      autoFocus
-                    />
-                  </form>
-                </div>
-                <p className="text-xs text-gray-400">
-                  escape to <button onClick={() => setEditingId(null)} className="text-primary hover:underline">cancel</button> •
-                  enter to <button onClick={(e) => onEdit(e)} className="text-primary hover:underline">save</button>
-                </p>
-              </div>
+    <Popover>
+      <ContextMenu>
+        <ContextMenuTrigger className={`group relative block py-1 data-[state=open]:bg-gray-800/60 ${isEditing ? 'bg-gray-800/60' : 'hover:bg-gray-800/60'} ${shouldStack ? '' : 'mt-3.5'}`}>
+          <div className="flex px-4">
+            {shouldStack ? (
+              <div className="w-14" />
             ) : (
-              <div className={`text-gray-400 ${pending ? 'opacity-50' : ''}`}>
-                {message.content}
-                {(message.updated_at && message.created_at !== message.updated_at) && (
-                  <span className="ml-1 text-[0.65rem] text-gray-500">(edited)</span>
-                )}
-              </div>
+              <ContextMenu>
+                <PopoverTrigger>
+                  <ContextMenuTrigger>
+                    {message?.author.avatar ? (
+                      <img className="h-10 cursor-pointer rounded-full bg-transparent" src={message?.author.avatar} alt="User avatar" />
+                    ) : (
+                      <div className="mr-4 flex size-10 cursor-pointer items-center justify-center rounded-full bg-gray-800 text-gray-300">
+                        {message?.author?.name?.slice(0, 1).toUpperCase()}
+                      </div>
+                    )}
+                  </ContextMenuTrigger>
+                  <ContextMenuContent>
+                    <GuildMemberContextMenu user={message.author} onMention={onMention} />
+                  </ContextMenuContent>
+                </PopoverTrigger>
+              </ContextMenu>
             )}
+
+            <div className="flex flex-1 flex-col items-start justify-start">
+              {shouldStack ? null : (
+                <div className="relative mb-1 flex justify-start leading-none">
+                  <PopoverTrigger>
+                    <span className="font-semibold leading-none text-gray-100">
+                      {message?.author.name} {message?.author.is_webhook ? ' APP' : ''}
+                    </span>
+                  </PopoverTrigger>
+                  <p className="ml-2 self-end text-xs font-medium leading-tight text-gray-500">
+                    {formattedDateTime}
+                  </p>
+                </div>
+              )}
+
+              {isEditing ? (
+                <div className="my-2 w-full">
+                  <div className="mb-1 flex items-center rounded-lg bg-gray-600 px-4 py-2">
+                    <form onSubmit={(e) => onEdit(e)} className="w-full">
+                      <input
+                        className="w-full border-0 bg-inherit p-0 text-white outline-none placeholder:text-gray-400 focus:ring-0"
+                        type="text"
+                        value={editedMessage}
+                        onChange={(e) => setEditedMessage(e.target.value)}
+                        autoFocus
+                      />
+                    </form>
+                  </div>
+                  <p className="text-xs text-gray-400">
+                    escape to <button onClick={() => setEditingId(null)} className="text-primary hover:underline">cancel</button> •
+                    enter to <button onClick={(e) => onEdit(e)} className="text-primary hover:underline">save</button>
+                  </p>
+                </div>
+              ) : (
+                <div className={`text-gray-400 ${pending ? 'opacity-50' : ''}`}>
+                  {message.content}
+                  {(message.updated_at && message.created_at !== message.updated_at) && (
+                    <span className="ml-1 text-[0.65rem] text-gray-500">(edited)</span>
+                  )}
+                </div>
+              )}
+            </div>
           </div>
-        </div>
-        {(!isEditing && !pending) && (
-          <div className="absolute -top-4 right-4 hidden rounded-md border border-gray-800 bg-gray-700 group-hover:flex">
-            <button type="button" onClick={onPin} className="rounded-md p-2 text-sm text-white/90 hover:bg-primary/10 hover:text-primary">
-              <PushPin className="size-5" />
-            </button>
-            {canEdit && (
-              <button type="button" onClick={() => setEditingId(message.id)} className="rounded-md p-2 text-sm text-white/90 hover:bg-primary/10 hover:text-primary">
-                <NotePencil className="size-5" />
+          {(!isEditing && !pending) && (
+            <div className="absolute -top-4 right-4 hidden rounded-md border border-gray-800 bg-gray-700 group-hover:flex">
+              <button type="button" onClick={onPin} className="rounded-md p-2 text-sm text-white/90 hover:bg-primary/10 hover:text-primary">
+                <PushPin className="size-5" />
               </button>
-            )}
-            {canDelete && (
-              <button type="button" onClick={onDelete} className="rounded-md p-2 text-sm text-white/90 hover:bg-primary/10 hover:text-primary">
-                <Trash className="size-5" />
+              {canEdit && (
+                <button type="button" onClick={() => setEditingId(message.id)} className="rounded-md p-2 text-sm text-white/90 hover:bg-primary/10 hover:text-primary">
+                  <NotePencil className="size-5" />
+                </button>
+              )}
+              {canDelete && (
+                <button type="button" onClick={onDelete} className="rounded-md p-2 text-sm text-white/90 hover:bg-primary/10 hover:text-primary">
+                  <Trash className="size-5" />
+                </button>
+              )}
+              <button type="button" onClick={onReply} className="rounded-md p-2 text-sm text-white/90 hover:bg-primary/10 hover:text-primary">
+                <ArrowBendUpLeft className="size-5" />
               </button>
-            )}
-            <button type="button" onClick={onReply} className="rounded-md p-2 text-sm text-white/90 hover:bg-primary/10 hover:text-primary">
-              <ArrowBendUpLeft className="size-5" />
-            </button>
-          </div>
-        )}
-      </ContextMenuTrigger>
-      <ContextMenuContent className="w-52">
-        <ContextMenuItem>
-          Add Reaction
-        </ContextMenuItem>
-        <ContextMenuSeparator />
-        {canEdit && (
-          <ContextMenuItem onSelect={() => setEditingId(message.id)}>
-            Edit Message
+            </div>
+          )}
+        </ContextMenuTrigger>
+        <ContextMenuContent className="w-52">
+          <ContextMenuItem>
+            Add Reaction
           </ContextMenuItem>
-        )}
-        <ContextMenuItem onSelect={onReply}>
-          Reply
-        </ContextMenuItem>
-        <ContextMenuItem>
-          Forward
-        </ContextMenuItem>
-        <ContextMenuSeparator />
-        <ContextMenuItem onSelect={() => {
-          navigator.clipboard.writeText(message.content);
-          toast.success('Message text copied to clipboard.');
-        }}>
-          Copy Text
-        </ContextMenuItem>
-        <ContextMenuItem onSelect={onPin}>
-          Pin Message
-        </ContextMenuItem>
-        <ContextMenuItem>
-          Mark Unread
-        </ContextMenuItem>
-        <ContextMenuItem onSelect={() => {
-          const link = `${window.location.origin}/channels/${message.channel_id}/${message.id}`;
-          navigator.clipboard.writeText(link);
-          toast.success('Message link copied to clipboard.');
-        }}>
-          Copy Message Link
-        </ContextMenuItem>
-        <ContextMenuItem>
-          Speak Message
-        </ContextMenuItem>
-        {canDelete && (
-          <>
-            <ContextMenuSeparator />
-            <ContextMenuItem onSelect={onDelete} className="text-red-500 hover:bg-red-600/20">
-              Delete Message
+          <ContextMenuSeparator />
+          {canEdit && (
+            <ContextMenuItem onSelect={() => setEditingId(message.id)}>
+              Edit Message
             </ContextMenuItem>
-          </>
-        )}
-      </ContextMenuContent>
-    </ContextMenu>
+          )}
+          <ContextMenuItem onSelect={onReply}>
+            Reply
+          </ContextMenuItem>
+          <ContextMenuItem>
+            Forward
+          </ContextMenuItem>
+          <ContextMenuSeparator />
+          <ContextMenuItem onSelect={() => {
+            navigator.clipboard.writeText(message.content);
+            toast.success('Message text copied to clipboard.');
+          }}>
+            Copy Text
+          </ContextMenuItem>
+          <ContextMenuItem onSelect={onPin}>
+            Pin Message
+          </ContextMenuItem>
+          <ContextMenuItem>
+            Mark Unread
+          </ContextMenuItem>
+          <ContextMenuItem onSelect={() => {
+            const link = `${window.location.origin}/channels/${message.channel_id}/${message.id}`;
+            navigator.clipboard.writeText(link);
+            toast.success('Message link copied to clipboard.');
+          }}>
+            Copy Message Link
+          </ContextMenuItem>
+          <ContextMenuItem>
+            Speak Message
+          </ContextMenuItem>
+          {canDelete && (
+            <>
+              <ContextMenuSeparator />
+              <ContextMenuItem onSelect={onDelete} className="text-red-500 hover:bg-red-600/20">
+                Delete Message
+              </ContextMenuItem>
+            </>
+          )}
+        </ContextMenuContent>
+      </ContextMenu>
+      <PopoverContent className="w-auto p-2" align="start" alignOffset={0}>
+        <GuildMemberPopoverContent user={message.author} guild={null} />
+      </PopoverContent>
+    </Popover>
   );
 };
 
@@ -644,26 +655,33 @@ const Channel = ({ channel }) => {
               <div className="flex flex-1 flex-col gap-1 p-2 text-gray-400">
                 {activeGuild?.members?.map((member) => (
                   <div key={member.user.id}>
-                    <ContextMenu>
-                      <ContextMenuTrigger>
-                        <div key={member.user.id} className="flex items-center gap-3 rounded-md p-2 transition hover:bg-gray-700/50">
-                          {member.user.avatar_url ? (
-                            <img className="size-8 rounded-full bg-transparent" src={member.user.avatar_url} alt="User avatar" />
-                          ) : (
-                            <div className="flex size-8 items-center justify-center rounded-full bg-gray-700 text-gray-300">
-                              {member.user.username?.slice(0, 1).toUpperCase()}
+                    <Popover>
+                      <ContextMenu>
+                        <PopoverTrigger className="w-full">
+                          <ContextMenuTrigger>
+                            <div key={member.user.id} className="flex items-center gap-3 rounded-md p-2 transition hover:bg-gray-700/50">
+                              {member.user.avatar_url ? (
+                                <img className="size-8 rounded-full bg-transparent" src={member.user.avatar_url} alt="User avatar" />
+                              ) : (
+                                <div className="flex size-8 items-center justify-center rounded-full bg-gray-700 text-gray-300">
+                                  {member.user.username?.slice(0, 1).toUpperCase()}
+                                </div>
+                              )}
+                              <div>
+                                <p className="text-sm font-medium text-gray-100">{member.user.name ?? member.user.username}</p>
+                                <p className="text-xs text-gray-400">{member.user.status}</p>
+                              </div>
                             </div>
-                          )}
-                          <div>
-                            <p className="text-sm font-medium text-gray-100">{member.user.name ?? member.user.username}</p>
-                            <p className="text-xs text-gray-400">{member.user.status}</p>
-                          </div>
-                        </div>
-                      </ContextMenuTrigger>
-                      <ContextMenuContent>
-                        <GuildMemberContextMenu user={member.user} onMention={onMention} />
-                      </ContextMenuContent>
-                    </ContextMenu>
+                          </ContextMenuTrigger>
+                        </PopoverTrigger>
+                        <ContextMenuContent>
+                          <GuildMemberContextMenu user={member.user} onMention={onMention} />
+                        </ContextMenuContent>
+                      </ContextMenu>
+                      <PopoverContent className="w-auto p-2" align="start" alignOffset={0}>
+                        <GuildMemberPopoverContent user={member.user} guild={null} />
+                      </PopoverContent>
+                    </Popover>
                   </div>
                 ))}
               </div>
