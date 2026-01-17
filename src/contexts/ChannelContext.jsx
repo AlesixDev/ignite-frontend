@@ -29,10 +29,10 @@ export const ChannelContextProvider = ({ children }) => {
                 pendingMessages,
                 setPendingMessages,
                 inputMessage,
-                setInputMessage,
-                inputRef,
+                setInputMessage, 
                 memberListOpen,
                 setMemberListOpen,
+                inputRef,
             }}
         >
             {children}

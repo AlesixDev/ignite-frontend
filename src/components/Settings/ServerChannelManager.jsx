@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { FormProvider, useForm } from 'react-hook-form';
 import api from '../../api';
 import FormError from '../Form/FormError';
@@ -250,6 +250,20 @@ const ServerChannelManager = ({ guild, editChannelId, onEditChannelChange }) => 
     }
   };
 
+  const handleAddChannel = async (data) => {
+    if (!guild?.id) return;
+    setError('');
+    try {
+      const response = await api.post(`/guilds/${guild.id}/channels`, data);
+      setChannels((prev) => [...prev, response.data]);
+      createForm.reset({ name: '', type: '0' });
+    } catch (err) {
+      const msg = err.response?.data?.message || err.message || 'Could not create channel.';
+      setError(msg);
+    }
+  };
+    
+
   return (
     <div className="space-y-6">
       <div>
@@ -264,18 +278,7 @@ const ServerChannelManager = ({ guild, editChannelId, onEditChannelChange }) => 
         </div>
         <FormProvider {...createForm}>
           <form
-            onSubmit={createForm.handleSubmit(async (data) => {
-              if (!guild?.id) return;
-              setError('');
-              try {
-                const response = await api.post(`/guilds/${guild.id}/channels`, data);
-                setChannels((prev) => [...prev, response.data]);
-                createForm.reset({ name: '', type: '0' });
-              } catch (err) {
-                const msg = err.response?.data?.message || err.message || 'Could not create channel.';
-                setError(msg);
-              }
-            })}
+            onSubmit={createForm.handleSubmit(handleAddChannel)}
             className="mb-4 grid gap-3 text-xs text-gray-300 sm:grid-cols-[1fr_auto] sm:items-center"
           >
             <input type="hidden" name="type" value="0" {...createForm.register('type')} />

@@ -8,6 +8,7 @@ type GuildsStore = {
   setActiveGuildId: (guildId: string | null) => void;
   addGuild: (guild: any) => void;
   editGuild: (guildId: string, updates: Partial<any>) => void;
+  editGuildChannel: (guildId: string, channelId: string, updates: Partial<any>) => void;
 };
 
 export const useGuildsStore = create<GuildsStore>((set) => ({
@@ -21,5 +22,19 @@ export const useGuildsStore = create<GuildsStore>((set) => ({
       guilds: state.guilds.map((g) =>
         g.id === guildId ? { ...g, ...updates } : g
       ),
+    })),
+  editGuildChannel: (guildId, channelId, updates) =>
+    set((state) => ({
+      guilds: state.guilds.map((g) => {
+        if (g.id === guildId) {
+          return {
+            ...g,
+            channels: g.channels.map((c: any) =>
+              c.id === channelId ? { ...c, ...updates } : c
+            ),
+          };
+        }
+        return g;
+      })
     }))
 }));

@@ -10,6 +10,7 @@ import api from '../api';
 import useStore from '../hooks/useStore';
 import { GuildsService } from '../services/guilds.service';
 import { ContextMenu, ContextMenuShortcut, ContextMenuContent, ContextMenuItem, ContextMenuSeparator, ContextMenuSub, ContextMenuSubContent, ContextMenuSubTrigger, ContextMenuTrigger } from '../components/ui/context-menu';
+import EditGuildChannelModal from '../components/Modals/EditGuildChannelModal';
 
 const GuildSidebarHeader = ({ guildName = '', guild, onOpenServerSettings, canOpenServerSettings }) => {
   const navigate = useNavigate();
@@ -402,6 +403,7 @@ const GuildLayout = ({ children, guild }) => {
   const store = useStore();
   const [isServerSettingsOpen, setIsServerSettingsOpen] = useState(false);
   const [isUserSettingsOpen, setIsUserSettingsOpen] = useState(false);
+  const [isEditChannelModalOpen, setIsEditChannelModalOpen] = useState(true);
   const [settingsTab, setSettingsTab] = useState('info');
   const [editChannelId, setEditChannelId] = useState(null);
   const isGuildOwner =
@@ -422,6 +424,18 @@ const GuildLayout = ({ children, guild }) => {
     [isGuildOwner]
   );
 
+  const openEditChannelModal = useCallback(
+    ({ channelId = null } = {}) => {
+      if (!isGuildOwner) {
+        toast.error('Only the server owner can edit channels.');
+        return;
+      }
+      setEditChannelId(channelId);
+      setIsEditChannelModalOpen(true);
+    },
+    [isGuildOwner]
+  );
+
   return (
     <BaseAuthLayout>
       <div className="flex h-screen w-screen">
@@ -433,7 +447,7 @@ const GuildLayout = ({ children, guild }) => {
             onOpenServerSettings={() => openServerSettings({ tab: 'info', channelId: null })}
             onOpenUserSettings={() => setIsUserSettingsOpen(true)}
             onEditChannel={(channel) => {
-              openServerSettings({ tab: 'channels', channelId: channel.channel_id || channel.id });
+              openEditChannelModal({ channelId: channel.channel_id || channel.id });
             }}
             canOpenServerSettings={isGuildOwner}
             canManageChannels={isGuildOwner}
@@ -452,6 +466,13 @@ const GuildLayout = ({ children, guild }) => {
         onEditChannelChange={setEditChannelId}
       />
       <UserSettings isOpen={isUserSettingsOpen} onClose={() => setIsUserSettingsOpen(false)} />
+      <EditGuildChannelModal
+        isOpen={isEditChannelModalOpen}
+        setIsOpen={setIsEditChannelModalOpen}
+        guild={guild}
+        onClose={() => setIsEditChannelModalOpen(false)}
+        channel={guild?.channels?.find((c) => String(c.channel_id || c.id) === String(editChannelId))}
+      />
     </BaseAuthLayout>
   );
 };
