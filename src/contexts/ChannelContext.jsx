@@ -10,6 +10,7 @@ export const ChannelContextProvider = ({ children }) => {
     const [pinnedMessages, setPinnedMessages] = useState([]);
     const [pendingMessages, setPendingMessages] = useState([]);
     const [inputMessage, setInputMessage] = useState('');
+    const [memberListOpen, setMemberListOpen] = useState(false);
     const inputRef = useRef(null);
 
     return (
@@ -30,6 +31,8 @@ export const ChannelContextProvider = ({ children }) => {
                 inputMessage,
                 setInputMessage,
                 inputRef,
+                memberListOpen,
+                setMemberListOpen,
             }}
         >
             {children}
