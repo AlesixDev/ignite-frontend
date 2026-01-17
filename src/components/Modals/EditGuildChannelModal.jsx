@@ -19,22 +19,30 @@ const permissions = {
 
 const OverviewTab = ({ guild, channel }) => {
     const store = useGuildsStore();
-    const form = useForm();
-    const [name, setName] = useState(channel?.name);
-    const [description, setDescription] = useState();
+    
+    const [name, setName] = useState(channel?.name || '');
+    const [description, setDescription] = useState(channel?.description || '');
+    const [isSaving, setIsSaving] = useState(false);
+
+    // Update local state if the channel prop changes externally
+    useEffect(() => {
+        setName(channel?.name || '');
+        setDescription(channel?.description || '');
+    }, [channel]);
+
     const hasChanged = useMemo(() => {
-        return name !== channel?.name || description !== channel?.description;
+        return name !== (channel?.name || '') || description !== (channel?.description || '');
     }, [name, description, channel]);
 
     const handleSave = () => {
         if (!hasChanged) return;
+        setIsSaving(true);
 
         api.patch(`/guilds/${guild.id}/channels/${channel.channel_id}`, {
             name,
             description,
         })
             .then((response) => {
-                // Handle success (e.g., show a success message)
                 console.log('Channel updated successfully:', response.data);
 
                 // Update the channel in the store
@@ -55,55 +63,79 @@ const OverviewTab = ({ guild, channel }) => {
                 store.setGuilds(newGuilds);
             })
             .catch((error) => {
-                // Handle error (e.g., show an error message)
                 console.error('Error updating channel:', error);
+            })
+            .finally(() => {
+                setIsSaving(false);
             });
     };
 
     return (
-        <form
-            className="flex flex-col gap-4 max-w-md"
-            onSubmit={e => {
-                e.preventDefault();
-                handleSave();
-            }}
-        >
-            <div>
-                <div className="mb-2 text-xs font-bold text-gray-400 uppercase tracking-wide">
-                    Channel Name
+        <div className="flex h-full w-full flex-col overflow-hidden rounded-md border border-gray-800 bg-gray-900">
+            {/* Scrollable Content Area */}
+            <div className="flex-1 overflow-y-auto p-6 scrollbar-thin scrollbar-thumb-gray-700 bg-gray-900/50">
+                <div className="flex flex-col gap-6 max-w-lg">
+                    <div>
+                        <h3 className="text-lg font-semibold text-gray-100 mb-1">
+                            Channel Overview
+                        </h3>
+                        <p className="text-xs text-gray-400 mb-6">
+                            Edit the basic details of this channel.
+                        </p>
+                    </div>
+
+                    <div>
+                        <div className="mb-2 text-xs font-bold text-gray-400 uppercase tracking-wide">
+                            Channel Name
+                        </div>
+                        <InputGroup>
+                            <InputGroupInput
+                                className="w-full rounded border border-gray-700 bg-gray-800 p-2 text-gray-100 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all outline-none"
+                                value={name}
+                                onChange={e => setName(e.target.value)}
+                                placeholder="Enter channel name"
+                                required
+                            />
+                        </InputGroup>
+                    </div>
+
+                    <div>
+                        <div className="mb-2 text-xs font-bold text-gray-400 uppercase tracking-wide">
+                            Channel Description
+                        </div>
+                        <InputGroup>
+                            <InputGroupInput
+                                className="w-full rounded border border-gray-700 bg-gray-800 p-2 text-gray-100 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all outline-none"
+                                value={description}
+                                onChange={e => setDescription(e.target.value)}
+                                placeholder="Enter channel description"
+                            />
+                        </InputGroup>
+                    </div>
                 </div>
-                <InputGroup label="Channel Name">
-                    <InputGroupInput
-                        className="w-full rounded border border-gray-700 bg-gray-800 p-2 text-gray-100"
-                        value={name}
-                        onChange={e => setName(e.target.value)}
-                        placeholder="Enter channel name"
-                        required
-                    />
-                </InputGroup>
             </div>
-            <div>
-                <div className="mb-2 text-xs font-bold text-gray-400 uppercase tracking-wide">
-                    Channel Description
+
+            {/* Floating Action Bar */}
+            <div className={`border-t border-gray-800 bg-gray-900 p-4 transition-all duration-300 ${hasChanged ? 'opacity-100 translate-y-0' : 'opacity-50 translate-y-2 pointer-events-none'}`}>
+                <div className="flex items-center justify-between">
+                    <span className="text-sm text-gray-400">
+                        {hasChanged ? 'Careful - you have unsaved changes!' : 'Channel settings'}
+                    </span>
+                    <button
+                        onClick={handleSave}
+                        disabled={!hasChanged || isSaving}
+                        className={`flex items-center gap-2 rounded px-4 py-2 text-sm font-medium text-white transition-colors ${
+                            hasChanged 
+                                ? 'bg-green-600 hover:bg-green-500 shadow-lg shadow-green-900/20' 
+                                : 'bg-gray-700 cursor-not-allowed opacity-50'
+                        }`}
+                    >
+                        <FloppyDisk size={18} />
+                        {isSaving ? 'Saving...' : 'Save Changes'}
+                    </button>
                 </div>
-                <InputGroup label="Channel Description">
-                    <InputGroupInput
-                        className="w-full rounded border border-gray-700 bg-gray-800 p-2 text-gray-100"
-                        value={description}
-                        onChange={e => setDescription(e.target.value)}
-                        placeholder="Enter channel description"
-                    />
-                </InputGroup>
             </div>
-            {hasChanged && (
-                <FormSubmit
-                    form={form}
-                    label="Save"
-                    icon={<FloppyDisk className="size-4" />}
-                    className="w-full sm:w-auto"
-                />
-            )}
-        </form>
+        </div>
     );
 };
 
@@ -161,7 +193,7 @@ const PermissionsTab = ({ guild, channel }) => {
     const [allowedPermissions, setAllowedPermissions] = useState(0);
     const [deniedPermissions, setDeniedPermissions] = useState(0);
 
-    const hasChanges = useMemo(() => {
+    const hasChanged = useMemo(() => {
         const rolePerm = channel?.role_permissions?.find(rp => rp.role_id === selectedRoleId);
         if (!rolePerm) {
             return allowedPermissions !== 0 || deniedPermissions !== 0;
@@ -202,7 +234,6 @@ const PermissionsTab = ({ guild, channel }) => {
     const handleResetPermission = (permBit) => {
         setAllowedPermissions(prev => prev & ~permBit);
         setDeniedPermissions(prev => prev & ~permBit);
-        setHasChanges(true);
     };
 
     // 0 = Denied, 1 = Neutral (inherit), 2 = Allowed
@@ -222,7 +253,6 @@ const PermissionsTab = ({ guild, channel }) => {
         })
         .then((response) => {
             console.log('Permissions updated successfully:', response.data);
-            setHasChanges(false);
             // Optional: You might want to update the store here similar to OverviewTab
         })
         .catch((error) => {
@@ -284,16 +314,16 @@ const PermissionsTab = ({ guild, channel }) => {
                 </div>
 
                 {/* Floating Action Bar (Only shows if there are changes) */}
-                <div className={`border-t border-gray-800 bg-gray-900 p-4 transition-all duration-300 ${hasChanges ? 'opacity-100 translate-y-0' : 'opacity-50 translate-y-2 pointer-events-none'}`}>
+                <div className={`border-t border-gray-800 bg-gray-900 p-4 transition-all duration-300 ${hasChanged ? 'opacity-100 translate-y-0' : 'opacity-50 translate-y-2 pointer-events-none'}`}>
                     <div className="flex items-center justify-between">
                         <span className="text-sm text-gray-400">
-                            {hasChanges ? 'Careful - you have unsaved changes!' : 'Permission settings'}
+                            {hasChanged ? 'Careful - you have unsaved changes!' : 'Permission settings'}
                         </span>
                         <button
                             onClick={handleSave}
-                            disabled={!hasChanges || isSaving}
+                            disabled={!hasChanged || isSaving}
                             className={`flex items-center gap-2 rounded px-4 py-2 text-sm font-medium text-white transition-colors ${
-                                hasChanges 
+                                hasChanged 
                                     ? 'bg-green-600 hover:bg-green-500 shadow-lg shadow-green-900/20' 
                                     : 'bg-gray-700 cursor-not-allowed opacity-50'
                             }`}
