@@ -363,17 +363,19 @@ const GuildSidebar = ({
               />
 
               {categories.map((category) => (
-                <>
-                  <GuildSidebarSection
-                    category={category}
-                    channels={guild?.channels || []}
-                    activeChannelId={channelId}
-                    openCreateChannelDialog={() => { setIsCreateChannelDialogOpen(true); setCategoryId(category.channel_id); }}
-                    guild={guild}
-                    onEditChannel={onEditChannel}
-                    canManageChannels={canManageChannels}
-                  />
-                </>
+                <GuildSidebarSection
+                  key={category.channel_id || category.id}
+                  category={category}
+                  channels={guild?.channels || []}
+                  activeChannelId={channelId}
+                  openCreateChannelDialog={() => {
+                    setIsCreateChannelDialogOpen(true);
+                    setCategoryId(category.channel_id);
+                  }}
+                  guild={guild}
+                  onEditChannel={onEditChannel}
+                  canManageChannels={canManageChannels}
+                />
               ))}
             </div>
           </div>
