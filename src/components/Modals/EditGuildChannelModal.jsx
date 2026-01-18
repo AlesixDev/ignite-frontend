@@ -1,14 +1,10 @@
 import { useEffect, useMemo, useState } from 'react';
-import { X, Info, Lock, ArrowRight, FloppyDisk, Check } from '@phosphor-icons/react';
-import { InputGroup, InputGroupInput, InputGroupText } from '../ui/input-group';
-import FormSubmit from '../Form/FormSubmit';
-import { useForm } from 'react-hook-form';
+import { X, Info, Lock, FloppyDisk, Check } from '@phosphor-icons/react';
+import { InputGroup, InputGroupInput } from '../ui/input-group';
 import api from '../../api';
 import { useGuildsStore } from '../../stores/guilds.store';
 import { Slash } from 'lucide-react';
 
-// Example roles and permissions
-const roles = ["Admin", "Moderator", "Member"];
 const permissions = {
     2: "Manage Guild",     // 2
     4: "Manage Channels",  // 4
@@ -267,12 +263,14 @@ const PermissionsTab = ({ guild, channel }) => {
                     denied_permissions: deniedPermissions,
                 },
             }));
-            const nextGuilds = store.guilds.map(g => {
+            const newGuilds = store.guilds.map(g => {
                 if (g.id !== guild.id) return g;
-                const nextChannels = (g.channels || []).map(c => {
-                    if ((c.channel_id || c.id) !== (channel.channel_id || channel.id)) return c;
+
+                const newChannels = (g.channels || []).map(c => {
+                    if (c.channel_id !== channel.channel_id) return c;
+
                     const existingRolePerms = c.role_permissions || [];
-                    const nextRolePerms = (() => {
+                    const newRolePerms = (() => {
                         const updated = existingRolePerms.map(rp => {
                             if (rp.role_id !== selectedRoleId) return rp;
                             return {
@@ -292,17 +290,19 @@ const PermissionsTab = ({ guild, channel }) => {
                             },
                         ];
                     })();
+
                     return {
                         ...c,
-                        role_permissions: nextRolePerms,
+                        role_permissions: newRolePerms,
                     };
                 });
+
                 return {
                     ...g,
-                    channels: nextChannels,
+                    channels: newChannels,
                 };
             });
-            store.setGuilds(nextGuilds);
+            store.setGuilds(newGuilds);
         })
         .catch((error) => {
             console.error('Error updating permissions:', error);
