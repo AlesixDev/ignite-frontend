@@ -13,6 +13,7 @@ import { Popover, PopoverContent, PopoverTrigger } from './ui/popover';
 import GuildMemberContextMenu from './GuildMemberContextMenu';
 import GuildMemberPopoverContent from './GuildMemberPopoverContent';
 import { InputGroup, InputGroupInput } from './ui/input-group';
+import { Badge } from './ui/badge';
 
 const ChannelMessage = ({ message, prevMessage, pending }) => {
   const store = useStore();
@@ -152,7 +153,7 @@ const ChannelMessage = ({ message, prevMessage, pending }) => {
                 <div className="relative mb-1 flex justify-start leading-none">
                   <PopoverTrigger>
                     <span className="font-semibold leading-none text-gray-100">
-                      {message?.author.name} {message?.author.is_webhook ? ' APP' : ''}
+                      {message?.author.name} {message?.author.is_webhook && <Badge>Webhook</Badge>} {message?.author.is_bot && <Badge>Bot</Badge>}
                     </span>
                   </PopoverTrigger>
                   <p className="ml-2 self-end text-xs font-medium leading-tight text-gray-500">
@@ -479,12 +480,20 @@ const Channel = ({ channel }) => {
       .listen('.message.created', (event) => {
         if (event.channel.id == channel.channel_id) {
           setMessages((prev) => {
-            if (prev.some((m) => m.nonce === event.message.nonce)) {
+            if (
+              event.message.nonce
+                ? prev.some((m) => m.nonce === event.message.nonce)
+                : prev.some((m) => m.id === event.message.id)
+            ) {
               return prev;
             }
             return [...prev, event.message];
           });
-          setPendingMessages((prev) => prev.filter((m) => m.nonce !== event.message.nonce));
+          setPendingMessages((prev) =>
+            event.message.nonce
+              ? prev.filter((m) => m.nonce !== event.message.nonce)
+              : prev.filter((m) => m.id !== event.message.id)
+          );
         }
       })
       .listen('.message.updated', (event) => {
@@ -504,7 +513,7 @@ const Channel = ({ channel }) => {
       console.log('Unsubscribing from channel:', channel.channel_id);
       window.Echo.leave(`channel.${channel.channel_id}`);
     };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [channel?.channel_id]);
 
   const loadMore = useCallback(async () => {
