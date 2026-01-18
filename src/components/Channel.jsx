@@ -17,6 +17,7 @@ import { Badge } from './ui/badge';
 
 const ChannelMessage = ({ message, prevMessage, pending }) => {
   const store = useStore();
+  const guildsStore = useGuildsStore();
   const authorMenuRef = useRef(null);
   const [authorMenuOpen, setAuthorMenuOpen] = useState(false);
 
@@ -50,7 +51,29 @@ const ChannelMessage = ({ message, prevMessage, pending }) => {
 
   const isEditing = useMemo(() => editingId === message.id, [editingId, message.id]);
   const canEdit = useMemo(() => message.author.id === store.user.id, [message.author.id, store.user.id]);
-  const canDelete = useMemo(() => message.author.id === store.user.id, [message.author.id, store.user.id]);
+  const canDelete = useMemo(() => {
+    if (message.author.id === store.user.id) return true;
+
+    const activeGuild = guildsStore.guilds.find((g) => g.id == guildsStore.activeGuildId);
+    if (activeGuild?.owner_id == store.user.id) return true;
+
+    const member = activeGuild?.members?.find((m) => m.user_id === store.user.id);
+    if (!member) return false;
+
+    // bitwise | all permissions in roles
+    const allowedPermissions = member?.roles.reduce((acc, role) => {
+      return acc | (role ? role.permissions : 0);
+    }, 0);
+
+    if (allowedPermissions & 8) { // MANAGE_MESSAGES
+      return true;
+    }
+
+    return false;
+  }, [message.author.id, store.user.id]);
+
+  // console.log(store.user);
+  // console.log(guildsStore.guilds);
 
   const [editedMessage, setEditedMessage] = useState(message.content);
 
@@ -629,7 +652,7 @@ const Channel = ({ channel }) => {
   const activeGuild = guilds.find((g) => g.id === activeGuildId);
 
   useEffect(() => {
-    if (!memberListOpen || !activeGuildId) return;
+    if (!activeGuildId) return;
 
     GuildsService.loadGuildMembers(activeGuildId);
 
@@ -638,7 +661,7 @@ const Channel = ({ channel }) => {
     }, 5000);
 
     return () => clearInterval(interval);
-  }, [memberListOpen, activeGuildId]);
+  }, [activeGuildId]);
 
   return (
     <div className="relative flex min-h-0 w-full flex-1 flex-col bg-gray-700">
