@@ -187,6 +187,7 @@ const PermissionRow = ({ label, state, onAllow, onDeny, onReset }) => {
 const PermissionsTab = ({ guild, channel }) => {
     const [selectedRoleId, setSelectedRoleId] = useState();
     const rolesList = guild?.roles ?? [];
+    const [savedPermissionsByRole, setSavedPermissionsByRole] = useState({});
     
     // Track if changes have been made locally
     const [isSaving, setIsSaving] = useState(false);
@@ -195,25 +196,29 @@ const PermissionsTab = ({ guild, channel }) => {
     const [deniedPermissions, setDeniedPermissions] = useState(0);
 
     const hasChanged = useMemo(() => {
+        const savedPerm = savedPermissionsByRole[selectedRoleId];
         const rolePerm = channel?.role_permissions?.find(rp => rp.role_id === selectedRoleId);
-        if (!rolePerm) {
+        const baselinePerm = savedPerm || rolePerm;
+        if (!baselinePerm) {
             return allowedPermissions !== 0 || deniedPermissions !== 0;
         }
-        return allowedPermissions !== Number(rolePerm.allowed_permissions) ||
-                deniedPermissions !== Number(rolePerm.denied_permissions);
-    }, [allowedPermissions, deniedPermissions, selectedRoleId, channel]);
+        return allowedPermissions !== Number(baselinePerm.allowed_permissions) ||
+                deniedPermissions !== Number(baselinePerm.denied_permissions);
+    }, [allowedPermissions, deniedPermissions, selectedRoleId, channel, savedPermissionsByRole]);
 
     // Load initial permissions when role changes
     useEffect(() => {
+        const savedPerm = savedPermissionsByRole[selectedRoleId];
         const rolePerm = channel?.role_permissions?.find(rp => rp.role_id === selectedRoleId);
-        if (rolePerm) {
-            setAllowedPermissions(Number(rolePerm.allowed_permissions));
-            setDeniedPermissions(Number(rolePerm.denied_permissions));
+        const baselinePerm = savedPerm || rolePerm;
+        if (baselinePerm) {
+            setAllowedPermissions(Number(baselinePerm.allowed_permissions));
+            setDeniedPermissions(Number(baselinePerm.denied_permissions));
         } else {
             setAllowedPermissions(0);
             setDeniedPermissions(0);
         }
-    }, [selectedRoleId, channel]);
+    }, [selectedRoleId, channel, savedPermissionsByRole]);
 
     // Select first role on mount
     useEffect(() => {
@@ -254,6 +259,13 @@ const PermissionsTab = ({ guild, channel }) => {
         })
         .then((response) => {
             console.log('Permissions updated successfully:', response.data);
+            setSavedPermissionsByRole(prev => ({
+                ...prev,
+                [selectedRoleId]: {
+                    allowed_permissions: allowedPermissions,
+                    denied_permissions: deniedPermissions,
+                },
+            }));
             // Optional: You might want to update the store here similar to OverviewTab
         })
         .catch((error) => {
