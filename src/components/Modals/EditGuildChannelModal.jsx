@@ -186,6 +186,7 @@ const PermissionRow = ({ label, state, onAllow, onDeny, onReset }) => {
 
 const PermissionsTab = ({ guild, channel }) => {
     const [selectedRoleId, setSelectedRoleId] = useState();
+    const rolesList = guild?.roles ?? [];
     
     // Track if changes have been made locally
     const [isSaving, setIsSaving] = useState(false);
@@ -216,10 +217,10 @@ const PermissionsTab = ({ guild, channel }) => {
 
     // Select first role on mount
     useEffect(() => {
-        if (guild.roles?.length > 0 && !selectedRoleId) {
-            setSelectedRoleId(guild.roles[0]?.id);
+        if (rolesList.length > 0 && !selectedRoleId) {
+            setSelectedRoleId(rolesList[0]?.id);
         }
-    }, [guild, selectedRoleId]);
+    }, [rolesList, selectedRoleId]);
 
     const handleDenyPermission = (permBit) => {
         setAllowedPermissions(prev => prev & ~permBit);
@@ -271,7 +272,7 @@ const PermissionsTab = ({ guild, channel }) => {
                     Roles
                 </div>
                 <div className="flex-1 overflow-y-auto px-2 pb-2 scrollbar-thin scrollbar-thumb-gray-700">
-                    {guild.roles.map((role) => (
+                    {rolesList.map((role) => (
                         <button
                             key={role.id}
                             onClick={() => setSelectedRoleId(role.id)}
@@ -292,7 +293,7 @@ const PermissionsTab = ({ guild, channel }) => {
                 <div className="flex-1 overflow-y-auto p-4 md:p-6 scrollbar-thin scrollbar-thumb-gray-700">
                     <div className="mb-4">
                         <h3 className="text-lg font-semibold text-gray-100">
-                            {guild.roles.find(r => r.id === selectedRoleId)?.name || 'Role'} Permissions
+                            {rolesList.find(r => r.id === selectedRoleId)?.name || 'Role'} Permissions
                         </h3>
                         <p className="text-xs text-gray-400">
                             Configure specific permissions for this role in this channel.
