@@ -185,6 +185,7 @@ const PermissionRow = ({ label, state, onAllow, onDeny, onReset }) => {
 };
 
 const PermissionsTab = ({ guild, channel }) => {
+    const store = useGuildsStore();
     const [selectedRoleId, setSelectedRoleId] = useState();
     const rolesList = guild?.roles ?? [];
     const [savedPermissionsByRole, setSavedPermissionsByRole] = useState({});
@@ -266,7 +267,42 @@ const PermissionsTab = ({ guild, channel }) => {
                     denied_permissions: deniedPermissions,
                 },
             }));
-            // Optional: You might want to update the store here similar to OverviewTab
+            const nextGuilds = store.guilds.map(g => {
+                if (g.id !== guild.id) return g;
+                const nextChannels = (g.channels || []).map(c => {
+                    if ((c.channel_id || c.id) !== (channel.channel_id || channel.id)) return c;
+                    const existingRolePerms = c.role_permissions || [];
+                    const nextRolePerms = (() => {
+                        const updated = existingRolePerms.map(rp => {
+                            if (rp.role_id !== selectedRoleId) return rp;
+                            return {
+                                ...rp,
+                                allowed_permissions: allowedPermissions,
+                                denied_permissions: deniedPermissions,
+                            };
+                        });
+                        const hasRole = existingRolePerms.some(rp => rp.role_id === selectedRoleId);
+                        if (hasRole) return updated;
+                        return [
+                            ...updated,
+                            {
+                                role_id: selectedRoleId,
+                                allowed_permissions: allowedPermissions,
+                                denied_permissions: deniedPermissions,
+                            },
+                        ];
+                    })();
+                    return {
+                        ...c,
+                        role_permissions: nextRolePerms,
+                    };
+                });
+                return {
+                    ...g,
+                    channels: nextChannels,
+                };
+            });
+            store.setGuilds(nextGuilds);
         })
         .catch((error) => {
             console.error('Error updating permissions:', error);
