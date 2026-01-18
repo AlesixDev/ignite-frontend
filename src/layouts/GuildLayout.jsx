@@ -216,20 +216,22 @@ const GuildSidebarSection = ({
       const confirmDelete = window.confirm('Delete this channel?');
       if (!confirmDelete) return;
 
-      try {
-        await api.delete(`/guilds/${guild.id}/channels/${channel.channel_id || channel.id}`);
-        const nextChannels = channels.filter(
-          (item) => (item.channel_id || item.id) !== (channel.channel_id || channel.id)
-        );
-        GuildsService.editGuild(guild.id, { channels: nextChannels });
-        if (String(channel.channel_id) === String(activeChannelId)) {
-          navigate(`/channels/${guild.id}`);
-        }
-        toast.success('Channel deleted.');
-      } catch (err) {
-        const msg = err.response?.data?.message || err.message || 'Could not delete channel.';
-        toast.error(msg);
-      }
+      // try {
+      //   await api.delete(`/guilds/${guild.id}/channels/${channel.channel_id || channel.id}`);
+      //   const nextChannels = channels.filter(
+      //     (item) => (item.channel_id || item.id) !== (channel.channel_id || channel.id)
+      //   );
+      //   GuildsService.editGuild(guild.id, { channels: nextChannels });
+      //   if (String(channel.channel_id) === String(activeChannelId)) {
+      //     navigate(`/channels/${guild.id}`);
+      //   }
+      //   toast.success('Channel deleted.');
+      // } catch (err) {
+      //   const msg = err.response?.data?.message || err.message || 'Could not delete channel.';
+      //   toast.error(msg);
+      // }
+
+      GuildsService.deleteGuildChannel(guild.id, channel.channel_id)
     },
     [activeChannelId, canManageChannels, channels, guild?.id, navigate]
   );
@@ -271,45 +273,57 @@ const GuildSidebarSection = ({
       )}
 
       {sortedChannels.map((channel) => (
-        <Link
-          key={channel.channel_id}
-          to={`/channels/${channel.guild_id}/${channel.channel_id}`}
-          className={`${!expanded && channel.channel_id != activeChannelId ? 'hidden' : ''}`}
-        >
-          <div
-            className={`group relative mx-2 my-0.5 flex cursor-pointer items-center rounded px-2 py-1 pr-16 ${channel.channel_id == activeChannelId
-              ? 'bg-gray-600 text-gray-100'
-              : 'text-gray-500 hover:bg-gray-700 hover:text-gray-400'
-              }`}
-          >
-            <Hash className="size-6 text-gray-500" />
-            <p className="ml-1 truncate text-base font-medium">{channel.name}</p>
-            {canManageChannels && (
-              <div className="absolute right-2 hidden items-center gap-1 rounded bg-gray-800/80 px-1 py-0.5 group-hover:flex">
-                <button
-                  type="button"
-                  aria-label={`Edit ${channel.name}`}
-                  className="rounded p-1 text-sm text-white/90 hover:bg-primary/10 hover:text-primary"
-                  onClick={(event) => {
-                    event.preventDefault();
-                    event.stopPropagation();
-                    onEditChannel?.(channel);
-                  }}
-                >
-                  <NotePencil className="size-4" />
-                </button>
-                <button
-                  type="button"
-                  aria-label={`Delete ${channel.name}`}
-                  className="rounded p-1 text-sm text-white/90 hover:bg-primary/10 hover:text-primary"
-                  onClick={(event) => handleDeleteChannel(channel, event)}
-                >
-                  <Trash className="size-4" />
-                </button>
+        <ContextMenu>
+          <ContextMenuTrigger>
+            <Link
+              key={channel.channel_id}
+              to={`/channels/${channel.guild_id}/${channel.channel_id}`}
+              className={`${!expanded && channel.channel_id != activeChannelId ? 'hidden' : ''}`}
+            >
+              <div
+                className={`group relative mx-2 my-0.5 flex cursor-pointer items-center rounded px-2 py-1 pr-16 ${channel.channel_id == activeChannelId
+                  ? 'bg-gray-600 text-gray-100'
+                  : 'text-gray-500 hover:bg-gray-700 hover:text-gray-400'
+                  }`}
+              >
+                <Hash className="size-6 text-gray-500" />
+                <p className="ml-1 truncate text-base font-medium">{channel.name}</p>
+                {canManageChannels && (
+                  <div className="absolute right-2 hidden items-center gap-1 rounded bg-gray-800/80 px-1 py-0.5 group-hover:flex">
+                    <button
+                      type="button"
+                      aria-label={`Edit ${channel.name}`}
+                      className="rounded p-1 text-sm text-white/90 hover:bg-primary/10 hover:text-primary"
+                      onClick={(event) => {
+                        event.preventDefault();
+                        event.stopPropagation();
+                        onEditChannel?.(channel);
+                      }}
+                    >
+                      <NotePencil className="size-4" />
+                    </button>
+                    <button
+                      type="button"
+                      aria-label={`Delete ${channel.name}`}
+                      className="rounded p-1 text-sm text-white/90 hover:bg-primary/10 hover:text-primary"
+                      onClick={(event) => handleDeleteChannel(channel, event)}
+                    >
+                      <Trash className="size-4" />
+                    </button>
+                  </div>
+                )}
               </div>
-            )}
-          </div>
-        </Link>
+            </Link>
+          </ContextMenuTrigger>
+          <ContextMenuContent className="w-52">
+            <ContextMenuItem onSelect={() => onEditChannel?.(channel)}>
+              Edit Channel
+            </ContextMenuItem>
+            <ContextMenuItem onSelect={(e) => handleDeleteChannel(channel, e)} className="text-red-500 hover:bg-red-600/20">
+              Delete Channel
+            </ContextMenuItem>
+          </ContextMenuContent>
+        </ContextMenu>
       ))}
     </div>
   );

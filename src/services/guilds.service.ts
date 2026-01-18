@@ -57,4 +57,17 @@ export const GuildsService = {
       toast.error(error.response?.data?.message || 'An error occurred.');
     }
   },
+
+  async deleteGuildChannel(guildId, channelId) {
+    const { editGuild, guilds } = useGuildsStore.getState();
+    try {
+      await api.delete(`/guilds/${guildId}/channels/${channelId}`);
+      const guild = guilds.find((g) => g.id === guildId);
+      editGuild(guildId, { channels: guild.channels.filter((c) => c.channel_id !== channelId) });
+      toast.success('Channel deleted successfully.');
+    } catch (error) {
+      console.error(error);
+      toast.error(error.response?.data?.message || 'An error occurred.');
+    }
+  }
 };
