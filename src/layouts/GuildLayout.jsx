@@ -273,7 +273,7 @@ const GuildSidebarSection = ({
       )}
 
       {sortedChannels.map((channel) => (
-        <ContextMenu>
+        <ContextMenu key={channel.channel_id}>
           <ContextMenuTrigger>
             <Link
               key={channel.channel_id}
@@ -333,7 +333,6 @@ const GuildSidebar = ({
   guild,
   onOpenServerSettings,
   onEditChannel,
-  onOpenUserSettings,
   canOpenServerSettings,
   canManageChannels,
 }) => {
@@ -418,7 +417,6 @@ const GuildSidebar = ({
 const GuildLayout = ({ children, guild }) => {
   const store = useStore();
   const [isServerSettingsOpen, setIsServerSettingsOpen] = useState(false);
-  const [isUserSettingsOpen, setIsUserSettingsOpen] = useState(false);
   const [isEditChannelModalOpen, setIsEditChannelModalOpen] = useState(false);
   const [settingsTab, setSettingsTab] = useState('info');
   const [editChannelId, setEditChannelId] = useState(null);
@@ -461,7 +459,6 @@ const GuildLayout = ({ children, guild }) => {
           <GuildSidebar
             guild={guild}
             onOpenServerSettings={() => openServerSettings({ tab: 'info', channelId: null })}
-            onOpenUserSettings={() => setIsUserSettingsOpen(true)}
             onEditChannel={(channel) => {
               openEditChannelModal({ channelId: channel.channel_id || channel.id });
             }}
@@ -481,7 +478,6 @@ const GuildLayout = ({ children, guild }) => {
         editChannelId={editChannelId}
         onEditChannelChange={setEditChannelId}
       />
-      <UserSettings isOpen={isUserSettingsOpen} onClose={() => setIsUserSettingsOpen(false)} />
       <EditGuildChannelModal
         isOpen={isEditChannelModalOpen}
         setIsOpen={setIsEditChannelModalOpen}

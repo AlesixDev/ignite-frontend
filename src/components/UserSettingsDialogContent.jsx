@@ -1,0 +1,395 @@
+import { useCallback, useState } from 'react';
+import useStore from '../hooks/useStore';
+import { DialogContent } from './ui/dialog';
+import { SidebarProvider, Sidebar, SidebarGroup, SidebarHeader, SidebarGroupLabel, SidebarGroupContent, SidebarMenuItem, SidebarMenuButton, SidebarMenu } from './ui/sidebar';
+import Avatar from './Avatar';
+import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from './ui/card';
+import { Button } from './ui/button';
+import { Input } from './ui/input';
+import { Label } from './ui/label';
+import { Controller, FormProvider, useForm } from 'react-hook-form';
+import { Textarea } from './ui/textarea';
+import { Field, FieldError, FieldGroup, FieldLabel } from './ui/field';
+
+const TabAccount = () => {
+  const store = useStore();
+
+  const userProfileForm = useForm({
+    defaultValues: {
+      name: store.user?.name || '',
+      bio: store.user?.bio || '',
+      avatar: store.user?.avatar || '',
+    },
+  });
+
+  const onSubmitUserProfile = useCallback((data) => {
+    console.log('User Profile Data:', data);
+  }, []);
+
+  const userEmailForm = useForm({
+    defaultValues: {
+      email: store.user?.email || '',
+      currentPassword: '',
+    },
+  });
+
+  const onSubmitUserEmail = useCallback((data) => {
+    console.log('User Email Data:', data);
+  }, []);
+
+  const userPasswordForm = useForm({
+    defaultValues: {
+      currentPassword: '',
+      newPassword: '',
+      confirmNewPassword: '',
+    },
+  });
+
+  const onSubmitUserPassword = useCallback((data) => {
+    console.log('User Password Data:', data);
+  }, []);
+
+  const newPasswordValue = userPasswordForm.watch('newPassword');
+
+  return (
+    <div className="flex flex-col gap-8">
+      <div className="mx-auto w-full max-w-lg">
+        <FormProvider {...userProfileForm}>
+          <form onSubmit={userProfileForm.handleSubmit(onSubmitUserProfile)}>
+            <Card className="w-full">
+              <CardHeader>
+                <CardTitle>User Profile</CardTitle>
+                <CardDescription>
+                  Update your account information
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <FieldGroup>
+                  <Field>
+                    <FieldLabel htmlFor="name">
+                      Display Name
+                    </FieldLabel>
+                    <Controller
+                      name="name"
+                      rules={{
+                        required: 'Display Name is required.',
+                        minLength: {
+                          value: 2,
+                          message: 'Display Name must be at least 2 characters long.',
+                        },
+                        maxLength: {
+                          value: 50,
+                          message: 'Display Name must be at most 50 characters long.',
+                        },
+                        pattern: {
+                          value: /^[a-zA-Z0-9 _-]+$/,
+                          message: 'Display Name can only contain letters, numbers, spaces, underscores, and hyphens.',
+                        },
+                      }}
+                      render={({ field, formState }) => (
+                        <>
+                          <Input
+                            id="name"
+                            placeholder="Your display name"
+                            {...field}
+                          />
+                          <FieldError>{formState.errors.name && formState.errors.name.message}</FieldError>
+                        </>
+                      )}
+                    />
+                  </Field>
+                  <Field>
+                    <FieldLabel htmlFor="bio">
+                      About Me
+                    </FieldLabel>
+                    <Controller
+                      name="bio"
+                      rules={{
+                        maxLength: {
+                          value: 160,
+                          message: 'Bio must be at most 160 characters long.',
+                        },
+                      }}
+                      render={({ field, formState }) => (
+                        <>
+                          <Textarea
+                            id="bio"
+                            placeholder="A short bio about yourself"
+                            {...field}
+                          />
+                          <FieldError>{formState.errors.bio && formState.errors.bio.message}</FieldError>
+                        </>
+                      )}
+                    />
+                  </Field>
+                  <Field>
+                    <FieldLabel htmlFor="avatar">
+                      Avatar
+                    </FieldLabel>
+                    <Button type="button" variant="secondary">
+                      Upload Avatar
+                    </Button>
+                  </Field>
+                </FieldGroup>
+              </CardContent>
+              <CardFooter className="flex-col gap-2">
+                <Button type="submit" className="w-full">
+                  Save Changes
+                </Button>
+                {/* <Button variant="outline" className="w-full">
+                  Cancel
+                </Button> */}
+              </CardFooter>
+            </Card>
+          </form>
+        </FormProvider>
+      </div>
+      <div className="mx-auto w-full max-w-lg">
+        <FormProvider {...userEmailForm}>
+          <form onSubmit={userEmailForm.handleSubmit(onSubmitUserEmail)}>
+            <Card className="w-full">
+              <CardHeader>
+                <CardTitle>
+                  Update E-mail Address
+                </CardTitle>
+                <CardDescription>
+                  Change your account e-mail address
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <form>
+                  <div className="flex flex-col gap-6">
+                    <div className="grid gap-3">
+                      <Label htmlFor="email">
+                        E-mail Address
+                      </Label>
+                      <Controller
+                        name="email"
+                        rules={{
+                          required: 'E-mail address is required.',
+                          pattern: {
+                            value: /^[^\s@]+@[^\s@]+\.[^\s@]+$/,
+                            message: 'Please enter a valid e-mail address.',
+                          },
+                        }}
+                        render={({ field }) => (
+                          <Input
+                            id="email"
+                            placeholder="Your e-mail address"
+                            {...field}
+                          />
+                        )}
+                      />
+                    </div>
+                    <div className="grid gap-3">
+                      <Label htmlFor="currentPassword">
+                        Current Password
+                      </Label>
+                      <Controller
+                        name="currentPassword"
+                        rules={{
+                          required: 'Current password is required.',
+                        }}
+                        render={({ field }) => (
+                          <Input
+                            id="currentPassword"
+                            placeholder="Your current password"
+                            {...field}
+                          />
+                        )}
+                      />
+                    </div>
+                  </div>
+                </form>
+              </CardContent>
+              <CardFooter className="flex-col gap-2">
+                <Button type="submit" className="w-full">
+                  Save Changes
+                </Button>
+                {/* <Button variant="outline" className="w-full">
+                  Cancel
+                </Button> */}
+              </CardFooter>
+            </Card>
+          </form>
+        </FormProvider>
+      </div>
+      <div className="mx-auto w-full max-w-lg">
+        <FormProvider {...userPasswordForm}>
+          <form onSubmit={userPasswordForm.handleSubmit(onSubmitUserPassword)}>
+            <Card className="w-full">
+              <CardHeader>
+                <CardTitle>
+                  Update Password
+                </CardTitle>
+                <CardDescription>
+                  Change your account password
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <form>
+                  <div className="flex flex-col gap-6">
+                    <div className="grid gap-3">
+                      <Label htmlFor="currentPassword">
+                        Current Password
+                      </Label>
+                      <Controller
+                        name="currentPassword"
+                        rules={{
+                          required: 'Current password is required.',
+                        }}
+                        render={({ field }) => (
+                          <Input
+                            id="currentPassword"
+                            placeholder="Your current password"
+                            {...field}
+                          />
+                        )}
+                      />
+                    </div>
+                    <div className="grid gap-3">
+                      <Label htmlFor="newPassword">
+                        New Password
+                      </Label>
+                      <Controller
+                        name="newPassword"
+                        rules={{
+                          required: 'New password is required',
+                          minLength: {
+                            value: 8,
+                            message: 'Password must be at least 8 characters long',
+                          },
+                          maxLength: {
+                            value: 64,
+                            message: 'Password must be at most 64 characters long',
+                          },
+                        }}
+                        render={({ field }) => (
+                          <Input
+                            id="newPassword"
+                            placeholder="Your new password"
+                            {...field}
+                          />
+                        )}
+                      />
+                    </div>
+                    <div className="grid gap-3">
+                      <Label htmlFor="confirmNewPassword">
+                        Confirm New Password
+                      </Label>
+                      <Controller
+                        name="confirmNewPassword"
+                        rules={{
+                          required: 'Please confirm your new password',
+                          minLength: {
+                            value: 8,
+                            message: 'Password must be at least 8 characters long',
+                          },
+                          maxLength: {
+                            value: 64,
+                            message: 'Password must be at most 64 characters long',
+                          },
+                          validate: value =>
+                            value === newPasswordValue || 'Passwords do not match',
+                        }}
+                        render={({ field }) => (
+                          <Input
+                            id="confirmNewPassword"
+                            placeholder="Confirm your new password"
+                            {...field}
+                          />
+                        )}
+                      />
+                    </div>
+                  </div>
+                </form>
+              </CardContent>
+              <CardFooter className="flex-col gap-2">
+                <Button type="submit" className="w-full">
+                  Save Changes
+                </Button>
+                {/* <Button variant="outline" className="w-full">
+                  Cancel
+                </Button> */}
+              </CardFooter>
+            </Card>
+          </form>
+        </FormProvider>
+      </div>
+    </div>
+  );
+}
+
+const TabBots = () => {
+  return <div>Bots Settings</div>;
+}
+
+const groups = [
+  {
+    title: 'User Settings',
+    items: [
+      { id: 'account', label: 'My Account', component: TabAccount },
+    ],
+  },
+  {
+    title: 'Bots & Integrations',
+    items: [
+      { id: 'bots', label: 'Bots', component: TabBots },
+    ],
+  }
+];
+
+const UserSettingsDialogContent = () => {
+  const store = useStore();
+
+  const [tab, setTab] = useState('account');
+
+  return (
+    <DialogContent className="!inset-0 m-auto flex size-full !max-h-[90vh] !max-w-[90vw] !translate-x-0 !translate-y-0 flex-row p-0">
+      <SidebarProvider className="h-full !min-h-0 w-auto">
+        <Sidebar collapsible="none" className="h-full rounded-lg p-4">
+          <SidebarHeader className="flex-row gap-4">
+            <div>
+              <Avatar user={store.user} className="size-12 text-xl" />
+            </div>
+            <div>
+              <p className="text-lg font-medium text-sidebar-foreground">
+                {store.user.username}
+              </p>
+              <p className="text-xs text-sidebar-foreground/70">
+                Manage Your Settings
+              </p>
+            </div>
+          </SidebarHeader>
+          {groups.map((item) => (
+            <SidebarGroup key={item.title}>
+              <SidebarGroupLabel>{item.title}</SidebarGroupLabel>
+              <SidebarGroupContent>
+                <SidebarMenu>
+                  {item.items.map((item) => (
+                    <SidebarMenuItem key={item.title}>
+                      <SidebarMenuButton asChild isActive={tab === item.id}>
+                        <button onClick={() => setTab(item.id)} className="w-full text-left">
+                          {item.label}
+                        </button>
+                      </SidebarMenuButton>
+                    </SidebarMenuItem>
+                  ))}
+                </SidebarMenu>
+              </SidebarGroupContent>
+            </SidebarGroup>
+          ))}
+        </Sidebar>
+      </SidebarProvider>
+      <div className="flex-1 overflow-auto p-6">
+        {groups.map((group) =>
+          group.items.map((item) =>
+            item.id === tab ? <item.component key={item.id} /> : null
+          )
+        )}
+      </div>
+    </DialogContent>
+  );
+};
+
+export default UserSettingsDialogContent;

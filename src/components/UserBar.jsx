@@ -1,6 +1,9 @@
 import { Microphone, Headphones, Gear } from '@phosphor-icons/react';
 import { useEffect, useRef, useState } from 'react';
 import useStore from '../hooks/useStore';
+import { Dialog, DialogTrigger } from './ui/dialog';
+import UserSettingsDialogContent from './UserSettingsDialogContent';
+import { LogOut } from 'lucide-react';
 
 const UserIcon = () => {
   const store = useStore();
@@ -34,27 +37,8 @@ const UserName = () => {
   );
 };
 
-const ActionsIcons = ({ onOpenSettings }) => {
+const ActionsIcons = () => {
   const store = useStore();
-  const [open, setOpen] = useState(false);
-  const menuRef = useRef(null);
-
-  useEffect(() => {
-    const onDocMouseDown = (e) => {
-      if (!menuRef.current) return;
-      if (!menuRef.current.contains(e.target)) setOpen(false);
-    };
-    document.addEventListener('mousedown', onDocMouseDown);
-    return () => document.removeEventListener('mousedown', onDocMouseDown);
-  }, []);
-
-  useEffect(() => {
-    const onKeyDown = (e) => {
-      if (e.key === 'Escape') setOpen(false);
-    };
-    window.addEventListener('keydown', onKeyDown);
-    return () => window.removeEventListener('keydown', onKeyDown);
-  }, []);
 
   return (
     <div className="ml-auto flex">
@@ -65,45 +49,30 @@ const ActionsIcons = ({ onOpenSettings }) => {
         <Headphones className="size-5 cursor-pointer text-gray-400 hover:text-gray-200" weight="fill" />
       </div>
 
-      <div className="relative" ref={menuRef}>
-        <button
-          type="button"
-          onClick={() => setOpen((v) => !v)}
-          className="flex size-8 items-center justify-center rounded text-center hover:bg-gray-700"
-        >
-          <Gear className="size-5 cursor-pointer text-gray-400 hover:text-gray-200" weight="fill" />
-        </button>
+      <button
+        type="button"
+        onClick={() => store.logout()}
+        className="flex size-8 items-center justify-center rounded text-center hover:bg-gray-700"
+      >
+        <LogOut className="size-5 cursor-pointer text-gray-400 hover:text-gray-200" weight="fill" />
+      </button>
 
-        {open && (
-          <div className="absolute bottom-10 right-0 z-50 w-40 overflow-hidden rounded-md border border-gray-800 bg-gray-900 shadow-xl">
-            <button
-              type="button"
-              onClick={() => {
-                setOpen(false);
-                onOpenSettings?.();
-              }}
-              className="w-full px-3 py-2 text-left text-sm text-gray-200 hover:bg-gray-800"
-            >
-              User Settings
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                setOpen(false);
-                store.logout();
-              }}
-              className="w-full px-3 py-2 text-left text-sm text-gray-200 hover:bg-gray-800"
-            >
-              Logout
-            </button>
-          </div>
-        )}
-      </div>
+      <Dialog>
+        <DialogTrigger asChild>
+          <button
+            type="button"
+            className="flex size-8 items-center justify-center rounded text-center hover:bg-gray-700"
+          >
+            <Gear className="size-5 cursor-pointer text-gray-400 hover:text-gray-200" weight="fill" />
+          </button>
+        </DialogTrigger>
+        <UserSettingsDialogContent />
+      </Dialog>
     </div>
   );
 };
 
-const UserBar = ({ onOpenUserSettings }) => {
+const UserBar = () => {
   return (
     <div className="absolute left-0 bottom-0 mb-4 ml-4 flex h-14 items-center bg-gray-900 border border-gray-700 rounded-lg">
       <div className="flex flex-auto items-center p-2">
@@ -111,7 +80,7 @@ const UserBar = ({ onOpenUserSettings }) => {
           <UserIcon />
           <UserName />
         </div>
-        <ActionsIcons onOpenSettings={onOpenUserSettings} />
+        <ActionsIcons />
       </div>
     </div>
   );
