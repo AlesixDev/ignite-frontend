@@ -1,11 +1,12 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Check, FloppyDisk, X } from '@phosphor-icons/react';
+import { Check, CircleNotch, FloppyDisk, X } from '@phosphor-icons/react';
 import api from '../../api';
 
 import { Switch } from "../../components/ui/switch";
 import { ScrollArea } from "../../components/ui/scroll-area";
 import { Button } from "../../components/ui/button";
 import { Separator } from "../../components/ui/separator";
+import { Plus } from 'lucide-react';
 
 const PERMISSIONS_LIST = {
   2: "Manage Guild",
@@ -18,51 +19,58 @@ const PERMISSIONS_LIST = {
   256: "Manage Nicknames",
 };
 
-const PermissionRow = ({ label, isEnabled, onToggle }) => {
-  return (
-    <div className="flex items-center justify-between py-3 px-2 hover:bg-gray-800/40 rounded transition-colors border-b border-gray-800/50 last:border-0">
-      <span className="text-sm font-medium text-gray-200">{label}</span>
-      
-      {/* Toggle Switch Style Button */}
-      <button
-        type="button"
-        onClick={onToggle}
-        className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none ${
-          isEnabled ? 'bg-green-600' : 'bg-gray-700'
-        }`}
-      >
-        <span
-          className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-            isEnabled ? 'translate-x-6' : 'translate-x-1'
-          }`}
-        />
-      </button>
-    </div>
-  );
-};
-
 const ServerRoleManager = ({ guild }) => {
   const rolesList = guild?.roles ?? [];
-  
+
   // State for the bitfield
+  const [localRoles, setLocalRoles] = useState(guild?.roles ?? []);
   const [activePermissions, setActivePermissions] = useState(0);
   const [originalPermissions, setOriginalPermissions] = useState(0);
   const [selectedRoleId, setSelectedRoleId] = useState(null);
   const [isSaving, setIsSaving] = useState(false);
+  const [isCreating, setIsCreating] = useState(false);
+
+  useEffect(() => {
+    if (guild?.roles) setLocalRoles(guild.roles);
+  }, [guild?.roles]);
 
   // Sync state when role changes
   useEffect(() => {
-    if (rolesList.length > 0 && !selectedRoleId) {
-      const firstRole = rolesList[0];
+    if (localRoles.length > 0 && !selectedRoleId) {
+      const firstRole = localRoles[0];
       setSelectedRoleId(firstRole.id);
       setActivePermissions(Number(firstRole.permissions || 0));
       setOriginalPermissions(Number(firstRole.permissions || 0));
     }
-  }, [rolesList, selectedRoleId]);
+  }, [localRoles, selectedRoleId]);
+
+  const handleCreateRole = async () => {
+    if (isCreating) return;
+
+    setIsCreating(true);
+    try {
+      const response = await api.post(`/guilds/${guild.id}/roles`, {
+        name: "new role",
+        permissions: 0
+      });
+
+      const newRole = response.data; // Assuming API returns the created role object
+
+      setLocalRoles(prev => [...prev, newRole]);
+      setSelectedRoleId(newRole.id);
+      setActivePermissions(0);
+      setOriginalPermissions(0);
+    } catch (error) {
+      console.error("Failed to create role:", error);
+      // Optional: Add toast notification here
+    } finally {
+      setIsCreating(false);
+    }
+  };
 
   const handleToggle = (bit) => {
     const bitNum = Number(bit);
-    setActivePermissions(prev => 
+    setActivePermissions(prev =>
       (prev & bitNum) ? (prev & ~bitNum) : (prev | bitNum)
     );
   };
@@ -80,17 +88,29 @@ const ServerRoleManager = ({ guild }) => {
 
   return (
     <div className="flex h-[550px] w-full overflow-hidden rounded-xl border border-border bg-card text-card-foreground shadow-xl">
-      
+
       {/* Sidebar: Role Selection */}
       <div className="w-56 flex flex-col bg-muted/30 border-r border-border">
-        <div className="p-4 pb-2">
+        <div className="p-4 pb-2 flex items-center justify-between">
           <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
             Roles
           </h2>
+          {/* 3. Create Role Button */}
+          <button
+            onClick={handleCreateRole}
+            className="p-1 hover:bg-accent rounded-full transition-colors text-muted-foreground hover:text-accent-foreground"
+            title="Create Role"
+          >
+            {isCreating ? (
+              <CircleNotch size={14} className="animate-spin" />
+            ) : (
+              <Plus size={14} weight="bold" />
+            )}
+          </button>
         </div>
         <ScrollArea className="flex-1 px-2">
           <div className="space-y-1 py-2">
-            {rolesList.map((role) => (
+            {localRoles.map((role) => (
               <button
                 key={role.id}
                 onClick={() => {
@@ -98,11 +118,10 @@ const ServerRoleManager = ({ guild }) => {
                   setActivePermissions(Number(role.permissions || 0));
                   setOriginalPermissions(Number(role.permissions || 0));
                 }}
-                className={`w-full text-left px-3 py-2 rounded-md text-sm transition-all ${
-                  selectedRoleId === role.id 
-                    ? 'bg-primary text-primary-foreground shadow-md' 
-                    : 'hover:bg-accent text-muted-foreground hover:text-accent-foreground'
-                }`}
+                className={`w-full text-left px-3 py-2 rounded-md text-sm transition-all ${selectedRoleId === role.id
+                  ? 'bg-primary text-primary-foreground shadow-md'
+                  : 'hover:bg-accent text-muted-foreground hover:text-accent-foreground'
+                  }`}
               >
                 {role.name}
               </button>
@@ -115,7 +134,7 @@ const ServerRoleManager = ({ guild }) => {
       <div className="flex-1 flex flex-col relative">
         <div className="p-6">
           <h3 className="text-xl font-bold tracking-tight">
-            {rolesList.find(r => r.id === selectedRoleId)?.name} Permissions
+            {localRoles.find(r => r.id === selectedRoleId)?.name} Permissions
           </h3>
           {/* <p className="text-sm text-muted-foreground mt-1">
             Toggle bits on the permission bitfield for this role.
@@ -130,8 +149,8 @@ const ServerRoleManager = ({ guild }) => {
               {Object.entries(PERMISSIONS_LIST).map(([bit, label]) => {
                 const isEnabled = (activePermissions & Number(bit)) !== 0;
                 return (
-                  <div 
-                    key={bit} 
+                  <div
+                    key={bit}
                     className="flex items-center justify-between space-x-4 rounded-lg p-4 transition-colors hover:bg-muted/50"
                   >
                     <div className="space-y-0.5">
@@ -156,16 +175,16 @@ const ServerRoleManager = ({ guild }) => {
             <div className="bg-popover border border-border rounded-lg p-3 flex items-center justify-between shadow-2xl">
               <span className="text-sm font-medium">Careful — you have unsaved changes!</span>
               <div className="flex gap-2">
-                <Button 
-                  variant="ghost" 
-                  size="sm" 
+                <Button
+                  variant="ghost"
+                  size="sm"
                   onClick={() => setActivePermissions(originalPermissions)}
                 >
                   Reset
                 </Button>
-                <Button 
-                  variant="default" 
-                  size="sm" 
+                <Button
+                  variant="default"
+                  size="sm"
                   className="bg-green-600 hover:bg-green-700 text-white gap-2"
                   onClick={handleSave}
                   disabled={isSaving}
