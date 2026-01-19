@@ -1,4 +1,4 @@
-import { toast } from 'react-toastify';
+import { toast } from 'sonner'
 import { useGuildsStore } from '../stores/guilds.store';
 import api from '../api.js';
 

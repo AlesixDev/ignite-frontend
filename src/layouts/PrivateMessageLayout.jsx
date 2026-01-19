@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { toast } from 'react-toastify';
+import { toast } from 'sonner'
 import BaseAuthLayout from './BaseAuthLayout';
 import useStore from '../hooks/useStore';
 import api from '../api';

@@ -1,6 +1,6 @@
 import { useCallback, useMemo, useState } from 'react';
 import { FormProvider, useForm } from 'react-hook-form';
-import { toast } from 'react-toastify';
+import { toast } from 'sonner'
 import { ArrowLeft, ArrowRight } from '@phosphor-icons/react';
 import api from '../api';
 import { GuildsService } from '../services/guilds.service';

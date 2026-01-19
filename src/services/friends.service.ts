@@ -1,4 +1,4 @@
-import { toast } from 'react-toastify';
+import { toast } from 'sonner'
 import { useFriendsStore } from '../stores/friends.store';
 import api from '../api.js';
 

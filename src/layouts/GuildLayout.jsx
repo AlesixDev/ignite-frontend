@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { Hash, Plus, CaretDown, CaretRight, NotePencil, Trash } from '@phosphor-icons/react';
-import { toast } from 'react-toastify';
+import { toast } from 'sonner'
 import BaseAuthLayout from './BaseAuthLayout';
 import CreateGuildChannelDialog from '../components/CreateGuildChannelDialog';
 import ServerSettings from '../components/Settings/ServerSettings';

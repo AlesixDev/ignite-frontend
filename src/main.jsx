@@ -1,14 +1,13 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import { BrowserRouter } from 'react-router-dom';
-import { ToastContainer } from 'react-toastify';
 // eslint-disable-next-line no-unused-vars
 import Pusher from 'pusher-js';
 import Echo from 'laravel-echo';
 import App from './App';
 import api from './api';
-import 'react-toastify/dist/ReactToastify.css';
 import './css/style.css';
+import { Toaster } from './components/ui/sonner';
 
 window.Echo = new Echo({
   broadcaster: 'reverb',
@@ -40,7 +39,7 @@ ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
     <BrowserRouter>
       <App />
-      <ToastContainer position="bottom-right" theme="dark" />
+      <Toaster />
     </BrowserRouter>
   </React.StrictMode>,
 );

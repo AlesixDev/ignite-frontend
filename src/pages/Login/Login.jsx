@@ -1,7 +1,7 @@
 import { useCallback, useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useForm, FormProvider, Controller } from 'react-hook-form';
-import { toast } from 'react-toastify';
+import { toast } from 'sonner'
 import useStore from '../../hooks/useStore';
 import api from '../../api';
 import BaseGuestLayout from '../../layouts/BaseGuestLayout';

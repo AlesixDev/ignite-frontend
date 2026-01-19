@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect, useRef, useMemo } from 'react';
-import { toast } from 'react-toastify';
+import { toast } from 'sonner'
 import { NotePencil, Trash, ArrowBendUpLeft, XCircle, PushPin } from '@phosphor-icons/react';
 import api from '../api';
 import useStore from '../hooks/useStore';

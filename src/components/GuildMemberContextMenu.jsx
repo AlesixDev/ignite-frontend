@@ -1,6 +1,6 @@
 import { useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { toast } from 'react-toastify';
+import { toast } from 'sonner'
 import useStore from '../hooks/useStore';
 import api from '../api';
 import { FriendsService } from '../services/friends.service';
