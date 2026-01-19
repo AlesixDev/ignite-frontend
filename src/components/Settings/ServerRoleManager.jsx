@@ -1,264 +1,180 @@
-import { useCallback, useEffect, useState } from 'react';
-import { FormProvider, useForm } from 'react-hook-form';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { Check, FloppyDisk, X } from '@phosphor-icons/react';
 import api from '../../api';
-import FormError from '../Form/FormError';
-import FormInput from '../Form/FormInput';
-import FormLabel from '../Form/FormLabel';
-import FormToggle from '../Form/FormToggle';
-import FormSubmit from '../Form/FormSubmit';
+
+import { Switch } from "../../components/ui/switch";
+import { ScrollArea } from "../../components/ui/scroll-area";
+import { Button } from "../../components/ui/button";
+import { Separator } from "../../components/ui/separator";
+
+const PERMISSIONS_LIST = {
+  2: "Manage Guild",
+  4: "Manage Channels",
+  8: "Manage Messages",
+  16: "Kick Members",
+  32: "Ban Members",
+  64: "Create Instant Invite",
+  128: "Change Nickname",
+  256: "Manage Nicknames",
+};
+
+const PermissionRow = ({ label, isEnabled, onToggle }) => {
+  return (
+    <div className="flex items-center justify-between py-3 px-2 hover:bg-gray-800/40 rounded transition-colors border-b border-gray-800/50 last:border-0">
+      <span className="text-sm font-medium text-gray-200">{label}</span>
+      
+      {/* Toggle Switch Style Button */}
+      <button
+        type="button"
+        onClick={onToggle}
+        className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none ${
+          isEnabled ? 'bg-green-600' : 'bg-gray-700'
+        }`}
+      >
+        <span
+          className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+            isEnabled ? 'translate-x-6' : 'translate-x-1'
+          }`}
+        />
+      </button>
+    </div>
+  );
+};
 
 const ServerRoleManager = ({ guild }) => {
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
-  const [rolesResponse, setRolesResponse] = useState(null);
-  const createForm = useForm({ defaultValues: { name: '', permissions: '', mentionable: false } });
-  const editForm = useForm({ defaultValues: { name: '', permissions: '', mentionable: false } });
-  const [editingRoleId, setEditingRoleId] = useState(null);
+  const rolesList = guild?.roles ?? [];
+  
+  // State for the bitfield
+  const [activePermissions, setActivePermissions] = useState(0);
+  const [originalPermissions, setOriginalPermissions] = useState(0);
+  const [selectedRoleId, setSelectedRoleId] = useState(null);
+  const [isSaving, setIsSaving] = useState(false);
 
-  const fetchRoles = useCallback(async () => {
-    if (!guild?.id) return;
-    setLoading(true);
-    setError('');
-    setRolesResponse(null);
-
-    try {
-      const response = await api.get(`/guilds/${guild.id}/roles`);
-      setRolesResponse(response.data);
-      console.log('Roles response:', response.data);
-    } catch (err) {
-      const msg = err.response?.data?.message || err.message || 'Could not load roles.';
-      setError(msg);
-    } finally {
-      setLoading(false);
-    }
-  }, [guild?.id]);
-
+  // Sync state when role changes
   useEffect(() => {
-    if (!guild?.id) return;
-
-    fetchRoles();
-
-  }, [fetchRoles, guild?.id]);
-
-  const handleAddRole = async (data) => {
-    if (!guild?.id || !data.name?.trim()) return;
-    setLoading(true);
-    setError('');
-
-    try {
-      const params = { name: data.name.trim() };
-      if (data.permissions?.trim()) {
-        params.permissions = data.permissions.trim();
-      }
-      if (typeof data.mentionable === 'boolean') {
-        params.mentionable = data.mentionable ? 1 : 0;
-      }
-      await api.post(`/guilds/${guild.id}/roles`, null, { params });
-      createForm.reset({ name: '', permissions: '', mentionable: false });
-      await fetchRoles();
-    } catch (err) {
-      const msg = err.response?.data?.message || err.message || 'Could not create role.';
-      setError(msg);
-    } finally {
-      setLoading(false);
+    if (rolesList.length > 0 && !selectedRoleId) {
+      const firstRole = rolesList[0];
+      setSelectedRoleId(firstRole.id);
+      setActivePermissions(Number(firstRole.permissions || 0));
+      setOriginalPermissions(Number(firstRole.permissions || 0));
     }
+  }, [rolesList, selectedRoleId]);
+
+  const handleToggle = (bit) => {
+    const bitNum = Number(bit);
+    setActivePermissions(prev => 
+      (prev & bitNum) ? (prev & ~bitNum) : (prev | bitNum)
+    );
   };
 
-  const startEditRole = (role) => {
-    const roleId = role.id || role.role_id;
-    setEditingRoleId(roleId);
-    editForm.reset({
-      name: role.name || role.role_name || '',
-      permissions: role.permissions ?? '',
-      mentionable: Boolean(role.mentionable),
-    });
+  const hasChanged = useMemo(() => activePermissions !== originalPermissions, [activePermissions, originalPermissions]);
+
+  const handleSave = async () => {
+    setIsSaving(true);
+    // Mock API call
+    setTimeout(() => {
+      setOriginalPermissions(activePermissions);
+      setIsSaving(false);
+    }, 1000);
   };
-
-  const cancelEditRole = () => {
-    setEditingRoleId(null);
-    editForm.reset({ name: '', permissions: '' });
-  };
-
-  const handleEditRole = async (data) => {
-    if (!guild?.id || !editingRoleId) return;
-    setLoading(true);
-    setError('');
-
-    try {
-      const params = {};
-      if (data.name?.trim()) params.name = data.name.trim();
-      if (data.permissions?.trim()) params.permissions = data.permissions.trim();
-      params.mentionable = data.mentionable ? 1 : 0;
-      await api.patch(`/guilds/${guild.id}/roles/${editingRoleId}`, null, { params });
-      await fetchRoles();
-      setEditingRoleId(null);
-      editForm.reset({ name: '', permissions: '', mentionable: false });
-    } catch (err) {
-      const msg = err.response?.data?.message || err.message || 'Could not update role.';
-      setError(msg);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleDeleteRole = async (roleId) => {
-    if (!guild?.id || !roleId) return;
-    const confirmDelete = window.confirm('Delete this role?');
-    if (!confirmDelete) return;
-
-    setLoading(true);
-    setError('');
-
-    try {
-      await api.delete(`/guilds/${guild.id}/roles/${roleId}`);
-      await fetchRoles();
-    } catch (err) {
-      const msg = err.response?.data?.message || err.message || 'Could not delete role.';
-      setError(msg);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const roles = Array.isArray(rolesResponse) ? rolesResponse : [];
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h3 className="text-lg font-semibold">Role Manager</h3>
-        <p className="mt-1 text-sm text-gray-400">
-          Placeholder role list and actions for {guild?.name || 'this server'}.
-        </p>
-      </div>
-      <div className="rounded-lg border border-gray-800 bg-gray-950/40 p-4">
-        <div className="mb-3 flex items-center justify-between">
-          <div className="text-sm font-medium">Roles</div>
+    <div className="flex h-[550px] w-full overflow-hidden rounded-xl border border-border bg-card text-card-foreground shadow-xl">
+      
+      {/* Sidebar: Role Selection */}
+      <div className="w-56 flex flex-col bg-muted/30 border-r border-border">
+        <div className="p-4 pb-2">
+          <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+            Roles
+          </h2>
         </div>
-        <FormProvider {...createForm}>
-          <form onSubmit={createForm.handleSubmit(handleAddRole)} className="mb-4 grid gap-3 text-xs text-gray-300 sm:grid-cols-[1fr_1fr_auto] sm:items-center">
-            <div>
-              <FormLabel htmlFor="role-name">Role name</FormLabel>
-              <FormInput
-                id="role-name"
-                type="text"
-                name="name"
-                placeholder="Role name"
-                validation={{ required: 'Role name is required.' }}
-                size="sm"
-                className="text-xs"
-              />
-              <FormError name="name" />
-            </div>
-            <div>
-              <FormLabel htmlFor="role-permissions" help="Optional">
-                Permissions
-              </FormLabel>
-              <FormInput
-                id="role-permissions"
-                type="text"
-                name="permissions"
-                placeholder="Permissions"
-                size="sm"
-                className="text-xs"
-              />
-            </div>
-            <div className="flex items-center">
-              <FormToggle name="mentionable" label="Mentionable" />
-            </div>
-            <FormSubmit form={createForm} label="Add Role" className="w-full sm:w-auto" />
-          </form>
-        </FormProvider>
-        {editingRoleId && (
-          <FormProvider {...editForm}>
-            <form
-              onSubmit={editForm.handleSubmit(handleEditRole)}
-              className="mb-4 rounded border border-gray-800 bg-gray-900/40 p-3 text-xs text-gray-300"
-            >
-              <div className="grid gap-3 sm:grid-cols-2">
-                <div>
-                  <FormLabel htmlFor="edit-role-name">Role name</FormLabel>
-                  <FormInput
-                    id="edit-role-name"
-                    type="text"
-                    name="name"
-                    placeholder="Role name"
-                    validation={{ required: 'Role name is required.' }}
-                    size="sm"
-                    className="text-xs"
-                  />
-                  <FormError name="name" />
-                </div>
-                <div>
-                  <FormLabel htmlFor="edit-role-permissions" help="Optional">
-                    Permissions
-                  </FormLabel>
-                  <FormInput
-                    id="edit-role-permissions"
-                    type="text"
-                    name="permissions"
-                    placeholder="Permissions"
-                    size="sm"
-                    className="text-xs"
-                  />
-                </div>
-              </div>
-              <div className="mt-3">
-                <FormToggle name="mentionable" label="Mentionable" />
-              </div>
-              <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:items-center">
-                <FormSubmit form={editForm} label="Save" className="w-full sm:w-auto" />
-                <button
-                  type="button"
-                  className="w-full rounded border border-gray-700 px-3 py-2 text-xs text-gray-200 hover:bg-gray-800 sm:w-auto"
-                  onClick={cancelEditRole}
-                >
-                  Cancel
-                </button>
-              </div>
-            </form>
-          </FormProvider>
-        )}
-        {loading && <div className="text-xs text-gray-400">Loading roles...</div>}
-        {error && <div className="text-xs text-red-400">{error}</div>}
-        {!loading && !error && (
-          <div className="space-y-2 text-sm text-gray-300">
-            {roles.length === 0 ? (
-              <div className="rounded bg-gray-900/60 px-3 py-2 text-xs text-gray-400">
-                No roles found.
-              </div>
-            ) : (
-              roles.map((role) => (
-                <div
-                  key={role.id || role.role_id || role.name}
-                  className="flex flex-col gap-2 rounded bg-gray-900/60 px-3 py-2 sm:flex-row sm:items-center sm:justify-between"
-                >
-                  <div className="min-w-0">
-                    <div className="break-words text-xs text-gray-200">
-                      {role.name || role.role_name || 'Unnamed role'}
+        <ScrollArea className="flex-1 px-2">
+          <div className="space-y-1 py-2">
+            {rolesList.map((role) => (
+              <button
+                key={role.id}
+                onClick={() => {
+                  setSelectedRoleId(role.id);
+                  setActivePermissions(Number(role.permissions || 0));
+                  setOriginalPermissions(Number(role.permissions || 0));
+                }}
+                className={`w-full text-left px-3 py-2 rounded-md text-sm transition-all ${
+                  selectedRoleId === role.id 
+                    ? 'bg-primary text-primary-foreground shadow-md' 
+                    : 'hover:bg-accent text-muted-foreground hover:text-accent-foreground'
+                }`}
+              >
+                {role.name}
+              </button>
+            ))}
+          </div>
+        </ScrollArea>
+      </div>
+
+      {/* Main Content: Permissions */}
+      <div className="flex-1 flex flex-col relative">
+        <div className="p-6">
+          <h3 className="text-xl font-bold tracking-tight">
+            {rolesList.find(r => r.id === selectedRoleId)?.name} Permissions
+          </h3>
+          {/* <p className="text-sm text-muted-foreground mt-1">
+            Toggle bits on the permission bitfield for this role.
+          </p> */}
+        </div>
+
+        <Separator />
+
+        <ScrollArea className="flex-1">
+          <div className="p-6 space-y-6">
+            <div className="grid gap-4">
+              {Object.entries(PERMISSIONS_LIST).map(([bit, label]) => {
+                const isEnabled = (activePermissions & Number(bit)) !== 0;
+                return (
+                  <div 
+                    key={bit} 
+                    className="flex items-center justify-between space-x-4 rounded-lg p-4 transition-colors hover:bg-muted/50"
+                  >
+                    <div className="space-y-0.5">
+                      <text className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
+                        {label}
+                      </text>
                     </div>
-                    <div className="text-[10px] text-gray-500">
-                      Permissions: {role.permissions ?? 0} · Mentionable: {role.mentionable ? 'Yes' : 'No'}
-                    </div>
+                    <Switch
+                      checked={isEnabled}
+                      onCheckedChange={() => handleToggle(bit)}
+                    />
                   </div>
-                  <div className="flex flex-wrap items-center gap-2">
-                    <button
-                      type="button"
-                      className="rounded border border-gray-700 px-2 py-1 text-[10px] text-gray-200 hover:bg-gray-800"
-                      onClick={() => startEditRole(role)}
-                    >
-                      Edit
-                    </button>
-                    <button
-                      type="button"
-                      className="rounded border border-red-500/60 px-2 py-1 text-[10px] text-red-200 hover:bg-red-500/10"
-                      onClick={() => handleDeleteRole(role.id || role.role_id)}
-                    >
-                      Delete
-                    </button>
-                  </div>
-                </div>
-              ))
-            )}
+                );
+              })}
+            </div>
+          </div>
+        </ScrollArea>
+
+        {/* Floating Save Notification (Discord Style) */}
+        {hasChanged && (
+          <div className="absolute bottom-4 left-4 right-4 animate-in fade-in slide-in-from-bottom-4">
+            <div className="bg-popover border border-border rounded-lg p-3 flex items-center justify-between shadow-2xl">
+              <span className="text-sm font-medium">Careful — you have unsaved changes!</span>
+              <div className="flex gap-2">
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  onClick={() => setActivePermissions(originalPermissions)}
+                >
+                  Reset
+                </Button>
+                <Button 
+                  variant="default" 
+                  size="sm" 
+                  className="bg-green-600 hover:bg-green-700 text-white gap-2"
+                  onClick={handleSave}
+                  disabled={isSaving}
+                >
+                  <FloppyDisk size={16} />
+                  {isSaving ? "Saving..." : "Save Changes"}
+                </Button>
+              </div>
+            </div>
           </div>
         )}
       </div>

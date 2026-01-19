@@ -1,47 +1,156 @@
-import { useCallback, useState } from 'react';
-import { FormProvider, useForm } from 'react-hook-form';
-import { ArrowRight } from '@phosphor-icons/react';
+import { useCallback } from 'react';
+import { useForm, Controller } from 'react-hook-form';
+import { ArrowRight, Hash, SpeakerHigh } from '@phosphor-icons/react';
+
+// Shadcn UI Components
+import { Label } from "../components/ui/label";
+import { Input } from "../components/ui/input";
+import { RadioGroup, RadioGroupItem } from "../components/ui/radio-group";
+import { Button } from "../components/ui/button";
+
 import { GuildsService } from '../services/guilds.service';
 import Dialog from './Dialog';
-import FormInput from './Form/FormInput';
-import FormError from './Form/FormError';
-import FormSubmit from './Form/FormSubmit';
-import { InputGroup, InputGroupInput } from './ui/input-group';
 
 const CreateGuildChannelDialog = ({ isOpen, setIsOpen, guild, categoryId }) => {
-  const form = useForm();
+  const {
+    register,
+    handleSubmit,
+    control,
+    reset,
+    watch,
+    formState: { errors, isSubmitting }
+  } = useForm({
+    defaultValues: {
+      name: "",
+      type: "0",
+    },
+  });
+
+  const selectedType = watch("type");
 
   const onSubmit = useCallback(async (data) => {
-    GuildsService.createGuildChannel(guild.id, {
-      name: data.name,
-      type: 0,
-      parent_id: categoryId,
-    });
+    try {
+      // Clean name: lowercase and replace spaces with hyphens
+      const cleanName = data.name.trim().toLowerCase().replace(/\s+/g, '-');
+      
+      await GuildsService.createGuildChannel(guild.id, {
+        name: cleanName,
+        type: parseInt(data.type),
+        parent_id: categoryId,
+      });
 
-    setIsOpen(false);
-    form.reset();
-  }, [form, guild, setIsOpen]);
+      setIsOpen(false);
+      reset();
+    } catch (error) {
+      console.error("Failed to create channel", error);
+    }
+  }, [guild.id, categoryId, setIsOpen, reset]);
 
   return (
     <Dialog isOpen={isOpen} setIsOpen={setIsOpen} title="Create Channel">
-      <FormProvider {...form}>
-        <form onSubmit={form.handleSubmit(onSubmit)} className="w-full">
-          <div className="flex gap-3 items-center">
-            <InputGroup className={`h-12 bg-gray-800`}>
-              <InputGroupInput
-                placeholder={`new-channel`}
-                {...form.register('name', { required: "Name is required." })}
-              />
-            </InputGroup>
-            <FormSubmit
-              form={form}
-              label="Create"
-              icon={<ArrowRight className="size-4" />}
-              className="w-full sm:w-auto"
+      <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+        
+        {/* Channel Type Selection */}
+        <div className="space-y-3">
+          <Label className="text-xs font-bold uppercase text-muted-foreground">
+            Channel Type
+          </Label>
+          
+          <Controller
+            control={control}
+            name="type"
+            render={({ field }) => (
+              <RadioGroup
+                onValueChange={field.onChange}
+                value={field.value}
+                className="grid gap-2"
+              >
+                {/* Text Channel Option */}
+                <Label
+                  className={`flex items-center gap-3 p-3 rounded-md border cursor-pointer transition-all ${
+                    field.value === "0" 
+                      ? 'bg-accent border-primary ring-1 ring-primary' 
+                      : 'hover:bg-accent/50 border-transparent bg-secondary/40'
+                  }`}
+                >
+                  <RadioGroupItem value="0" className="sr-only" />
+                  <Hash size={24} className="text-muted-foreground" />
+                  <div className="flex flex-col gap-0.5">
+                    <span className="font-semibold text-sm">Text</span>
+                    <span className="text-xs text-muted-foreground font-normal leading-tight">
+                      Send messages, images, and GIFs.
+                    </span>
+                  </div>
+                </Label>
+
+                {/* Voice Channel Option */}
+                {/* <Label
+                  className={`flex items-center gap-3 p-3 rounded-md border cursor-pointer transition-all ${
+                    field.value === "2" 
+                      ? 'bg-accent border-primary ring-1 ring-primary' 
+                      : 'hover:bg-accent/50 border-transparent bg-secondary/40 opacity-80'
+                  }`}
+                >
+                  <RadioGroupItem value="2" className="sr-only" />
+                  <SpeakerHigh size={24} className="text-muted-foreground" />
+                  <div className="flex flex-col gap-0.5">
+                    <span className="font-semibold text-sm">Voice</span>
+                    <span className="text-xs text-muted-foreground font-normal leading-tight">
+                      Hang out with voice and video.
+                    </span>
+                  </div>
+                </Label> */}
+              </RadioGroup>
+            )}
+          />
+        </div>
+
+        {/* Channel Name Input */}
+        <div className="space-y-2">
+          <Label htmlFor="channel-name" className="text-xs font-bold uppercase text-muted-foreground">
+            Channel Name
+          </Label>
+          <div className="relative">
+            <Hash className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground size-4" />
+            <Input
+              id="channel-name"
+              placeholder="new-channel"
+              className={`pl-9 bg-secondary/40 border-none focus-visible:ring-1 ${
+                errors.name ? 'ring-1 ring-destructive' : ''
+              }`}
+              {...register('name', { 
+                required: "Channel name is required",
+                maxLength: { value: 100, message: "Name is too long" }
+              })}
             />
           </div>
-        </form>
-      </FormProvider>
+          {errors.name && (
+            <p className="text-[12px] font-medium text-destructive">{errors.name.message}</p>
+          )}
+        </div>
+
+        {/* Footer Actions */}
+        <div className="flex justify-end gap-3 pt-2">
+          <Button 
+            type="button" 
+            variant="ghost" 
+            onClick={() => {
+              setIsOpen(false);
+              reset();
+            }}
+          >
+            Cancel
+          </Button>
+          <Button 
+            type="submit" 
+            disabled={isSubmitting}
+            className="text-white px-6"
+          >
+            {isSubmitting ? "Creating..." : "Create Channel"}
+            {!isSubmitting && <ArrowRight className="ml-2 size-4" />}
+          </Button>
+        </div>
+      </form>
     </Dialog>
   );
 }
