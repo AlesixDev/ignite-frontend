@@ -1,15 +1,14 @@
 import { useCallback } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { useForm, FormProvider } from 'react-hook-form';
+import { useForm, FormProvider, Controller } from 'react-hook-form';
 import { toast } from 'react-toastify';
-import { ArrowRight } from '@phosphor-icons/react';
 import useStore from '../../hooks/useStore';
 import api from '../../api';
 import BaseGuestLayout from '../../layouts/BaseGuestLayout';
-import FormLabel from '../../components/Form/FormLabel';
-import FormError from '../../components/Form/FormError';
-import FormInput from '../../components/Form/FormInput';
-import FormSubmit from '../../components/Form/FormSubmit';
+import { Card, CardContent } from '../../components/ui/card';
+import { Field, FieldGroup, FieldLabel, FieldDescription, FieldError } from '../../components/ui/field';
+import { Input } from '../../components/ui/input';
+import { Button } from '../../components/ui/button';
 
 const LoginPage = () => {
   const form = useForm();
@@ -35,34 +34,89 @@ const LoginPage = () => {
     <BaseGuestLayout>
       <FormProvider {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)}>
-          <div className="mx-auto w-full rounded-lg border border-white/5 bg-dark-bg sm:w-[32rem]">
-            <div className="bg-dark-bg-active px-6 py-4 text-center">
-              <Link to="/" className="mb-1 block text-3xl font-medium">
-               <span className="text-primary">Ignite</span>
-              </Link>
-              <p className="text-xs">Log in to your account.</p>
-            </div>
-            <div className="px-6 py-4">
-              <div className="mb-3">
-                <FormLabel htmlFor="username">Username</FormLabel>
-                <FormInput type="text" id="username" name="username" validation={{ required: "Username is required." }} />
-                <FormError name="username" />
-              </div>
-              <div className="mb-1">
-                <FormLabel htmlFor="password">Password</FormLabel>
-                <FormInput type="password" id="password" name="password" validation={{ required: "Password is required.", minLength: { value: 8, message: "Password must be at least 8 characters." } }} />
-                <FormError name="password" />
-              </div>
-              <div className="mb-4 text-right">
-                <Link to="/forgot-password" className="text-xs text-primary">Forgot password?</Link>
-              </div>
-              <div className="mb-8">
-                <FormSubmit form={form} label="Login" icon={<ArrowRight className="size-4" />}/>
-              </div>
-              <div className="text-center">
-                <p className="text-sm">Don&apos;t have an account? <Link to="/register" className="text-primary">Register</Link></p>
-              </div>
-            </div>
+          <div className="mx-auto flex max-w-4xl flex-col gap-6">
+            <Card className="overflow-hidden p-0">
+              <CardContent className="grid p-0 md:grid-cols-2">
+                <div className="p-6 md:p-8">
+                  <FieldGroup>
+                    <div className="flex flex-col items-center gap-2 text-center">
+                      <h1 className="text-2xl font-bold">
+                        Welcome back
+                      </h1>
+                      <p className="text-balance text-muted-foreground">
+                        Login to your Ignite account
+                      </p>
+                    </div>
+                    <Field>
+                      <FieldLabel htmlFor="username">
+                        Username
+                      </FieldLabel>
+                      <Controller
+                        name="username"
+                        rules={{
+                          required: 'Username is required',
+                        }}
+                        render={({ field, formState }) => (
+                          <>
+                            <Input
+                              placeholder="Enter your username"
+                              {...field}
+                            />
+                            <FieldError>{formState.errors.username && formState.errors.username.message}</FieldError>
+                          </>
+                        )}
+                      />
+                    </Field>
+                    <Field>
+                      <div className="flex items-center">
+                        <FieldLabel htmlFor="password">
+                          Password
+                        </FieldLabel>
+                        <a
+                          href="#"
+                          className="ml-auto text-sm underline-offset-2 hover:underline"
+                        >
+                          Forgot your password?
+                        </a>
+                      </div>
+                      <Controller
+                        name="password"
+                        rules={{
+                          required: 'Password is required',
+                        }}
+                        render={({ field, formState }) => (
+                          <>
+                            <Input
+                              type="password"
+                              placeholder="Enter your password"
+                              {...field}
+                            />
+                            <FieldError>{formState.errors.password && formState.errors.password.message}</FieldError>
+                          </>
+                        )}
+                      />
+                    </Field>
+                    <Field>
+                      <Button type="submit">Login</Button>
+                    </Field>
+                    <FieldDescription className="text-center">
+                      Don&apos;t have an account? <Link to="/register" className="underline">Sign up</Link>
+                    </FieldDescription>
+                  </FieldGroup>
+                </div>
+                <div className="relative hidden bg-muted md:block">
+                  <img
+                    src="https://i.postimg.cc/VN4nCKSs/deepfried-1768849587764.jpg"
+                    alt="Image"
+                    className="absolute inset-0 size-full object-cover dark:brightness-[0.2] dark:grayscale"
+                  />
+                </div>
+              </CardContent>
+            </Card>
+            <FieldDescription className="px-6 text-center">
+              By logging in, you agree to our <a href="#">Terms of Service</a>{" "}
+              and <a href="#">Privacy Policy</a>.
+            </FieldDescription>
           </div>
         </form>
       </FormProvider>
