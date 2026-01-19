@@ -1,11 +1,20 @@
 import { useEffect, useMemo, useState } from 'react';
 import ServerInfo from './ServerInfo';
 import ServerRoleManager from './ServerRoleManager';
-import ServerChannelManager from './ServerChannelManager';
 import ServerMemberManager from './ServerMemberManager';
 import ServerInviteManager from './ServerInviteManager';
+import { Button } from '../ui/button';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '../ui/dialog';
+import { ScrollArea } from '../ui/scroll-area';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/tabs';
 
-const ServerSettings = ({ isOpen, onClose, guild, initialTab = 'info', editChannelId, onEditChannelChange }) => {
+const ServerSettings = ({ isOpen, onClose, guild, initialTab = 'info' }) => {
   const [activeTab, setActiveTab] = useState('info');
 
   const tabs = useMemo(
@@ -14,34 +23,9 @@ const ServerSettings = ({ isOpen, onClose, guild, initialTab = 'info', editChann
       { id: 'roles', label: 'Role Manager', component: <ServerRoleManager guild={guild} /> },
       { id: 'members', label: 'Member Management', component: <ServerMemberManager guild={guild} /> },
       { id: 'invites', label: 'Invites', component: <ServerInviteManager guild={guild} /> },
-      {
-        id: 'channels',
-        label: 'Channel Manager',
-        component: (
-          <ServerChannelManager
-            guild={guild}
-            editChannelId={editChannelId}
-            onEditChannelChange={onEditChannelChange}
-          />
-        ),
-      },
     ],
-    [editChannelId, guild, onEditChannelChange]
+    [guild]
   );
-
-  useEffect(() => {
-    if (!isOpen) return;
-    const onKeyDown = (e) => {
-      if (e.key === 'Escape') onClose?.();
-    };
-    document.addEventListener('keydown', onKeyDown);
-    const previousOverflow = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
-    return () => {
-      document.removeEventListener('keydown', onKeyDown);
-      document.body.style.overflow = previousOverflow;
-    };
-  }, [isOpen, onClose]);
 
   useEffect(() => {
     if (isOpen) setActiveTab(initialTab || 'info');
@@ -49,45 +33,53 @@ const ServerSettings = ({ isOpen, onClose, guild, initialTab = 'info', editChann
 
   if (!isOpen) return null;
 
-  const activeContent = tabs.find((tab) => tab.id === activeTab)?.component;
-
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-3 sm:p-6">
-      <div className="w-full max-w-5xl overflow-y-auto rounded-lg bg-gray-900 text-gray-100 shadow-2xl max-h-[calc(100vh-1.5rem)]">
-        <div className="flex flex-col gap-3 border-b border-gray-800 px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-6">
-          <div>
-            <h2 className="text-xl font-semibold">Server Settings</h2>
-            <p className="text-sm text-gray-400">{guild?.name || 'Server'}</p>
-          </div>
-          <button
-            type="button"
-            className="self-start rounded border border-gray-700 px-3 py-1 text-sm text-gray-200 hover:bg-gray-800 sm:self-auto"
-            onClick={onClose}
-          >
-            Close
-          </button>
-        </div>
-        <div className="flex min-h-[520px] flex-col md:flex-row">
-          <nav className="w-full shrink-0 border-b border-gray-800 bg-gray-950/40 p-3 md:w-56 md:border-b-0 md:border-r md:p-4">
-            <div className="flex gap-2 overflow-x-auto text-sm font-medium md:block md:space-y-1">
-              {tabs.map((tab) => (
-                <button
-                  key={tab.id}
-                  type="button"
-                  className={`whitespace-nowrap rounded px-3 py-2 text-left transition-colors md:w-full ${
-                    activeTab === tab.id ? 'bg-gray-800 text-white' : 'text-gray-400 hover:bg-gray-800/60'
-                  }`}
-                  onClick={() => setActiveTab(tab.id)}
-                >
-                  {tab.label}
-                </button>
-              ))}
+    <Dialog open={isOpen} onOpenChange={(open) => (!open ? onClose?.() : null)}>
+      <DialogContent
+        showCloseButton={false}
+        className="h-[100dvh] w-[100dvw] max-w-none overflow-hidden rounded-none p-0 sm:max-w-none"
+      >
+        <div className="flex h-full flex-col">
+          <DialogHeader className="shrink-0 border-b border-border px-6 py-4 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <DialogTitle className="text-xl">Server Settings</DialogTitle>
+              <DialogDescription>{guild?.name || 'Server'}</DialogDescription>
             </div>
-          </nav>
-          <div className="flex-1 p-4 sm:p-6">{activeContent}</div>
+            <Button type="button" variant="outline" size="sm" onClick={onClose}>
+              Close
+            </Button>
+          </DialogHeader>
+
+          <Tabs
+            value={activeTab}
+            onValueChange={setActiveTab}
+            className="flex min-h-0 flex-1 flex-col md:flex-row"
+          >
+            <ScrollArea className="h-16 w-full border-b border-border bg-muted/20 md:h-auto md:w-60 md:border-b-0 md:border-r">
+              <TabsList className="h-full w-full flex-row items-stretch justify-start gap-1 rounded-none bg-transparent p-2 text-sm font-medium md:flex-col">
+                {tabs.map((tab) => (
+                  <TabsTrigger
+                    key={tab.id}
+                    value={tab.id}
+                    className="w-full justify-start rounded-none px-3 py-2 data-[state=active]:bg-accent data-[state=active]:text-accent-foreground"
+                  >
+                    {tab.label}
+                  </TabsTrigger>
+                ))}
+              </TabsList>
+            </ScrollArea>
+
+            <ScrollArea className="min-h-0 flex-1 p-4 sm:p-6">
+              {tabs.map((tab) => (
+                <TabsContent key={tab.id} value={tab.id} className="mt-0 w-full min-w-0">
+                  {tab.component}
+                </TabsContent>
+              ))}
+            </ScrollArea>
+          </Tabs>
         </div>
-      </div>
-    </div>
+      </DialogContent>
+    </Dialog>
   );
 };
 

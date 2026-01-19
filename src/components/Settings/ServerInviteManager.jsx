@@ -1,9 +1,11 @@
 import { useCallback, useEffect, useState } from 'react';
-import { FormProvider, useForm } from 'react-hook-form';
+import { useForm } from 'react-hook-form';
 import api from '../../api';
-import FormInput from '../Form/FormInput';
-import FormLabel from '../Form/FormLabel';
-import FormSubmit from '../Form/FormSubmit';
+import { Button } from '../ui/button';
+import { Input } from '../ui/input';
+import { Label } from '../ui/label';
+import { ScrollArea } from '../ui/scroll-area';
+import { Separator } from '../ui/separator';
 
 const ServerInviteManager = ({ guild }) => {
   const [invites, setInvites] = useState([]);
@@ -128,122 +130,155 @@ const ServerInviteManager = ({ guild }) => {
   };
 
   return (
-    <div className="space-y-6">
-      <div>
+    <div className="w-full space-y-6 min-w-0">
+      <div className="space-y-1">
         <h3 className="text-lg font-semibold">Invites</h3>
-        <p className="mt-1 text-sm text-gray-400">
+        <p className="text-sm text-muted-foreground">
           Manage invite links for {guild?.name || 'this server'}.
         </p>
       </div>
-      <div className="rounded-lg border border-gray-800 bg-gray-950/40 p-4">
-        <div className="mb-3 flex items-center justify-between">
-          <div className="text-sm font-medium">Invites</div>
-        </div>
-        <FormProvider {...createForm}>
+
+      <div className="grid gap-4 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,1fr)]">
+        <div className="rounded-lg border border-border bg-card/60 p-5">
+          <div className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+            Create Invite
+          </div>
+          <p className="mt-1 text-xs text-muted-foreground">
+            Set optional limits before generating a new link.
+          </p>
+          <Separator className="my-4" />
           <form
             onSubmit={createForm.handleSubmit(handleCreateInvite)}
-            className="mb-4 grid gap-3 text-xs text-gray-300 sm:grid-cols-[1fr_1fr_1fr_auto] sm:items-center"
+            className="grid gap-4 text-xs text-muted-foreground"
           >
-            <div>
-              <FormLabel htmlFor="invite-expires" help="ISO timestamp or duration (e.g. 1h, 1d, 1w, 1y)">
-                Expiry
-              </FormLabel>
-              <FormInput
+            <div className="space-y-1">
+              <Label htmlFor="invite-expires">Expiry</Label>
+              <p className="text-[10px] text-muted-foreground">
+                ISO timestamp or duration (e.g. 1h, 1d, 1w, 1y)
+              </p>
+              <Input
                 id="invite-expires"
                 type="text"
-                name="expires_at"
                 placeholder="1d or 2026-01-10T19:58:25Z"
-                size="sm"
                 className="text-xs"
+                {...createForm.register('expires_at')}
               />
             </div>
-            <div>
-              <FormLabel htmlFor="invite-max-uses">Max uses</FormLabel>
-              <FormInput
-                id="invite-max-uses"
-                type="text"
-                name="max_uses"
-                placeholder="0"
-                size="sm"
-                className="text-xs"
-              />
-            </div>
-            <div>
-              <FormLabel htmlFor="invite-channel">Channel ID</FormLabel>
-              <FormInput
-                id="invite-channel"
-                type="text"
-                name="channel_id"
-                placeholder="Optional"
-                size="sm"
-                className="text-xs"
-              />
-            </div>
-            <FormSubmit form={createForm} label="Create Invite" className="w-full sm:w-auto" />
-          </form>
-        </FormProvider>
-        {loading && <div className="text-xs text-gray-400">Loading invites...</div>}
-        {error && <div className="text-xs text-red-400">{error}</div>}
-        {!loading && !error && (
-          <div className="space-y-2 text-sm text-gray-300">
-            {invites.length === 0 ? (
-              <div className="rounded bg-gray-900/60 px-3 py-2 text-xs text-gray-400">
-                No invites found.
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div>
+                <Label htmlFor="invite-max-uses">Max uses</Label>
+                <Input
+                  id="invite-max-uses"
+                  type="text"
+                  placeholder="0"
+                  className="text-xs"
+                  {...createForm.register('max_uses')}
+                />
               </div>
-            ) : (
-              invites.map((invite) => {
-                const inviteId = invite.id || invite.code;
-                const inviteCode = invite.code || inviteId;
-                const createdAt = invite.created_at ? new Date(invite.created_at).toLocaleString() : 'Unknown';
-                return (
-                  <div
-                    key={inviteId}
-                    className="flex flex-col gap-2 rounded bg-gray-900/60 px-3 py-2 sm:flex-row sm:items-center sm:justify-between"
-                  >
-                    <div className="min-w-0">
-                      <div className="break-words text-xs text-gray-200">
-                        {inviteCode}
-                      </div>
-                      <div className="break-words text-[10px] text-gray-500">
-                        Uses: {invite.uses ?? 0} · Max: {invite.max_uses ?? '∞'} · Expires:{' '}
-                        {invite.expires_at ? new Date(invite.expires_at).toLocaleString() : 'Never'}
-                      </div>
-                      <div className="break-words text-[10px] text-gray-500">
-                        Created: {createdAt} · Channel: {invite.channel_id || 'None'}
-                      </div>
-                    </div>
-                    <div className="flex flex-wrap items-center gap-2">
-                      <button
-                        type="button"
-                        className="rounded border border-gray-700 px-2 py-1 text-[10px] text-gray-200 hover:bg-gray-800"
-                        onClick={() => handleViewInvite(inviteId)}
-                      >
-                        View
-                      </button>
-                      <button
-                        type="button"
-                        className="rounded border border-red-500/60 px-2 py-1 text-[10px] text-red-200 hover:bg-red-500/10"
-                        onClick={() => handleDeleteInvite(inviteId)}
-                      >
-                        Delete
-                      </button>
-                    </div>
-                  </div>
-                );
-              })
-            )}
+              <div>
+                <Label htmlFor="invite-channel">Channel ID</Label>
+                <Input
+                  id="invite-channel"
+                  type="text"
+                  placeholder="Optional"
+                  className="text-xs"
+                  {...createForm.register('channel_id')}
+                />
+              </div>
+            </div>
+            <div className="flex flex-wrap items-center gap-2">
+              <Button type="submit">Create Invite</Button>
+              {loading && <span className="text-xs text-muted-foreground">Creating...</span>}
+            </div>
+            {error && <div className="text-xs text-destructive">{error}</div>}
+          </form>
+        </div>
+
+        <div className="rounded-lg border border-border bg-card/60 p-5">
+          <div className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+            Active Invites
           </div>
-        )}
-        <div className="mt-4 rounded border border-gray-800 bg-gray-900/40 p-3 text-xs text-gray-200">
-          <div className="mb-2 text-xs font-semibold text-gray-100">Invite Details</div>
-          {detailLoading && <div className="text-xs text-gray-400">Loading invite...</div>}
-          {detailError && <div className="text-xs text-red-400">{detailError}</div>}
-          {!detailLoading && !detailError && (
-            <pre className="max-h-64 overflow-auto whitespace-pre-wrap break-words text-[11px] text-gray-300">
-              {selectedInvite ? JSON.stringify(selectedInvite, null, 2) : 'Select an invite to view details.'}
-            </pre>
+          <p className="mt-1 text-xs text-muted-foreground">
+            Track usage and manage existing links.
+          </p>
+          <Separator className="my-4" />
+          {loading && <div className="text-xs text-muted-foreground">Loading invites...</div>}
+          {!loading && (
+            <ScrollArea className="max-h-[320px] pr-2">
+              <div className="space-y-3 text-sm">
+                {invites.length === 0 ? (
+                  <div className="rounded bg-muted/40 px-3 py-2 text-xs text-muted-foreground">
+                    No invites found.
+                  </div>
+                ) : (
+                  invites.map((invite) => {
+                    const inviteId = invite.id || invite.code;
+                    const inviteCode = invite.code || inviteId;
+                    const createdAt = invite.created_at
+                      ? new Date(invite.created_at).toLocaleString()
+                      : 'Unknown';
+                    return (
+                      <div
+                        key={inviteId}
+                        className="rounded-md border border-border bg-background/40 p-3"
+                      >
+                        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                          <div className="min-w-0 space-y-1">
+                            <div className="break-words text-sm font-medium text-foreground">
+                              {inviteCode}
+                            </div>
+                            <div className="break-words text-[10px] text-muted-foreground">
+                              Uses: {invite.uses ?? 0} | Max: {invite.max_uses ?? 'Unlimited'} | Expires:{' '}
+                              {invite.expires_at ? new Date(invite.expires_at).toLocaleString() : 'Never'}
+                            </div>
+                            <div className="break-words text-[10px] text-muted-foreground">
+                              Created: {createdAt} | Channel: {invite.channel_id || 'None'}
+                            </div>
+                          </div>
+                          <div className="flex flex-wrap items-center gap-2">
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              onClick={() => handleViewInvite(inviteId)}
+                            >
+                              View
+                            </Button>
+                            <Button
+                              type="button"
+                              variant="destructive"
+                              size="sm"
+                              onClick={() => handleDeleteInvite(inviteId)}
+                            >
+                              Delete
+                            </Button>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })
+                )}
+              </div>
+            </ScrollArea>
           )}
         </div>
+      </div>
+
+      <div className="rounded-lg border border-border bg-card/60 p-5">
+        <div className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+          Invite Details
+        </div>
+        <p className="mt-1 text-xs text-muted-foreground">
+          Inspect a selected invite payload.
+        </p>
+        <Separator className="my-4" />
+        {detailLoading && <div className="text-xs text-muted-foreground">Loading invite...</div>}
+        {detailError && <div className="text-xs text-destructive">{detailError}</div>}
+        {!detailLoading && !detailError && (
+          <pre className="max-h-64 overflow-auto whitespace-pre-wrap break-words text-[11px] text-muted-foreground">
+            {selectedInvite ? JSON.stringify(selectedInvite, null, 2) : 'Select an invite to view details.'}
+          </pre>
+        )}
       </div>
     </div>
   );
