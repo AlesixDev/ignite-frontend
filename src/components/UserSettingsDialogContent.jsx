@@ -1,4 +1,5 @@
 import { useCallback, useState } from 'react';
+import api from '../api';
 import useStore from '../hooks/useStore';
 import { DialogContent } from './ui/dialog';
 import { SidebarProvider, Sidebar, SidebarGroup, SidebarHeader, SidebarGroupLabel, SidebarGroupContent, SidebarMenuItem, SidebarMenuButton, SidebarMenu } from './ui/sidebar';
@@ -10,6 +11,7 @@ import { Label } from './ui/label';
 import { Controller, FormProvider, useForm } from 'react-hook-form';
 import { Textarea } from './ui/textarea';
 import { Field, FieldError, FieldGroup, FieldLabel } from './ui/field';
+import { toast } from 'sonner';
 
 const TabAccount = () => {
   const store = useStore();
@@ -22,9 +24,20 @@ const TabAccount = () => {
     },
   });
 
-  const onSubmitUserProfile = useCallback((data) => {
-    console.log('User Profile Data:', data);
-  }, []);
+  const onSubmitUserProfile = useCallback(async (data) => {
+    // console.log('User Profile Data:', data);
+    try {
+      await api.patch('/users/@me', data);
+      // TODO: 
+      store.setUser({
+        ...store.user,
+        name: data.name,
+      });
+      toast.success('Profile updated successfully');
+    } catch (error) {
+      console.error('Failed to update user profile:', error);
+    }
+  }, [store]);
 
   const userEmailForm = useForm({
     defaultValues: {
@@ -93,7 +106,7 @@ const TabAccount = () => {
                             placeholder="Your display name"
                             {...field}
                           />
-                          <FieldError>{formState.errors.name && formState.errors.name.message}</FieldError>
+                          <FieldError>{formState.errors.name?.message}</FieldError>
                         </>
                       )}
                     />
@@ -117,7 +130,7 @@ const TabAccount = () => {
                             placeholder="A short bio about yourself"
                             {...field}
                           />
-                          <FieldError>{formState.errors.bio && formState.errors.bio.message}</FieldError>
+                          <FieldError>{formState.errors.bio?.message}</FieldError>
                         </>
                       )}
                     />
@@ -133,8 +146,12 @@ const TabAccount = () => {
                 </FieldGroup>
               </CardContent>
               <CardFooter className="flex-col gap-2">
-                <Button type="submit" className="w-full">
-                  Save Changes
+                <Button
+                  type="submit"
+                  disabled={userProfileForm.formState.isSubmitting}
+                  className="w-full"
+                >
+                  {userProfileForm.formState.isSubmitting ? 'Saving...' : 'Save Changes'}
                 </Button>
                 {/* <Button variant="outline" className="w-full">
                   Cancel
@@ -173,11 +190,14 @@ const TabAccount = () => {
                           },
                         }}
                         render={({ field }) => (
-                          <Input
-                            id="email"
-                            placeholder="Your e-mail address"
-                            {...field}
-                          />
+                          <>
+                            <Input
+                              id="email"
+                              placeholder="Your e-mail address"
+                              {...field}
+                            />
+                            <FieldError>{userEmailForm.formState.errors.email?.message}</FieldError>
+                          </>
                         )}
                       />
                     </div>
@@ -191,11 +211,14 @@ const TabAccount = () => {
                           required: 'Current password is required.',
                         }}
                         render={({ field }) => (
-                          <Input
-                            id="currentPassword"
-                            placeholder="Your current password"
-                            {...field}
-                          />
+                          <>
+                            <Input
+                              id="currentPassword"
+                              placeholder="Your current password"
+                              {...field}
+                            />
+                            <FieldError>{userEmailForm.formState.errors.currentPassword?.message}</FieldError>
+                          </>
                         )}
                       />
                     </div>
@@ -203,8 +226,12 @@ const TabAccount = () => {
                 </form>
               </CardContent>
               <CardFooter className="flex-col gap-2">
-                <Button type="submit" className="w-full">
-                  Save Changes
+                <Button
+                  type="submit"
+                  disabled={userEmailForm.formState.isSubmitting}
+                  className="w-full"
+                >
+                  {userEmailForm.formState.isSubmitting ? 'Saving...' : 'Save Changes'}
                 </Button>
                 {/* <Button variant="outline" className="w-full">
                   Cancel
@@ -239,11 +266,14 @@ const TabAccount = () => {
                           required: 'Current password is required.',
                         }}
                         render={({ field }) => (
-                          <Input
-                            id="currentPassword"
-                            placeholder="Your current password"
-                            {...field}
-                          />
+                          <>
+                            <Input
+                              id="currentPassword"
+                              placeholder="Your current password"
+                              {...field}
+                            />
+                            <FieldError>{userPasswordForm.formState.errors.currentPassword?.message}</FieldError>
+                          </>
                         )}
                       />
                     </div>
@@ -265,11 +295,14 @@ const TabAccount = () => {
                           },
                         }}
                         render={({ field }) => (
-                          <Input
-                            id="newPassword"
-                            placeholder="Your new password"
-                            {...field}
-                          />
+                          <>
+                            <Input
+                              id="newPassword"
+                              placeholder="Your new password"
+                              {...field}
+                            />
+                            <FieldError>{userPasswordForm.formState.errors.newPassword?.message}</FieldError>
+                          </>
                         )}
                       />
                     </div>
@@ -293,11 +326,14 @@ const TabAccount = () => {
                             value === newPasswordValue || 'Passwords do not match',
                         }}
                         render={({ field }) => (
-                          <Input
-                            id="confirmNewPassword"
-                            placeholder="Confirm your new password"
-                            {...field}
-                          />
+                          <>
+                            <Input
+                              id="confirmNewPassword"
+                              placeholder="Confirm your new password"
+                              {...field}
+                            />
+                            <FieldError>{userPasswordForm.formState.errors.confirmNewPassword?.message}</FieldError>
+                          </>
                         )}
                       />
                     </div>
@@ -305,8 +341,12 @@ const TabAccount = () => {
                 </form>
               </CardContent>
               <CardFooter className="flex-col gap-2">
-                <Button type="submit" className="w-full">
-                  Save Changes
+                <Button
+                  type="submit"
+                  className="w-full"
+                  disabled={userPasswordForm.formState.isSubmitting}
+                >
+                  {userPasswordForm.formState.isSubmitting ? 'Saving...' : 'Save Changes'}
                 </Button>
                 {/* <Button variant="outline" className="w-full">
                   Cancel

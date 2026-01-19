@@ -105,7 +105,12 @@ const LoginPage = () => {
                       </FieldError>
                     )}
                     <Field>
-                      <Button type="submit">Login</Button>
+                      <Button
+                        type="submit"
+                        disabled={form.formState.isSubmitting}
+                      >
+                        {form.formState.isSubmitting ? 'Logging in...' : 'Login'}
+                      </Button>
                     </Field>
                     <FieldDescription className="text-center">
                       Don&apos;t have an account? <Link to="/register" className="underline">Sign up</Link>

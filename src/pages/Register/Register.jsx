@@ -128,7 +128,12 @@ const RegisterPage = () => {
                       </FieldError>
                     )}
                     <Field>
-                      <Button type="submit">Create Account</Button>
+                      <Button
+                        type="submit"
+                        disabled={form.formState.isSubmitting}
+                      >
+                        {form.formState.isSubmitting ? 'Creating account...' : 'Create Account'}
+                      </Button>
                     </Field>
                     <FieldDescription className="text-center">
                       Already have an account? <Link to="/login" className="underline">Log in</Link>
