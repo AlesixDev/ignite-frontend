@@ -68,13 +68,13 @@ const LoginPage = () => {
                       />
                     </Field>
                     <Field>
-                      <div className="flex items-center">
+                      <div className="flex items-end">
                         <FieldLabel htmlFor="password">
                           Password
                         </FieldLabel>
                         <a
                           href="#"
-                          className="ml-auto text-sm underline-offset-2 hover:underline"
+                          className="ml-auto text-xs text-gray-400 underline-offset-2 hover:underline"
                         >
                           Forgot your password?
                         </a>

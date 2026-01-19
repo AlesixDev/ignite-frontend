@@ -114,7 +114,7 @@ const RegisterPage = () => {
                           />
                         </Field>
                       </Field>
-                      <FieldDescription>
+                      <FieldDescription className="hidden">
                         Must be at least 8 characters long.
                       </FieldDescription>
                     </Field>
