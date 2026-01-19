@@ -1,4 +1,4 @@
-import { useCallback } from 'react';
+import { useCallback, useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useForm, FormProvider, Controller } from 'react-hook-form';
 import { toast } from 'react-toastify';
@@ -15,6 +15,8 @@ const RegisterPage = () => {
   const store = useStore();
   const navigate = useNavigate();
 
+  const [submitError, setSubmitError] = useState(null);
+
   const onSubmit = useCallback(async (data) => {
     try {
       const response = await api.post('register', data);
@@ -26,7 +28,7 @@ const RegisterPage = () => {
       }
     } catch (error) {
       console.error(error);
-      toast.error(error.response?.data?.message || error.message);
+      setSubmitError(error.response?.data?.message || 'An unknown error occurred during registration.');
     }
   }, [navigate, store]);
 
@@ -78,6 +80,7 @@ const RegisterPage = () => {
                             name="password"
                             rules={{
                               required: 'Password is required',
+                              minLength: { value: 8, message: 'Password must be at least 8 characters long' },
                             }}
                             render={({ field, formState }) => (
                               <>
@@ -99,6 +102,7 @@ const RegisterPage = () => {
                             name="confirmPassword"
                             rules={{
                               required: 'Password confirmation is required',
+                              minLength: { value: 8, message: 'Password must be at least 8 characters long' },
                               validate: (value) => value === passwordValue || 'Passwords do not match',
                             }}
                             render={({ field, formState }) => (
@@ -118,6 +122,11 @@ const RegisterPage = () => {
                         Must be at least 8 characters long.
                       </FieldDescription>
                     </Field>
+                    {submitError && (
+                      <FieldError>
+                        {submitError}
+                      </FieldError>
+                    )}
                     <Field>
                       <Button type="submit">Create Account</Button>
                     </Field>

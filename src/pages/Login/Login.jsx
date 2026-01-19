@@ -1,4 +1,4 @@
-import { useCallback } from 'react';
+import { useCallback, useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useForm, FormProvider, Controller } from 'react-hook-form';
 import { toast } from 'react-toastify';
@@ -15,6 +15,8 @@ const LoginPage = () => {
   const store = useStore();
   const navigate = useNavigate();
 
+  const [submitError, setSubmitError] = useState(null);
+  
   const onSubmit = useCallback(async (data) => {
     try {
       const response = await api.post('login', data);
@@ -26,7 +28,7 @@ const LoginPage = () => {
       }
     } catch (error) {
       console.error(error);
-    toast.error(error.response?.data?.message || error.message);
+      setSubmitError(error.response?.data?.message || 'An unknown error occurred during login.');
     }
   }, [navigate, store]);
 
@@ -96,6 +98,11 @@ const LoginPage = () => {
                         )}
                       />
                     </Field>
+                    {submitError && (
+                      <FieldError>
+                        {submitError}
+                      </FieldError>
+                    )}
                     <Field>
                       <Button type="submit">Login</Button>
                     </Field>
