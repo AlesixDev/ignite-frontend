@@ -77,6 +77,7 @@ const LoginPage = () => {
                         <a
                           href="#"
                           className="ml-auto text-xs text-gray-400 underline-offset-2 hover:underline"
+                          tabIndex={-1}
                         >
                           Forgot your password?
                         </a>
