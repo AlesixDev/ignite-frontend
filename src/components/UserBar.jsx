@@ -30,7 +30,7 @@ const UserName = () => {
   return (
     <div className="flex flex-col">
       <div className="text-sm font-semibold text-gray-100">
-        {store.user?.username}
+        {store.user?.name}
       </div>
       <div className="text-xs font-medium text-gray-500">{store.user?.status || 'Online'}</div>
     </div>
@@ -42,12 +42,12 @@ const ActionsIcons = () => {
 
   return (
     <div className="ml-auto flex">
-      <div className="flex size-8 cursor-pointer items-center justify-center rounded text-center hover:bg-gray-700">
+      {/* <div className="flex size-8 cursor-pointer items-center justify-center rounded text-center hover:bg-gray-700">
         <Microphone className="size-5 cursor-pointer text-gray-400 hover:text-gray-200" weight="fill" />
       </div>
       <div className="flex size-8 cursor-pointer items-center justify-center rounded text-center hover:bg-gray-700">
         <Headphones className="size-5 cursor-pointer text-gray-400 hover:text-gray-200" weight="fill" />
-      </div>
+      </div> */}
 
       <button
         type="button"
@@ -76,7 +76,7 @@ const UserBar = () => {
   return (
     <div className="absolute left-0 bottom-0 mb-4 ml-4 flex h-14 items-center bg-gray-900 border border-gray-700 rounded-lg">
       <div className="flex flex-auto items-center p-2">
-        <div className="flex cursor-pointer gap-2 rounded p-1 hover:bg-gray-700 min-w-[190px]">
+        <div className="flex cursor-pointer gap-2 rounded p-1 hover:bg-gray-700 min-w-[210px]">
           <UserIcon />
           <UserName />
         </div>

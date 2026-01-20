@@ -149,7 +149,7 @@ const ChannelMessage = ({ message, prevMessage, pending }) => {
     <Popover>
       <ContextMenu>
         <ContextMenuTrigger className={`group relative block py-1 data-[state=open]:bg-gray-800/60 ${isEditing ? 'bg-gray-800/60' : 'hover:bg-gray-800/60'} ${shouldStack ? '' : 'mt-3.5'}`}>
-          <div className="flex px-4">
+          <div className="flex items-start px-4">
             {shouldStack ? (
               <div className="w-14" />
             ) : (
@@ -204,7 +204,9 @@ const ChannelMessage = ({ message, prevMessage, pending }) => {
                   </p>
                 </div>
               ) : (
-                <div className={`text-gray-400 ${pending ? 'opacity-50' : ''}`}>
+                <div
+                  className={`text-gray-400 break-words break-all whitespace-pre-wrap ${pending ? 'opacity-50' : ''}`}
+                >
                   {message.content}
                   {(message.updated_at && message.created_at !== message.updated_at) && (
                     <span className="ml-1 text-[0.65rem] text-gray-500">(edited)</span>
@@ -363,6 +365,7 @@ const ChannelMessages = ({ messagesRef, highlightId, onLoadMore, loadingMore, ha
     </div>
   );
 };
+const MAX_MESSAGE_LENGTH = 2000;
 
 const ChannelInput = ({ channel }) => {
   const { messages, setMessages, pendingMessages, setPendingMessages, replyingId, setReplyingId, inputMessage, setInputMessage, inputRef } = useChannelContext();
@@ -433,8 +436,13 @@ const ChannelInput = ({ channel }) => {
           <InputGroupInput
             placeholder={`Message #${channel?.name}`}
             value={inputMessage}
-            onChange={(e) => setInputMessage(e.target.value)}
+            onChange={(e) => {
+              if (e.target.value.length <= MAX_MESSAGE_LENGTH) {
+                setInputMessage(e.target.value);
+              }
+            }}
             ref={inputRef}
+            maxLength={MAX_MESSAGE_LENGTH}
           />
         </InputGroup>
       </form>
