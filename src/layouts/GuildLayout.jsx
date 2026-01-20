@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { Hash, Plus, CaretDown, CaretRight, NotePencil, Trash } from '@phosphor-icons/react';
 import { toast } from 'sonner'
@@ -337,6 +337,7 @@ const GuildSidebar = ({
   canManageChannels,
 }) => {
   const { channelId } = useParams();
+  const store = useStore();
   const [isCreateChannelDialogOpen, setIsCreateChannelDialogOpen] = useState(false);
   const [categoryId, setCategoryId] = useState(null);
 
@@ -394,12 +395,16 @@ const GuildSidebar = ({
           </div>
         </ContextMenuTrigger>
         <ContextMenuContent className="w-52">
-          <ContextMenuItem onSelect={onCreateChannel}>
-            Create Channel
-          </ContextMenuItem>
-          <ContextMenuItem onSelect={onCreateCategory}>
-            Create Category
-          </ContextMenuItem>
+          {canManageChannels && (
+            <ContextMenuItem onSelect={onCreateChannel}>
+              Create Channel
+            </ContextMenuItem>
+          )}
+          {canManageChannels && (
+            <ContextMenuItem onSelect={onCreateCategory}>
+              Create Category
+            </ContextMenuItem>
+          )}
         </ContextMenuContent>
       </ContextMenu>
       {canManageChannels && (
@@ -449,6 +454,12 @@ const GuildLayout = ({ children, guild }) => {
     },
     [isGuildOwner]
   );
+
+  const canManageChannel = useMemo(() => {
+    
+
+    return isGuildOwner;
+  }, [isGuildOwner]);
 
   return (
     <BaseAuthLayout>
