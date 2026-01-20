@@ -1,11 +1,12 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { GuildsService } from '../../services/guilds.service';
-import { useGuildsStore } from '../../stores/guilds.store';
-import GuildLayout from '../../layouts/GuildLayout';
-import Channel from '../../components/Channel';
-import { ChannelContextProvider } from '../../contexts/ChannelContext';
-import ChannelDialog from '../../components/ChannelDialog';
+import { GuildsService } from '../services/guilds.service';
+import { useGuildsStore } from '../stores/guilds.store';
+import GuildLayout from '../layouts/GuildLayout';
+import Channel from '../components/Channel';
+import { ChannelContextProvider } from '../contexts/ChannelContext';
+import ChannelDialog from '../components/ChannelDialog';
+import { GuildContextProvider } from '../contexts/GuildContext';
 
 const GuildChannelPage = () => {
   const navigate = useNavigate();
@@ -21,7 +22,7 @@ const GuildChannelPage = () => {
   // if no guild redirect away
   useEffect(() => {
     if (!guild) {
-      navigate('/dashboard', { replace: true });
+      navigate('/channels/@me', { replace: true });
     }
   }, [guild, navigate]);
 
@@ -34,7 +35,7 @@ const GuildChannelPage = () => {
   // if no channel id in url redirect to first channel
   useEffect(() => {
     if (guild?.channels && !channelId) {
-      navigate(`/channels/${guild.id}/${BigInt(guild.channels[0].channel_id)}`);
+      navigate(`/channels/${guild.id}/${BigInt(guild.channels[0].channel_id)}`, { replace: true });
     }
   }, [channelId, guild, navigate]);
 
@@ -43,13 +44,15 @@ const GuildChannelPage = () => {
   const [isChannelDialogOpen, setIsChannelDialogOpen] = useState(false);
 
   return (
-    <GuildLayout guild={guild}>
-      <ChannelContextProvider>
-        <Channel channel={channel} />
-      </ChannelContextProvider>
+    <GuildContextProvider>
+      <GuildLayout guild={guild}>
+        <ChannelContextProvider>
+          <Channel channel={channel} />
+        </ChannelContextProvider>
 
-      <ChannelDialog isOpen={isChannelDialogOpen} setIsOpen={setIsChannelDialogOpen} guild={guild} />
-    </GuildLayout>
+        <ChannelDialog isOpen={isChannelDialogOpen} setIsOpen={setIsChannelDialogOpen} guild={guild} />
+      </GuildLayout>
+    </GuildContextProvider>
   );
 };
 

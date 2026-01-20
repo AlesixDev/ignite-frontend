@@ -19,10 +19,6 @@ const useStore = create((set) => ({
   guilds: [],
 
   setGuilds: (guilds) => set({ guilds }),
-
-  activeGuildId: null,
-
-  setActiveGuildId: (guildId) => set({ activeGuildId: guildId }),
 }));
 
 export default useStore;

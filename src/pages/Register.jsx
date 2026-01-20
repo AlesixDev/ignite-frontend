@@ -2,13 +2,13 @@ import { useCallback, useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useForm, FormProvider, Controller } from 'react-hook-form';
 import { toast } from 'sonner'
-import useStore from '../../hooks/useStore';
-import api from '../../api';
-import BaseGuestLayout from '../../layouts/BaseGuestLayout';
-import { Card, CardContent } from '../../components/ui/card';
-import { Field, FieldGroup, FieldLabel, FieldDescription, FieldError } from '../../components/ui/field';
-import { Input } from '../../components/ui/input';
-import { Button } from '../../components/ui/button';
+import useStore from '../hooks/useStore';
+import api from '../api';
+import BaseGuestLayout from '../layouts/BaseGuestLayout';
+import { Card, CardContent } from '../components/ui/card';
+import { Field, FieldGroup, FieldLabel, FieldDescription, FieldError } from '../components/ui/field';
+import { Input } from '../components/ui/input';
+import { Button } from '../components/ui/button';
 
 const RegisterPage = () => {
   const form = useForm();

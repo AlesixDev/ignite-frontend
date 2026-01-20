@@ -3,11 +3,10 @@ import { Navigate, Outlet, Route, Routes, useLocation } from 'react-router-dom';
 import useStore from './hooks/useStore';
 import api from './api';
 import PageTitle from './components/PageTitle';
-import LoginPage from './pages/Login/Login';
-import RegisterPage from './pages/Register/Register';
-import DashboardPage from './pages/Dashboard/Dashboard';
-import GuildChannelPage from './pages/GuildChannel/GuildChannel';
-import PrivateMessageLayout from './layouts/PrivateMessageLayout';
+import LoginPage from './pages/Login';
+import RegisterPage from './pages/Register';
+import DirectMessagesPage from './pages/DirectMessages';
+import GuildChannelPage from './pages/GuildChannel';
 import { GuildsService } from './services/guilds.service';
 import { FriendsService } from './services/friends.service';
 
@@ -64,7 +63,7 @@ const AuthRoute = ({ children }) => {
 
 const GuestRoute = ({ children }) => {
   if (localStorage.getItem('token')) {
-    return <Navigate to="/dashboard" replace />;
+    return <Navigate to="/channels/@me" replace />;
   }
 
   return children ? children : <Outlet />;
@@ -79,6 +78,7 @@ function App() {
   }, [pathname]);
 
   useEffect(() => {
+    // eslint-disable-next-line no-undef
     if (process.env.NODE_ENV === 'development') return;
     
     const handleContextMenu = (e) => {
@@ -96,7 +96,7 @@ function App() {
     <Route
       index
       element={
-        store.user ? <Navigate to="/channels/1/1" replace /> : <Navigate to="/login" replace />
+        store.user ? <Navigate to="/channels/@me" replace /> : <Navigate to="/login" replace />
       }
     />
     <Route element={<GuestRoute/>}>
@@ -119,22 +119,13 @@ function App() {
         }
       />
     </Route>
-      <Route element={<AuthRoute />}>
+    <Route element={<AuthRoute />}>
       <Route
         path="/channels/@me"
         element={
           <>
             <PageTitle title="Direct Messages" />
-            <PrivateMessageLayout />
-          </>
-        }
-      />
-      <Route
-        path="/dashboard"
-        element={
-          <>
-            <PageTitle title="Dashboard" />
-            <DashboardPage />
+            <DirectMessagesPage />
           </>
         }
       />

@@ -1,18 +1,15 @@
-// TODO: Move to GuildChannel.jsx, this isn't a layout.
-
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { Hash, Plus, CaretDown, CaretRight, NotePencil, Trash } from '@phosphor-icons/react';
 import { toast } from 'sonner'
 import BaseAuthLayout from './BaseAuthLayout';
+import UserBar from '../components/UserBar';
 import CreateGuildChannelDialog from '../components/CreateGuildChannelDialog';
 import ServerSettings from '../components/Settings/ServerSettings';
 import UserSettings from '../components/Settings/UserSettings';
 import api from '../api';
 import useStore from '../hooks/useStore';
 import { GuildsService } from '../services/guilds.service';
-import { ContextMenu, ContextMenuShortcut, ContextMenuContent, ContextMenuItem, ContextMenuSeparator, ContextMenuSub, ContextMenuSubContent, ContextMenuSubTrigger, ContextMenuTrigger } from '../components/ui/context-menu';
-import EditGuildChannelModal from '../components/Modals/EditGuildChannelModal';
 
 const GuildSidebarHeader = ({ guildName = '', guild, onOpenServerSettings, canOpenServerSettings }) => {
   const navigate = useNavigate();
@@ -193,17 +190,16 @@ const GuildSidebarHeader = ({ guildName = '', guild, onOpenServerSettings, canOp
 };
 
 const GuildSidebarSection = ({
-  category,
+  sectionName = 'Text Channels',
   channels,
   activeChannelId,
-  openCreateChannelDialog,
+  setIsCreateChannelDialogOpen,
   guild,
   onEditChannel,
   canManageChannels,
 }) => {
   const [expanded, setExpanded] = useState(true);
   const navigate = useNavigate();
-  const sectionName = category?.name;
 
   const handleDeleteChannel = useCallback(
     async (channel, event) => {
@@ -218,114 +214,96 @@ const GuildSidebarSection = ({
       const confirmDelete = window.confirm('Delete this channel?');
       if (!confirmDelete) return;
 
-      // try {
-      //   await api.delete(`/guilds/${guild.id}/channels/${channel.channel_id || channel.id}`);
-      //   const nextChannels = channels.filter(
-      //     (item) => (item.channel_id || item.id) !== (channel.channel_id || channel.id)
-      //   );
-      //   GuildsService.editGuild(guild.id, { channels: nextChannels });
-      //   if (String(channel.channel_id) === String(activeChannelId)) {
-      //     navigate(`/channels/${guild.id}`);
-      //   }
-      //   toast.success('Channel deleted.');
-      // } catch (err) {
-      //   const msg = err.response?.data?.message || err.message || 'Could not delete channel.';
-      //   toast.error(msg);
-      // }
-
-      GuildsService.deleteGuildChannel(guild.id, channel.channel_id)
+      try {
+        await api.delete(`/guilds/${guild.id}/channels/${channel.channel_id || channel.id}`);
+        const nextChannels = channels.filter(
+          (item) => (item.channel_id || item.id) !== (channel.channel_id || channel.id)
+        );
+        GuildsService.editGuild(guild.id, { channels: nextChannels });
+        if (String(channel.channel_id) === String(activeChannelId)) {
+          navigate(`/channels/${guild.id}`);
+        }
+        toast.success('Channel deleted.');
+      } catch (err) {
+        const msg = err.response?.data?.message || err.message || 'Could not delete channel.';
+        toast.error(msg);
+      }
     },
     [activeChannelId, canManageChannels, channels, guild?.id, navigate]
   );
 
-  const sortedChannels = [...(channels || [])]
-    .filter((c) => c.type === 0)
-    .filter((c) => c.parent_id == category?.channel_id)
-    .sort((a, b) => {
-      const aPos = Number(a.position ?? 0);
-      const bPos = Number(b.position ?? 0);
-      if (aPos === bPos) {
-        return String(a.name || a.channel_name || '').localeCompare(String(b.name || b.channel_name || ''));
-      }
-      return aPos - bPos;
-    });
+  const sortedChannels = [...(channels || [])].sort((a, b) => {
+    const aPos = Number(a.position ?? 0);
+    const bPos = Number(b.position ?? 0);
+    if (aPos === bPos) {
+      return String(a.name || a.channel_name || '').localeCompare(String(b.name || b.channel_name || ''));
+    }
+    return aPos - bPos;
+  });
 
   return (
     <div className="flex w-full flex-col">
-      {category && (
-        <div className="mb-1 flex items-center pt-4 text-gray-400 hover:text-gray-100">
-          <button
-            type="button"
-            className="flex flex-auto items-center"
-            onClick={() => setExpanded(!expanded)}
-            aria-expanded={expanded}
-          >
-            <div className="flex w-6 items-center justify-center">
-              {expanded ? <CaretDown className="size-2" /> : <CaretRight className="size-2" />}
-            </div>
-            <span className="text-xs font-bold uppercase">{sectionName}</span>
-          </button>
+      <div className="mb-1 flex items-center pt-4 text-gray-400 hover:text-gray-100">
+        <button
+          type="button"
+          className="flex flex-auto items-center"
+          onClick={() => setExpanded(!expanded)}
+          aria-expanded={expanded}
+        >
+          <div className="flex w-6 items-center justify-center">
+            {expanded ? <CaretDown className="size-2" /> : <CaretRight className="size-2" />}
+          </div>
+          <span className="text-xs font-bold uppercase">{sectionName}</span>
+        </button>
 
-          {canManageChannels && (
-            <button type="button" onClick={openCreateChannelDialog} aria-label="Create channel">
-              <Plus className="mr-2 size-3 text-gray-400" />
-            </button>
-          )}
-        </div>
-      )}
+        {canManageChannels && (
+          <button type="button" onClick={() => setIsCreateChannelDialogOpen(true)} aria-label="Create channel">
+            <Plus className="mr-2 size-3 text-gray-400" />
+          </button>
+        )}
+      </div>
 
       {sortedChannels.map((channel) => (
-        <ContextMenu key={channel.channel_id}>
-          <ContextMenuTrigger>
-            <Link
-              key={channel.channel_id}
-              to={`/channels/${channel.guild_id}/${channel.channel_id}`}
-              className={`${!expanded && channel.channel_id != activeChannelId ? 'hidden' : ''}`}
-            >
-              <div
-                className={`group relative mx-2 my-0.5 flex cursor-pointer items-center rounded px-2 py-1 pr-16 ${channel.channel_id == activeChannelId
-                  ? 'bg-gray-600 text-gray-100'
-                  : 'text-gray-500 hover:bg-gray-700 hover:text-gray-400'
-                  }`}
-              >
-                <Hash className="size-6 text-gray-500" />
-                <p className="ml-1 truncate text-base font-medium">{channel.name}</p>
-                {canManageChannels && (
-                  <div className="absolute right-2 hidden items-center gap-1 rounded bg-gray-800/80 px-1 py-0.5 group-hover:flex">
-                    <button
-                      type="button"
-                      aria-label={`Edit ${channel.name}`}
-                      className="rounded p-1 text-sm text-white/90 hover:bg-primary/10 hover:text-primary"
-                      onClick={(event) => {
-                        event.preventDefault();
-                        event.stopPropagation();
-                        onEditChannel?.(channel);
-                      }}
-                    >
-                      <NotePencil className="size-4" />
-                    </button>
-                    <button
-                      type="button"
-                      aria-label={`Delete ${channel.name}`}
-                      className="rounded p-1 text-sm text-white/90 hover:bg-primary/10 hover:text-primary"
-                      onClick={(event) => handleDeleteChannel(channel, event)}
-                    >
-                      <Trash className="size-4" />
-                    </button>
-                  </div>
-                )}
+        <Link
+          key={channel.channel_id}
+          to={`/channels/${channel.guild_id}/${channel.channel_id}`}
+          className={`${!expanded && channel.channel_id != activeChannelId ? 'hidden' : ''}`}
+        >
+          <div
+            className={`group relative mx-2 my-0.5 flex cursor-pointer items-center rounded px-2 py-1 pr-16 ${
+              channel.channel_id == activeChannelId
+                ? 'bg-gray-600 text-gray-100'
+                : 'text-gray-500 hover:bg-gray-700 hover:text-gray-400'
+            }`}
+          >
+            <Hash className="size-6 text-gray-500" />
+            <p className="ml-1 truncate text-base font-medium">{channel.name}</p>
+            {canManageChannels && (
+              <div className="absolute right-2 hidden items-center gap-1 rounded bg-gray-800/80 px-1 py-0.5 group-hover:flex">
+                <button
+                  type="button"
+                  aria-label={`Edit ${channel.name}`}
+                  className="rounded p-1 text-sm text-white/90 hover:bg-primary/10 hover:text-primary"
+                  onClick={(event) => {
+                    event.preventDefault();
+                    event.stopPropagation();
+                    onEditChannel?.(channel);
+                  }}
+                >
+                  <NotePencil className="size-4" />
+                </button>
+                <button
+                  type="button"
+                  aria-label={`Delete ${channel.name}`}
+                  className="rounded p-1 text-sm text-white/90 hover:bg-primary/10 hover:text-primary"
+                  onClick={(event) => handleDeleteChannel(channel, event)}
+                >
+                  <Trash className="size-4" />
+                </button>
               </div>
-            </Link>
-          </ContextMenuTrigger>
-          <ContextMenuContent className="w-52">
-            <ContextMenuItem onSelect={() => onEditChannel?.(channel)}>
-              Edit Channel
-            </ContextMenuItem>
-            <ContextMenuItem onSelect={(e) => handleDeleteChannel(channel, e)} className="text-red-500 hover:bg-red-600/20">
-              Delete Channel
-            </ContextMenuItem>
-          </ContextMenuContent>
-        </ContextMenu>
+            )}
+          </div>
+        </Link>
       ))}
     </div>
   );
@@ -339,94 +317,49 @@ const GuildSidebar = ({
   canManageChannels,
 }) => {
   const { channelId } = useParams();
-  const store = useStore();
   const [isCreateChannelDialogOpen, setIsCreateChannelDialogOpen] = useState(false);
-  const [categoryId, setCategoryId] = useState(null);
-
-  // Go through all categories (channels with type 3) and render their channels inside them
-  const categories = (guild?.channels || []).filter((c) => c.type === 3);
-
-  const onCreateChannel = useCallback(() => {
-    setCategoryId(null);
-    setIsCreateChannelDialogOpen(true);
-  }, []);
-
-  const onCreateCategory = useCallback(() => {
-    toast.info('Create Category clicked.');
-  }, []);
 
   return (
-    <>
-      <ContextMenu>
-        <ContextMenuTrigger>
-          <div className="relative top-0 flex h-full min-w-[240px] flex-col bg-gray-800 text-gray-100">
-            <div className="flex flex-1 flex-col items-center overflow-y-auto">
-              <GuildSidebarHeader
-                guildName={guild?.name}
-                guild={guild}
-                onOpenServerSettings={onOpenServerSettings}
-                canOpenServerSettings={canOpenServerSettings}
-              />
-              <hr className="m-0 w-full border border-gray-900 bg-gray-900 p-0" />
-              <GuildSidebarSection
-                category={null}
-                channels={guild?.channels || []}
-                activeChannelId={channelId}
-                openCreateChannelDialog={() => { setIsCreateChannelDialogOpen(true); setCategoryId(null); }}
-                guild={guild}
-                onEditChannel={onEditChannel}
-                canManageChannels={canManageChannels}
-              />
-
-              {categories.map((category) => (
-                <GuildSidebarSection
-                  key={category.channel_id || category.id}
-                  category={category}
-                  channels={guild?.channels || []}
-                  activeChannelId={channelId}
-                  openCreateChannelDialog={() => {
-                    setIsCreateChannelDialogOpen(true);
-                    setCategoryId(category.channel_id);
-                  }}
-                  guild={guild}
-                  onEditChannel={onEditChannel}
-                  canManageChannels={canManageChannels}
-                />
-              ))}
-            </div>
-          </div>
-        </ContextMenuTrigger>
-        <ContextMenuContent className="w-52">
-          {canManageChannels && (
-            <ContextMenuItem onSelect={onCreateChannel}>
-              Create Channel
-            </ContextMenuItem>
-          )}
-          {canManageChannels && (
-            <ContextMenuItem onSelect={onCreateCategory}>
-              Create Category
-            </ContextMenuItem>
-          )}
-        </ContextMenuContent>
-      </ContextMenu>
-      {canManageChannels && (
-        <CreateGuildChannelDialog
-          isOpen={isCreateChannelDialogOpen}
-          setIsOpen={setIsCreateChannelDialogOpen}
+    <div className="relative top-0 flex h-full min-w-[240px] flex-col bg-gray-800 text-gray-100">
+      <div className="flex flex-1 flex-col items-center overflow-y-auto">
+        <GuildSidebarHeader
+          guildName={guild?.name}
           guild={guild}
-          categoryId={categoryId}
+          onOpenServerSettings={onOpenServerSettings}
+          canOpenServerSettings={canOpenServerSettings}
         />
-      )}
-    </>
+        <hr className="m-0 w-full border border-gray-900 bg-gray-900 p-0" />
+        <GuildSidebarSection
+          sectionName="Text Channels"
+          channels={guild?.channels || []}
+          activeChannelId={channelId}
+          setIsCreateChannelDialogOpen={setIsCreateChannelDialogOpen}
+          guild={guild}
+          onEditChannel={onEditChannel}
+          canManageChannels={canManageChannels}
+        />
+        {canManageChannels && (
+          <CreateGuildChannelDialog
+            isOpen={isCreateChannelDialogOpen}
+            setIsOpen={setIsCreateChannelDialogOpen}
+            guild={guild}
+          />
+        )}
+      </div>
+      <div className="shrink-0">
+        <UserBar />
+      </div>
+    </div>
   );
 };
 
 const GuildLayout = ({ children, guild }) => {
   const store = useStore();
   const [isServerSettingsOpen, setIsServerSettingsOpen] = useState(false);
-  const [isEditChannelModalOpen, setIsEditChannelModalOpen] = useState(false);
+  const [isUserSettingsOpen, setIsUserSettingsOpen] = useState(false);
   const [settingsTab, setSettingsTab] = useState('info');
   const [editChannelId, setEditChannelId] = useState(null);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const isGuildOwner =
     guild?.owner_id != null &&
     store.user?.id != null &&
@@ -445,40 +378,40 @@ const GuildLayout = ({ children, guild }) => {
     [isGuildOwner]
   );
 
-  const openEditChannelModal = useCallback(
-    ({ channelId = null } = {}) => {
-      if (!isGuildOwner) {
-        toast.error('Only the server owner can edit channels.');
-        return;
-      }
-      setEditChannelId(channelId);
-      setIsEditChannelModalOpen(true);
-    },
-    [isGuildOwner]
-  );
-
-  const canManageChannel = useMemo(() => {
-    
-
-    return isGuildOwner;
-  }, [isGuildOwner]);
-
   return (
     <BaseAuthLayout>
       <div className="flex h-screen w-screen">
+        {isSidebarOpen && (
+          <button
+            type="button"
+            className="fixed inset-0 z-30 bg-transparent md:hidden"
+            onClick={() => setIsSidebarOpen(false)}
+            aria-label="Close sidebar"
+          />
+        )}
         <div
-          className={`inset-y-0 left-0 w-64 shrink-0 transition-transform duration-300 ease-out translate-x-0`}
+          className={`fixed inset-y-0 left-0 z-40 w-64 shrink-0 transition-transform duration-300 ease-out md:static md:translate-x-0 ${
+            isSidebarOpen ? 'translate-x-0' : '-translate-x-full'
+          }`}
         >
           <GuildSidebar
             guild={guild}
             onOpenServerSettings={() => openServerSettings({ tab: 'info', channelId: null })}
             onEditChannel={(channel) => {
-              openEditChannelModal({ channelId: channel.channel_id || channel.id });
+              openServerSettings({ tab: 'channels', channelId: channel.channel_id || channel.id });
             }}
             canOpenServerSettings={isGuildOwner}
             canManageChannels={isGuildOwner}
           />
         </div>
+        {!isSidebarOpen && (
+          <button
+            type="button"
+            className="fixed left-0 top-1/2 z-30 h-24 w-4 -translate-y-1/2 animate-pulse rounded-r border border-gray-600/60 bg-gray-800/70 shadow-sm transition-all duration-300 hover:w-5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary md:hidden"
+            onClick={() => setIsSidebarOpen(true)}
+            aria-label="Open sidebar"
+          />
+        )}
         <main className="relative flex min-w-0 flex-1 flex-col bg-gray-700">
           {children}
         </main>
@@ -491,15 +424,10 @@ const GuildLayout = ({ children, guild }) => {
         editChannelId={editChannelId}
         onEditChannelChange={setEditChannelId}
       />
-      <EditGuildChannelModal
-        isOpen={isEditChannelModalOpen}
-        setIsOpen={setIsEditChannelModalOpen}
-        guild={guild}
-        onClose={() => setIsEditChannelModalOpen(false)}
-        channel={guild?.channels?.find((c) => String(c.channel_id || c.id) === String(editChannelId))}
-      />
+      <UserSettings isOpen={isUserSettingsOpen} onClose={() => setIsUserSettingsOpen(false)} />
     </BaseAuthLayout>
   );
 };
 
 export default GuildLayout;
+

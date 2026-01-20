@@ -368,13 +368,13 @@ const groups = [
   {
     title: 'User Settings',
     items: [
-      { id: 'account', label: 'My Account', component: TabAccount },
+      { id: 'account', title: 'My Account', component: TabAccount },
     ],
   },
   {
     title: 'Bots & Integrations',
     items: [
-      { id: 'bots', label: 'Bots', component: TabBots },
+      { id: 'bots', title: 'Bots', component: TabBots },
     ],
   }
 ];
@@ -410,7 +410,7 @@ const UserSettingsDialogContent = () => {
                     <SidebarMenuItem key={item.title}>
                       <SidebarMenuButton asChild isActive={tab === item.id}>
                         <button onClick={() => setTab(item.id)} className="w-full text-left">
-                          {item.label}
+                          {item.title}
                         </button>
                       </SidebarMenuButton>
                     </SidebarMenuItem>

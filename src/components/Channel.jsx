@@ -5,17 +5,18 @@ import api from '../api';
 import useStore from '../hooks/useStore';
 import { GuildsService } from '../services/guilds.service';
 import { useGuildsStore } from '../stores/guilds.store';
+import { useGuildContext } from '../contexts/GuildContext';
 import { useChannelContext } from '../contexts/ChannelContext.jsx';
-import ChannelBar from './ChannelBar.jsx';
 import { ContextMenu, ContextMenuContent, ContextMenuItem, ContextMenuSeparator, ContextMenuTrigger } from './ui/context-menu';
 import { Popover, PopoverContent, PopoverTrigger } from './ui/popover';
-
-import GuildMemberContextMenu from './GuildMemberContextMenu';
-import GuildMemberPopoverContent from './GuildMemberPopoverContent';
 import { InputGroup, InputGroupInput } from './ui/input-group';
 import { Badge } from './ui/badge';
+import ChannelBar from './ChannelBar.jsx';
+import GuildMemberContextMenu from './GuildMemberContextMenu';
+import GuildMemberPopoverContent from './GuildMemberPopoverContent';
 
 const ChannelMessage = ({ message, prevMessage, pending }) => {
+  const { guildId } = useGuildContext();
   const store = useStore();
   const guildsStore = useGuildsStore();
   const authorMenuRef = useRef(null);
@@ -54,7 +55,7 @@ const ChannelMessage = ({ message, prevMessage, pending }) => {
   const canDelete = useMemo(() => {
     if (message.author.id === store.user.id) return true;
 
-    const activeGuild = guildsStore.guilds.find((g) => g.id == guildsStore.activeGuildId);
+    const activeGuild = guildsStore.guilds.find((g) => g.id == guildId);
     if (activeGuild?.owner_id == store.user.id) return true;
 
     const member = activeGuild?.members?.find((m) => m.user_id === store.user.id);
@@ -70,7 +71,7 @@ const ChannelMessage = ({ message, prevMessage, pending }) => {
     }
 
     return false;
-  }, [message.author.id, store.user.id]);
+  }, [guildId, guildsStore.guilds, message.author.id, store.user.id]);
 
   // console.log(store.user);
   // console.log(guildsStore.guilds);
@@ -205,7 +206,7 @@ const ChannelMessage = ({ message, prevMessage, pending }) => {
                 </div>
               ) : (
                 <div
-                  className={`text-gray-400 break-words break-all whitespace-pre-wrap ${pending ? 'opacity-50' : ''}`}
+                  className={`whitespace-pre-wrap break-words text-gray-400 ${pending ? 'opacity-50' : ''}`}
                 >
                   {message.content}
                   {(message.updated_at && message.created_at !== message.updated_at) && (
@@ -451,6 +452,7 @@ const ChannelInput = ({ channel }) => {
 };
 
 const Channel = ({ channel }) => {
+  const { guildId } = useGuildContext();
   const { messages, setMessages, pendingMessages, setPendingMessages, memberListOpen, setInputMessage, inputRef } = useChannelContext();
   const [forceScrollDown, setForceScrollDown] = useState(false);
   const [highlightId, setHighlightId] = useState(null);
@@ -505,8 +507,6 @@ const Channel = ({ channel }) => {
       return;
     }
 
-    console.log('Subscribing to channel:', channel.channel_id, channel);
-
     window.Echo.private(`channel.${channel.channel_id}`)
       .listen('.message.created', (event) => {
         if (event.channel.id == channel.channel_id) {
@@ -541,7 +541,6 @@ const Channel = ({ channel }) => {
       });
 
     return () => {
-      console.log('Unsubscribing from channel:', channel.channel_id);
       window.Echo.leave(`channel.${channel.channel_id}`);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -655,21 +654,21 @@ const Channel = ({ channel }) => {
     inputRef.current.focus();
   }, [inputRef, setInputMessage]);
 
-  const { guilds, activeGuildId } = useGuildsStore();
+  const { guilds } = useGuildsStore();
 
-  const activeGuild = guilds.find((g) => g.id === activeGuildId);
+  const activeGuild = guilds.find((g) => g.id === guildId);
 
   useEffect(() => {
-    if (!activeGuildId) return;
+    if (!guildId) return;
 
-    GuildsService.loadGuildMembers(activeGuildId);
+    GuildsService.loadGuildMembers(guildId);
 
     const interval = setInterval(() => {
-      GuildsService.loadGuildMembers(activeGuildId);
+      GuildsService.loadGuildMembers(guildId);
     }, 5000);
 
     return () => clearInterval(interval);
-  }, [activeGuildId]);
+  }, [guildId]);
 
   return (
     <div className="relative flex min-h-0 w-full flex-1 flex-col bg-gray-700">
