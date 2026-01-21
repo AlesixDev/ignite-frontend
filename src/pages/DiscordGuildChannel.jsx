@@ -2,22 +2,22 @@ import { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { GuildsService } from '../services/guilds.service';
 import { useGuildsStore } from '../stores/guilds.store';
-import GuildLayout from '../layouts/GuildLayout';
-import Channel from '../components/Channel';
+import DiscordGuildLayout from '../layouts/DiscordGuildLayout';
+import DiscordChannel from '../components/DiscordChannel';
 import { ChannelContextProvider } from '../contexts/ChannelContext';
 import ChannelDialog from '../components/ChannelDialog';
 import { GuildContextProvider } from '../contexts/GuildContext';
 
-const GuildChannelPage = () => {
+const DiscordGuildChannelPage = () => {
   const navigate = useNavigate();
 
-  const { guilds } = useGuildsStore();
+  const { discordGuilds } = useGuildsStore();
 
   // get the guild id from the URL
   const { guildId, channelId } = useParams();
 
   // find guild from guilds
-  const guild = useMemo(() => guilds.find((g) => g.id == guildId), [guilds, guildId]);
+  const guild = useMemo(() => discordGuilds.find((g) => g.id == guildId), [discordGuilds, guildId]);
 
   // if no guild redirect away
   useEffect(() => {
@@ -28,7 +28,7 @@ const GuildChannelPage = () => {
 
   useEffect(() => {
     if (guild && !guild.channels) {
-      GuildsService.loadGuildChannels(guild.id);
+      GuildsService.loadDiscordGuildChannels(guild.id);
     }
   }, [guild]);
 
@@ -37,26 +37,32 @@ const GuildChannelPage = () => {
     if (guild?.channels && !channelId) {
       const firstTextChannel = guild.channels.find((c) => c.type === 0);
       if (firstTextChannel) {
-        navigate(`/channels/${guild.id}/${BigInt(firstTextChannel.id)}`, { replace: true });
+        navigate(`/channels_discord/${guild.id}/${BigInt(firstTextChannel.id)}`, { replace: true });
       }
     }
   }, [channelId, guild, navigate]);
 
-  const channel = useMemo(() => guild?.channels?.find((c) => c.channel_id == channelId), [guild, channelId]);
+  useEffect(() => {
+    console.log('Guild channels updated:', guild?.channels);
+  }, [guild?.channels]);
+
+  const channel = useMemo(() => guild?.channels?.find((c) => c.id == channelId), [guild, channelId]);
+
+  console.log('Selected channel:', channel);
 
   const [isChannelDialogOpen, setIsChannelDialogOpen] = useState(false);
 
   return (
     <GuildContextProvider>
-      <GuildLayout guild={guild}>
+      <DiscordGuildLayout guild={guild}>
         <ChannelContextProvider>
-          <Channel channel={channel} />
+          <DiscordChannel channel={channel} />
         </ChannelContextProvider>
 
         <ChannelDialog isOpen={isChannelDialogOpen} setIsOpen={setIsChannelDialogOpen} guild={guild} />
-      </GuildLayout>
+      </DiscordGuildLayout>
     </GuildContextProvider>
   );
 };
 
-export default GuildChannelPage;
+export default DiscordGuildChannelPage;

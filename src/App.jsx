@@ -7,8 +7,10 @@ import LoginPage from './pages/Login';
 import RegisterPage from './pages/Register';
 import DirectMessagesPage from './pages/DirectMessages';
 import GuildChannelPage from './pages/GuildChannel';
+import DiscordGuildChannelPage from './pages/DiscordGuildChannel';
 import { GuildsService } from './services/guilds.service';
 import { FriendsService } from './services/friends.service';
+import axios from 'axios';
 
 const AuthRoute = ({ children }) => {
   const store = useStore();
@@ -26,6 +28,20 @@ const AuthRoute = ({ children }) => {
 
           if (user?.username) {
             store.login(user, localToken);
+
+            const localDiscordToken = localStorage.getItem('discord_token');
+
+            if (localDiscordToken) {
+              const { data: discordUser } = await axios.get('https://discord.com/api/users/@me', {
+                headers: { Authorization: `${localDiscordToken}` }
+              });
+              if (discordUser?.id) {
+                store.setDiscordUser(discordUser);
+                store.setDiscordToken(localDiscordToken);
+
+                console.log('Discord user loaded from token.', discordUser);
+              }
+            }
 
             await GuildsService.loadGuilds();
             await FriendsService.loadFriends();
@@ -135,6 +151,15 @@ function App() {
           <>
             <PageTitle title="Guild Channel" />
             <GuildChannelPage />
+          </>
+        }
+      />
+      <Route
+        path="/channels_discord/:guildId/:channelId?"
+        element={
+          <>
+            <PageTitle title="Discord Guild Channel" />
+            <DiscordGuildChannelPage isDiscordGuild={true} />
           </>
         }
       />

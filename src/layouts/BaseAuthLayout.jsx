@@ -26,7 +26,7 @@ const SidebarIcon = ({ icon = '', iconUrl = '', isActive = false, isServerIcon =
 
 const Sidebar = () => {
   const { guildId } = useParams();
-  const { guilds } = useGuildsStore();
+  const { guilds, discordGuilds } = useGuildsStore();
 
   const [isGuildDialogOpen, setIsGuildDialogOpen] = useState(false);
 
@@ -49,6 +49,16 @@ const Sidebar = () => {
               text={guild.name}
               isServerIcon={true}
               isActive={guildId == guild.id}
+            />
+          </Link>
+        ))}
+        {discordGuilds.map((discordGuild) => (
+          <Link key={discordGuild.id} to={`/channels_discord/${discordGuild.id}`}>
+            <SidebarIcon
+              iconUrl={''}
+              text={discordGuild.name}
+              isServerIcon={true}
+              isActive={guildId == discordGuild.id}
             />
           </Link>
         ))}
