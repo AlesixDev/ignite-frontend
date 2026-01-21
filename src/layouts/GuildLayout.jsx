@@ -292,59 +292,73 @@ const GuildSidebarSection = ({
         </div>
       )}
 
-      {sortedChannels.map((channel) => (
-        <ContextMenu key={channel.channel_id}>
-          <ContextMenuTrigger>
-            <Link
-              key={channel.channel_id}
-              to={`/channels/${channel.guild_id}/${channel.channel_id}`}
-              className={`${!expanded && channel.channel_id != activeChannelId ? 'hidden' : ''}`}
-            >
-              <div
-                className={`group relative mx-2 my-0.5 flex cursor-pointer items-center rounded px-2 py-1 pr-16 ${channel.channel_id == activeChannelId
-                  ? 'bg-gray-600 text-gray-100'
-                  : 'text-gray-500 hover:bg-gray-700 hover:text-gray-400'
-                  }`}
+      {sortedChannels.map((channel) => {
+        // Calculate state variables
+        const isUnread = isChannelUnread(channel.channel_id);
+        const isActive = channel.channel_id == activeChannelId;
+
+        return (
+          <ContextMenu key={channel.channel_id}>
+            <ContextMenuTrigger>
+              <Link
+                to={`/channels/${channel.guild_id}/${channel.channel_id}`}
+                className={`${!expanded && !isActive ? 'hidden' : ''} group relative block`}
               >
-                <Hash className="size-6 text-gray-500" />
-                <p className="ml-1 truncate text-base font-medium">{channel.name} {isChannelUnread(channel.channel_id) && "Unread"}</p>
-                {canManageChannels && (
-                  <div className="absolute right-2 hidden items-center gap-1 rounded bg-gray-800/80 px-1 py-0.5 group-hover:flex">
-                    <button
-                      type="button"
-                      aria-label={`Edit ${channel.name}`}
-                      className="rounded p-1 text-sm text-white/90 hover:bg-primary/10 hover:text-primary"
-                      onClick={(event) => {
-                        event.preventDefault();
-                        event.stopPropagation();
-                        onEditChannel?.(channel);
-                      }}
-                    >
-                      <NotePencil className="size-4" />
-                    </button>
-                    <button
-                      type="button"
-                      aria-label={`Delete ${channel.name}`}
-                      className="rounded p-1 text-sm text-white/90 hover:bg-primary/10 hover:text-primary"
-                      onClick={(event) => handleDeleteChannel(channel, event)}
-                    >
-                      <Trash className="size-4" />
-                    </button>
-                  </div>
+                {isUnread && (
+                  <div className="absolute left-0 top-1/2 h-2 w-1 -translate-y-1/2 rounded-r-full bg-white transition-all" />
                 )}
-              </div>
-            </Link>
-          </ContextMenuTrigger>
-          <ContextMenuContent className="w-52">
-            <ContextMenuItem onSelect={() => onEditChannel?.(channel)}>
-              Edit Channel
-            </ContextMenuItem>
-            <ContextMenuItem onSelect={(e) => handleDeleteChannel(channel, e)} className="text-red-500 hover:bg-red-600/20">
-              Delete Channel
-            </ContextMenuItem>
-          </ContextMenuContent>
-        </ContextMenu>
-      ))}
+
+                <div
+                  className={`relative mx-2 my-0.5 flex cursor-pointer items-center rounded px-2 py-1 pr-16 transition-colors ${isActive
+                    ? 'bg-gray-600 text-gray-100'
+                    : isUnread
+                      ? 'text-gray-100 hover:bg-gray-700'
+                      : 'text-gray-500 hover:bg-gray-700 hover:text-gray-400'
+                    }`}
+                >
+                  <Hash className={`size-6 shrink-0 transition-colors ${isActive || isUnread ? 'text-gray-200' : 'text-gray-500 group-hover:text-gray-400'}`} />
+                  <p className={`ml-1 truncate text-base transition-all ${isActive || isUnread ? 'font-semibold text-white' : 'font-medium'}`}>
+                    {channel.name}
+                  </p>
+
+                  {canManageChannels && (
+                    <div className="absolute right-2 hidden items-center gap-1 rounded bg-gray-800/90 px-1 py-0.5 shadow-sm group-hover:flex">
+                      <button
+                        type="button"
+                        aria-label={`Edit ${channel.name}`}
+                        className="rounded p-1 text-sm text-gray-300 hover:bg-gray-700 hover:text-white"
+                        onClick={(event) => {
+                          event.preventDefault();
+                          event.stopPropagation();
+                          onEditChannel?.(channel);
+                        }}
+                      >
+                        <NotePencil className="size-3.5" />
+                      </button>
+                      <button
+                        type="button"
+                        aria-label={`Delete ${channel.name}`}
+                        className="rounded p-1 text-sm text-gray-300 hover:bg-red-500/20 hover:text-red-400"
+                        onClick={(event) => handleDeleteChannel(channel, event)}
+                      >
+                        <Trash className="size-3.5" />
+                      </button>
+                    </div>
+                  )}
+                </div>
+              </Link>
+            </ContextMenuTrigger>
+            <ContextMenuContent className="w-52">
+              <ContextMenuItem onSelect={() => onEditChannel?.(channel)}>
+                Edit Channel
+              </ContextMenuItem>
+              <ContextMenuItem onSelect={(e) => handleDeleteChannel(channel, e)} className="text-red-500 hover:bg-red-600/20">
+                Delete Channel
+              </ContextMenuItem>
+            </ContextMenuContent>
+          </ContextMenu>
+        );
+      })}
     </div>
   );
 };

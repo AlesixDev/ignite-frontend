@@ -1,6 +1,6 @@
 import { useState, useCallback, useEffect, useRef, useMemo } from 'react';
 import { toast } from 'sonner'
-import { NotePencil, Trash, ArrowBendUpLeft, XCircle, PushPin } from '@phosphor-icons/react';
+import { NotePencil, Trash, ArrowBendUpLeft, XCircle, PushPin, CaretDown } from '@phosphor-icons/react';
 import api from '../api';
 import useStore from '../hooks/useStore';
 import { GuildsService } from '../services/guilds.service';
@@ -20,6 +20,19 @@ import { Smile } from 'lucide-react';
 import { useChannelsStore } from '../stores/channels.store';
 import { ChannelsService } from '../services/channels.service';
 import { UnreadsService } from '../services/unreads.service';
+
+const UnreadDivider = () => (
+  <div className="flex items-center justify-center mt-6 mb-2 relative group w-full animate-in fade-in duration-300">
+    {/* The Red Line */}
+    <div className="absolute left-0 right-0 top-1/2 h-px bg-red-500/80 shadow-[0_0_4px_rgba(239,68,68,0.4)]"></div>
+    
+    {/* The Badge */}
+    <span className="relative z-10 bg-gray-700 px-2 text-[10px] font-bold text-red-500 uppercase tracking-widest flex items-center gap-1">
+      <span>New Messages</span>
+      <CaretDown weight="bold" className="size-3" />
+    </span>
+  </div>
+);
 
 const ChannelMessage = ({ message, prevMessage, pending }) => {
   const { guildId } = useGuildContext();
