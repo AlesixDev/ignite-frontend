@@ -2,8 +2,11 @@ import { create } from 'zustand';
 
 type GuildsStore = {
   guilds: any[];
+  guildMembers: { [guildId: string]: any[] };
 
   setGuilds: (guilds: any[]) => void;
+  setGuildMembers: (guildId: string, members: any[]) => void;
+
   addGuild: (guild: any) => void;
   editGuild: (guildId: string, updates: Partial<any>) => void;
   editGuildChannel: (guildId: string, channelId: string, updates: Partial<any>) => void;
@@ -11,7 +14,16 @@ type GuildsStore = {
 
 export const useGuildsStore = create<GuildsStore>((set) => ({
   guilds: [],
+  guildMembers: {},
   setGuilds: (guilds) => set({ guilds }),
+  setGuildMembers: (guildId, members) =>
+    set((state) => ({
+      guildMembers: {
+        ...state.guildMembers,
+        [guildId]: members,
+      },
+    })),
+
   addGuild: (guild) => set((state) => ({ guilds: [...state.guilds, guild] })),
   editGuild: (guildId, updates) =>
     set((state) => ({

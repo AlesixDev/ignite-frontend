@@ -141,11 +141,11 @@ const RegisterPage = () => {
                   </FieldGroup>
                 </div>
                 <div className="relative hidden bg-muted md:block">
-                  <img
+                  {/* <img
                     src="https://i.postimg.cc/VN4nCKSs/deepfried-1768849587764.jpg"
                     alt="Image"
                     className="absolute inset-0 size-full object-cover dark:brightness-[0.2] dark:grayscale"
-                  />
+                  /> */}
                 </div>
               </CardContent>
             </Card>

@@ -14,10 +14,10 @@ export const GuildsService = {
   },
 
   async loadGuildMembers(guildId) {
-    const { editGuild } = useGuildsStore.getState();
+    const { setGuildMembers } = useGuildsStore.getState();
     try {
       const { data } = await api.get(`/guilds/${guildId}/members`);
-      editGuild(guildId, { members: data });
+      setGuildMembers(guildId, data);
     } catch {
       toast.error('Unable to load guild members.');
     }

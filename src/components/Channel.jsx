@@ -61,7 +61,8 @@ const ChannelMessage = ({ message, prevMessage, pending }) => {
     const activeGuild = guildsStore.guilds.find((g) => g.id == guildId);
     if (activeGuild?.owner_id == store.user.id) return true;
 
-    const member = activeGuild?.members?.find((m) => m.user_id === store.user.id);
+    const activeGuildMembers = guildsStore.guildMembers[guildId] || [];
+    const member = activeGuildMembers.find((m) => m.user_id === store.user.id);
     if (!member) return false;
 
     // bitwise | all permissions in roles
@@ -687,9 +688,9 @@ const Channel = ({ channel }) => {
     inputRef.current.focus();
   }, [inputRef, setInputMessage]);
 
-  const { guilds } = useGuildsStore();
+  const { guildMembers } = useGuildsStore();
 
-  const activeGuild = guilds.find((g) => g.id === guildId);
+  const activeGuildMembers = guildMembers[guildId] || [];
 
   useEffect(() => {
     if (!guildId) return;
@@ -725,7 +726,7 @@ const Channel = ({ channel }) => {
                 Members
               </div>
               <div className="flex flex-1 flex-col gap-1 p-2 text-gray-400">
-                {activeGuild?.members?.map((member) => (
+                {activeGuildMembers?.map((member) => (
                   <div key={member.user.id}>
                     <Popover>
                       <ContextMenu>

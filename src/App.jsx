@@ -44,7 +44,7 @@ const AuthRoute = ({ children }) => {
     if (!initialized) {
       initialize();
     }
-  }, [store, initialized]);
+  }, [initialized]);
 
   if (!initialized) {
     return (
