@@ -9,11 +9,14 @@ import { useGuildContext } from '../contexts/GuildContext';
 import { useChannelContext } from '../contexts/ChannelContext.jsx';
 import { ContextMenu, ContextMenuContent, ContextMenuItem, ContextMenuSeparator, ContextMenuTrigger } from './ui/context-menu';
 import { Popover, PopoverContent, PopoverTrigger } from './ui/popover';
-import { InputGroup, InputGroupInput } from './ui/input-group';
+import { InputGroup, InputGroupAddon, InputGroupButton, InputGroupInput } from './ui/input-group';
 import { Badge } from './ui/badge';
 import ChannelBar from './ChannelBar.jsx';
 import GuildMemberContextMenu from './GuildMemberContextMenu';
 import GuildMemberPopoverContent from './GuildMemberPopoverContent';
+import { EmojiPicker, EmojiPickerContent, EmojiPickerFooter, EmojiPickerSearch } from './ui/emoji-picker';
+import { Button } from './ui/button';
+import { Smile } from 'lucide-react';
 
 const ChannelMessage = ({ message, prevMessage, pending }) => {
   const { guildId } = useGuildContext();
@@ -422,6 +425,8 @@ const ChannelInput = ({ channel }) => {
     }
   }, [inputRef, replyingId]);
 
+  const [isEmojiPickerOpen, setIsEmojiPickerOpen] = useState(false);
+
   return (
     <div className="sticky bottom-0 z-10 bg-gray-700/95 p-4 backdrop-blur md:static md:mt-[22px] md:bg-transparent md:pb-0">
       {replyingId && (
@@ -445,6 +450,32 @@ const ChannelInput = ({ channel }) => {
             ref={inputRef}
             maxLength={MAX_MESSAGE_LENGTH}
           />
+          <Popover onOpenChange={setIsEmojiPickerOpen} open={isEmojiPickerOpen}>
+            <PopoverTrigger asChild>
+              <Button
+                type="button"
+                data-size="xs"
+                variant="ghost"
+                className="mr-2 flex h-6 items-center gap-1 rounded-[calc(var(--radius)-5px)] px-2 text-sm shadow-none has-[>svg]:px-2 [&>svg:not([class*='size-'])]:size-3.5"
+              >
+                <Smile className="size-5" />
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-fit p-0">
+              <EmojiPicker
+                className="h-[342px]"
+                onEmojiSelect={({ emoji }) => {
+                  setIsEmojiPickerOpen(false);
+                  setInputMessage((prev) => prev + emoji);
+                  inputRef.current.focus();
+                }}
+              >
+                <EmojiPickerSearch />
+                <EmojiPickerContent />
+                <EmojiPickerFooter />
+              </EmojiPicker>
+            </PopoverContent>
+          </Popover>
         </InputGroup>
       </form>
     </div>
