@@ -75,13 +75,13 @@ const ChannelBar = ({ channel, onJumpToMessage }) => {
           </div>
 
           <div className="flex flex-wrap items-center justify-end gap-2 sm:gap-4">
-            <IconButton icon="threads" tooltipText="Threads" />
+            {/* <IconButton icon="threads" tooltipText="Threads" />
             <IconButton icon="bell" tooltipText="Notification Settings" />
-            <IconButton icon="pin" tooltipText="Pinned Messages" />
+            <IconButton icon="pin" tooltipText="Pinned Messages" /> */}
             {guildId !== '@me' && (<IconButton icon="users" tooltipText="Show Member List" onClick={() => setMemberListOpen(!memberListOpen)} />)}
             <IconButton icon="search" tooltipText="Search" onClick={() => setSearchOpen(true)} />
-            <IconButton icon="inbox" tooltipText="Inbox" />
-            <IconButton icon="question" tooltipText="Help" />
+            {/* <IconButton icon="inbox" tooltipText="Inbox" />
+            <IconButton icon="question" tooltipText="Help" /> */}
           </div>
         </div>
       </div>

@@ -55,9 +55,9 @@ const Sidebar = () => {
         <button type="button" onClick={() => setIsGuildDialogOpen(true)}>
           <SidebarIcon icon={<Plus className="size-6" />} text="Add a Server" />
         </button>
-        <button type="button">
+        {/* <button type="button">
           <SidebarIcon icon={<Compass className="size-6" />} text="Explore Public Servers" />
-        </button>
+        </button> */}
       </div>
       <GuildDialog isOpen={isGuildDialogOpen} setIsOpen={setIsGuildDialogOpen} />
     </>
