@@ -27,9 +27,9 @@ const AuthRoute = ({ children }) => {
           if (user?.username) {
             store.login(user, localToken);
 
-            GuildsService.loadGuilds();
-            FriendsService.loadFriends();
-            FriendsService.loadRequests();
+            await GuildsService.loadGuilds();
+            await FriendsService.loadFriends();
+            await FriendsService.loadRequests();
           } else {
             localStorage.removeItem('token');
           }
