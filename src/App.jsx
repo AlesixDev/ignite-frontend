@@ -64,7 +64,7 @@ const AuthRoute = ({ children }) => {
                   .listen('.message.created', (event) => {
                     const { channelMessages, channelPendingMessages, setChannelMessages, setChannelPendingMessages } = useChannelsStore.getState();
                     const { user } = useStore.getState();
-                    const { guilds, editGuildChannel } = useGuildsStore.getState();
+                    const { editGuildChannel } = useGuildsStore.getState();
 
                     /*
                        Remove the message from pendingMessages if it exists then add to channelMessages
@@ -115,12 +115,22 @@ const AuthRoute = ({ children }) => {
                     // }
 
                     const { channelMessages, setChannelMessages } = useChannelsStore.getState();
+                    const { editGuildChannel } = useGuildsStore.getState();
 
                     if (channelMessages[channel.channel_id]) {
                       console.log('Deleting from channel messages');
 
                       // If the message exists in channelMessages, remove it
                       setChannelMessages(channel.channel_id, channelMessages[channel.channel_id].filter((m) => m.id !== event.message.id));
+
+                      const latestMessage = channelMessages[channel.channel_id]
+                        .slice()
+                        .sort((a, b) => b.id - a.id)[0];
+
+                      // Set guild channel last_message_id for unreads
+                      editGuildChannel(channel.guild_id, channel.channel_id, { last_message_id: latestMessage?.id });
+
+                      console.log('Latest message after deletion:', latestMessage);
                     }
 
                   });
