@@ -206,7 +206,7 @@ const ChannelMessage = ({ message, prevMessage, pending }) => {
                 </div>
               ) : (
                 <div
-                  className={`whitespace-pre-wrap break-words text-gray-400 ${pending ? 'opacity-50' : ''}`}
+                  className={`text-gray-400 break-words break-all whitespace-pre-wrap ${pending ? 'opacity-50' : ''}`}
                 >
                   {message.content}
                   {(message.updated_at && message.created_at !== message.updated_at) && (
@@ -566,6 +566,8 @@ const Channel = ({ channel }) => {
       setLoadingMore(false);
       return;
     }
+
+    setHasMore(older.length === 50);
 
     const existing = new Set(messages.map((m) => String(m.id)));
     const dedupedOlder = older.filter((m) => !existing.has(String(m.id)));
