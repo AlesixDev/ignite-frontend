@@ -17,6 +17,8 @@ import GuildMemberPopoverContent from './GuildMemberPopoverContent';
 import { EmojiPicker, EmojiPickerContent, EmojiPickerFooter, EmojiPickerSearch } from './ui/emoji-picker';
 import { Button } from './ui/button';
 import { Smile } from 'lucide-react';
+import { useChannelsStore } from '../stores/channels.store';
+import { ChannelsService } from '../services/channels.service';
 
 const ChannelMessage = ({ message, prevMessage, pending }) => {
   const { guildId } = useGuildContext();
@@ -297,8 +299,9 @@ const ChannelMessage = ({ message, prevMessage, pending }) => {
   );
 };
 
-const ChannelMessages = ({ messagesRef, highlightId, onLoadMore, loadingMore, hasMore }) => {
-  const { messages, pendingMessages, setEditingId, replyingId, setReplyingId } = useChannelContext();
+const ChannelMessages = ({ channelId, messagesRef, highlightId, onLoadMore, loadingMore, hasMore }) => {
+  const { pendingMessages, setEditingId, replyingId, setReplyingId } = useChannelContext();
+  const { channelMessages } = useChannelsStore();
   const [atTop, setAtTop] = useState(false);
 
   useEffect(() => {
@@ -326,7 +329,9 @@ const ChannelMessages = ({ messagesRef, highlightId, onLoadMore, loadingMore, ha
     const el = messagesRef.current;
     if (!el) return;
     setAtTop(el.scrollTop <= 10);
-  }, [messagesRef, messages?.length]);
+  }, [messagesRef]);
+
+  const messages = channelMessages[channelId] || [];
 
   return (
     <div
@@ -421,10 +426,13 @@ const ChannelInput = ({ channel }) => {
   }, [channel?.channel_id, inputMessage, pendingMessages, replyingId, setInputMessage, setMessages, setPendingMessages, setReplyingId]);
 
   useEffect(() => {
-    if (replyingId) {
-      inputRef.current.focus();
+    // if (replyingId) {
+    //   inputRef.current.focus();
+    // }
+    if (inputRef.current) {
+      inputRef.current.select();
     }
-  }, [inputRef, replyingId]);
+  }, [inputRef, channel?.channel_id]);
 
   const [isEmojiPickerOpen, setIsEmojiPickerOpen] = useState(false);
 
@@ -485,43 +493,39 @@ const ChannelInput = ({ channel }) => {
 
 const Channel = ({ channel }) => {
   const { guildId } = useGuildContext();
-  const { messages, setMessages, pendingMessages, setPendingMessages, memberListOpen, setInputMessage, inputRef } = useChannelContext();
+  const { memberListOpen, setInputMessage, inputRef } = useChannelContext();
   const [forceScrollDown, setForceScrollDown] = useState(false);
   const [highlightId, setHighlightId] = useState(null);
   const [loadingMore, setLoadingMore] = useState(false);
   const [hasMore, setHasMore] = useState(true);
   const messagesRef = useRef();
+  const { channelMessages, channelPendingMessages } = useChannelsStore();
 
-  const fetchMessages = useCallback(async (opts = {}) => {
-    if (!channel?.channel_id) return;
-
-    const limit = opts.limit ?? 50;
-    const before = opts.before;
-
-    const params = { limit };
-    if (before) params.before = before;
-
-    return api.get(`/channels/${channel.channel_id}/messages`, { params }).then((response) => {
-      const data = Array.isArray(response.data) ? response.data : [];
-      return data;
-    }).catch((error) => {
-      console.error(error);
-      toast.error(error.response?.data?.message || 'Could not fetch messages.');
-      return [];
-    });
-  }, [channel?.channel_id]);
+  const messages = channelMessages[channel?.channel_id] || [];
+  const pendingMessages = channelPendingMessages[channel?.channel_id] || [];
 
   useEffect(() => {
-    setMessages([]);
-    setPendingMessages([]);
-    setHasMore(true);
+    // setMessages([]);
+    // setPendingMessages([]);
+    // setHasMore(true);
 
-    fetchMessages({ limit: 50 }).then((data) => {
-      setMessages(data);
-      setHasMore(data?.length === 50);
-      setTimeout(() => setForceScrollDown(true), 0);
-    });
-  }, [fetchMessages, setMessages, setPendingMessages]);
+    // fetchMessages({ limit: 50 }).then((data) => {
+    //   setMessages(data);
+    //   setHasMore(data?.length === 50);
+    //   setTimeout(() => setForceScrollDown(true), 0);
+    // });
+
+    if (channelMessages[channel?.channel_id] == null) {
+      ChannelsService.loadChannelMessages(channel?.channel_id).then(() => {
+        setHasMore(channelMessages[channel?.channel_id]?.length === 50);
+        setTimeout(() => setForceScrollDown(true), 0);
+      });
+    }
+
+    if (!messagesRef.current) return;
+
+    messagesRef.current.scrollTop = messagesRef.current.scrollHeight;
+  }, [channel?.channel_id]);
 
   useEffect(() => {
     if (!messagesRef.current) return;
@@ -539,79 +543,79 @@ const Channel = ({ channel }) => {
       return;
     }
 
-    window.Echo.private(`channel.${channel.channel_id}`)
-      .listen('.message.created', (event) => {
-        if (event.channel.id == channel.channel_id) {
-          setMessages((prev) => {
-            if (
-              event.message.nonce
-                ? prev.some((m) => m.nonce === event.message.nonce)
-                : prev.some((m) => m.id === event.message.id)
-            ) {
-              return prev;
-            }
-            return [...prev, event.message];
-          });
-          setPendingMessages((prev) =>
-            event.message.nonce
-              ? prev.filter((m) => m.nonce !== event.message.nonce)
-              : prev.filter((m) => m.id !== event.message.id)
-          );
-        }
-      })
-      .listen('.message.updated', (event) => {
-        console.log('message updated');
-        if (event.channel.id == channel.channel_id) {
-          setMessages((prev) => prev.map((m) => m.id === event.message.id ? { ...m, content: event.message.content, updated_at: event.message.updated_at } : m));
-        }
-      })
-      .listen('.message.deleted', (event) => {
-        console.log('message deleted');
-        if (event.channel.id == channel.channel_id) {
-          setMessages((prev) => prev.filter((m) => m.id !== event.message.id));
-        }
-      });
+    // window.Echo.private(`channel.${channel.channel_id}`)
+    //   .listen('.message.created', (event) => {
+    //     if (event.channel.id == channel.channel_id) {
+    //       setMessages((prev) => {
+    //         if (
+    //           event.message.nonce
+    //             ? prev.some((m) => m.nonce === event.message.nonce)
+    //             : prev.some((m) => m.id === event.message.id)
+    //         ) {
+    //           return prev;
+    //         }
+    //         return [...prev, event.message];
+    //       });
+    //       setPendingMessages((prev) =>
+    //         event.message.nonce
+    //           ? prev.filter((m) => m.nonce !== event.message.nonce)
+    //           : prev.filter((m) => m.id !== event.message.id)
+    //       );
+    //     }
+    //   })
+    //   .listen('.message.updated', (event) => {
+    //     console.log('message updated');
+    //     if (event.channel.id == channel.channel_id) {
+    //       setMessages((prev) => prev.map((m) => m.id === event.message.id ? { ...m, content: event.message.content, updated_at: event.message.updated_at } : m));
+    //     }
+    //   })
+    //   .listen('.message.deleted', (event) => {
+    //     console.log('message deleted');
+    //     if (event.channel.id == channel.channel_id) {
+    //       setMessages((prev) => prev.filter((m) => m.id !== event.message.id));
+    //     }
+    //   });
 
     return () => {
-      window.Echo.leave(`channel.${channel.channel_id}`);
+      // window.Echo.leave(`channel.${channel.channel_id}`);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [channel?.channel_id]);
 
-  const loadMore = useCallback(async () => {
-    if (loadingMore || !hasMore) return;
-    if (!messagesRef.current) return;
-    if (!messages || messages.length === 0) return;
+  // const loadMore = useCallback(async () => {
+  //   if (loadingMore || !hasMore) return;
+  //   if (!messagesRef.current) return;
+  //   if (!messages || messages.length === 0) return;
 
-    const oldestId = messages[0]?.id;
-    if (!oldestId) return;
+  //   const oldestId = messages[0]?.id;
+  //   if (!oldestId) return;
 
-    setLoadingMore(true);
+  //   setLoadingMore(true);
 
-    const container = messagesRef.current;
-    const prevScrollHeight = container.scrollHeight;
+  //   const container = messagesRef.current;
+  //   const prevScrollHeight = container.scrollHeight;
 
-    const older = await fetchMessages({ limit: 50, before: oldestId });
+  //   const older = await fetchMessages({ limit: 50, before: oldestId });
 
-    if (!older || older.length === 0) {
-      setHasMore(false);
-      setLoadingMore(false);
-      return;
-    }
+  //   if (!older || older.length === 0) {
+  //     setHasMore(false);
+  //     setLoadingMore(false);
+  //     return;
+  //   }
 
-    setHasMore(older.length === 50);
+  //   setHasMore(older.length === 50);
 
-    const existing = new Set(messages.map((m) => String(m.id)));
-    const dedupedOlder = older.filter((m) => !existing.has(String(m.id)));
+  //   const existing = new Set(messages.map((m) => String(m.id)));
+  //   const dedupedOlder = older.filter((m) => !existing.has(String(m.id)));
 
-    setMessages((prev) => [...dedupedOlder, ...prev]);
+  //   setMessages((prev) => [...dedupedOlder, ...prev]);
 
-    requestAnimationFrame(() => {
-      const newScrollHeight = container.scrollHeight;
-      container.scrollTop = newScrollHeight - prevScrollHeight + container.scrollTop;
-      setLoadingMore(false);
-    });
-  }, [fetchMessages, hasMore, loadingMore, messages, setMessages]);
+  //   requestAnimationFrame(() => {
+  //     const newScrollHeight = container.scrollHeight;
+  //     container.scrollTop = newScrollHeight - prevScrollHeight + container.scrollTop;
+  //     setLoadingMore(false);
+  //   });
+  // }, [ hasMore, loadingMore, messages, setMessages]);
 
   const scrollToMessage = useCallback((msgId) => {
     setHighlightId(msgId);
@@ -624,63 +628,63 @@ const Channel = ({ channel }) => {
     }, 100);
   }, []);
 
-  const handleJumpToMessage = useCallback(async (msgId) => {
-    if (!msgId) return;
-    setForceScrollDown(false);
+  // const handleJumpToMessage = useCallback(async (msgId) => {
+  //   if (!msgId) return;
+  //   setForceScrollDown(false);
 
-    const existingEl = document.getElementById(`msg-${msgId}`);
-    if (existingEl) {
-      scrollToMessage(msgId);
-      return;
-    }
+  //   const existingEl = document.getElementById(`msg-${msgId}`);
+  //   if (existingEl) {
+  //     scrollToMessage(msgId);
+  //     return;
+  //   }
 
-    setLoadingMore(true);
-    let workingMessages = Array.isArray(messages) ? [...messages] : [];
-    let found = false;
-    let pages = 0;
-    const maxPages = 20;
+  //   setLoadingMore(true);
+  //   let workingMessages = Array.isArray(messages) ? [...messages] : [];
+  //   let found = false;
+  //   let pages = 0;
+  //   const maxPages = 20;
 
-    while (!found && pages < maxPages) {
-      if (workingMessages.length === 0) {
-        const initial = await fetchMessages({ limit: 50 });
-        if (!initial || initial.length === 0) {
-          setHasMore(false);
-          break;
-        }
-        workingMessages = [...initial];
-        setMessages(workingMessages);
-      } else {
-        const oldestId = workingMessages[0]?.id;
-        if (!oldestId) break;
+  //   while (!found && pages < maxPages) {
+  //     if (workingMessages.length === 0) {
+  //       const initial = await fetchMessages({ limit: 50 });
+  //       if (!initial || initial.length === 0) {
+  //         setHasMore(false);
+  //         break;
+  //       }
+  //       workingMessages = [...initial];
+  //       setMessages(workingMessages);
+  //     } else {
+  //       const oldestId = workingMessages[0]?.id;
+  //       if (!oldestId) break;
 
-        const older = await fetchMessages({ limit: 50, before: oldestId });
-        if (!older || older.length === 0) {
-          setHasMore(false);
-          break;
-        }
+  //       const older = await fetchMessages({ limit: 50, before: oldestId });
+  //       if (!older || older.length === 0) {
+  //         setHasMore(false);
+  //         break;
+  //       }
 
-        const existing = new Set(workingMessages.map((m) => String(m.id)));
-        const dedupedOlder = older.filter((m) => !existing.has(String(m.id)));
-        if (dedupedOlder.length > 0) {
-          workingMessages = [...dedupedOlder, ...workingMessages];
-          setMessages(workingMessages);
-        }
-      }
+  //       const existing = new Set(workingMessages.map((m) => String(m.id)));
+  //       const dedupedOlder = older.filter((m) => !existing.has(String(m.id)));
+  //       if (dedupedOlder.length > 0) {
+  //         workingMessages = [...dedupedOlder, ...workingMessages];
+  //         setMessages(workingMessages);
+  //       }
+  //     }
 
-      await new Promise((resolve) => requestAnimationFrame(resolve));
-      found = workingMessages.some((m) => String(m.id) === String(msgId));
-      pages += 1;
-    }
+  //     await new Promise((resolve) => requestAnimationFrame(resolve));
+  //     found = workingMessages.some((m) => String(m.id) === String(msgId));
+  //     pages += 1;
+  //   }
 
-    setLoadingMore(false);
+  //   setLoadingMore(false);
 
-    const el = document.getElementById(`msg-${msgId}`);
-    if (el) {
-      scrollToMessage(msgId);
-    } else {
-      toast.error('Message not found in history.');
-    }
-  }, [fetchMessages, messages, scrollToMessage, setMessages]);
+  //   const el = document.getElementById(`msg-${msgId}`);
+  //   if (el) {
+  //     scrollToMessage(msgId);
+  //   } else {
+  //     toast.error('Message not found in history.');
+  //   }
+  // }, [fetchMessages, messages, scrollToMessage, setMessages]);
 
   // TODO: This is duplicated
   const onMention = useCallback((user) => {
@@ -704,20 +708,29 @@ const Channel = ({ channel }) => {
     return () => clearInterval(interval);
   }, [guildId]);
 
+  const onLoadMore = useCallback(async () => {
+    const oldestMessage = messages.sort((a, b) => new Date(a.created_at) - new Date(b.created_at))[0];
+
+    console.log('Loading more messages before ID:', oldestMessage.id);
+
+    //ChannelsService.loadChannelMessages(channel.channel_id, oldestMessage.id);
+  }, [channel, messages]);
+
   return (
     <div className="relative flex min-h-0 w-full flex-1 flex-col bg-gray-700">
-      <ChannelBar channel={channel} onJumpToMessage={handleJumpToMessage} />
+      <ChannelBar channel={channel} onJumpToMessage={() => { }} />
       <hr className="m-0 w-full border border-gray-800 bg-gray-800 p-0" />
       <div className="flex min-h-0 flex-1">
         <div className="flex w-full flex-1 flex-col">
           <ChannelMessages
+            channelId={channel?.channel_id}
             messagesRef={messagesRef}
             highlightId={highlightId}
-            onLoadMore={loadMore}
+            onLoadMore={onLoadMore}
             loadingMore={loadingMore}
             hasMore={hasMore}
           />
-          <ChannelInput channel={channel} fetchMessages={fetchMessages} />
+          <ChannelInput channel={channel} />
         </div>
         <div className={`relative z-0 transition-all duration-300 ${memberListOpen ? 'w-60 md:w-72' : 'w-0'}`}>
           {memberListOpen && (

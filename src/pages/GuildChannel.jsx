@@ -37,7 +37,7 @@ const GuildChannelPage = () => {
     if (guild?.channels && !channelId) {
       const firstTextChannel = guild.channels.find((c) => c.type === 0);
       if (firstTextChannel) {
-        navigate(`/channels/${guild.id}/${BigInt(firstTextChannel.id)}`, { replace: true });
+        navigate(`/channels/${guild.id}/${BigInt(firstTextChannel.channel_id)}`, { replace: true });
       }
     }
   }, [channelId, guild, navigate]);

@@ -11,6 +11,9 @@ import DiscordGuildChannelPage from './pages/DiscordGuildChannel';
 import { GuildsService } from './services/guilds.service';
 import { FriendsService } from './services/friends.service';
 import axios from 'axios';
+import { useGuildsStore } from './stores/guilds.store';
+import { useChannelsStore } from './stores/channels.store';
+import notificationSound from './sounds/notification.wav'
 
 const AuthRoute = ({ children }) => {
   const store = useStore();
@@ -46,6 +49,77 @@ const AuthRoute = ({ children }) => {
             await GuildsService.loadGuilds();
             await FriendsService.loadFriends();
             await FriendsService.loadRequests();
+
+            // Subscribe to all channels via Echo
+            const guilds = useGuildsStore.getState().guilds;
+            guilds.forEach(guild => {
+              guild.channels?.forEach(channel => {
+                console.log(`Subscribing to channel.${channel.channel_id}`);
+
+
+
+                window.Echo.private(`channel.${channel.channel_id}`)
+                  .listen('.message.created', (event) => {
+                    const { channelMessages, channelPendingMessages, setChannelMessages, setChannelPendingMessages } = useChannelsStore.getState();
+                    const { user } = useStore.getState();
+
+                    /*
+                       Remove the message from pendingMessages if it exists then add to channelMessages
+                    */
+                    if (channelPendingMessages[channel.channel_id]?.some((m) => m.nonce === event.message.nonce)) {
+                      console.log('Removing from pending messages');
+                      setChannelPendingMessages(channel.channel_id, channelPendingMessages[channel.channel_id].filter((m) => m.nonce !== event.message.nonce));
+                    }
+
+                    if (channelMessages[channel.channel_id] && !channelMessages[channel.channel_id]?.some((m) => m.id === event.message.id)) {
+                      console.log('Adding to channel messages');
+
+                      console.log(channelMessages[channel.channel_id]);
+                      setChannelMessages(channel.channel_id, [...(channelMessages[channel.channel_id] || []), event.message]);
+
+                      //if (event.message.author.id !== user.id) {
+                        // Play notification sound for incoming message
+                        const audio = new Audio(notificationSound);
+                        audio.play().catch((e) => {
+                          console.error('Failed to play notification sound:', e);
+                        });
+                      //}
+                    }
+                  })
+                  .listen('.message.updated', (event) => {
+                    const { channelMessages, setChannelMessages } = useChannelsStore.getState();
+
+                    if (channelMessages[channel.channel_id] && channelMessages[channel.channel_id]?.some((m) => m.id === event.message.id)) {
+                      console.log('Updating channel messages');
+
+                      // If the message exists in channelMessages, update it
+                      setChannelMessages(channel.channel_id, channelMessages[channel.channel_id].map((m) => m.id === event.message.id ? { ...m, content: event.message.content, updated_at: event.message.updated_at } : m));
+                      // setChannelMessages(channel.channel_id, channelMessages[channel.channel_id].map((m) => m.id === event.message.id ? { ...m, content: event.message.content, updated_at: event.message.updated_at } : m));
+                    }
+
+                    // console.log('message updated');
+                    // if (event.channel.id == channel.channel_id) {
+                    //   setMessages((prev) => prev.map((m) => m.id === event.message.id ? { ...m, content: event.message.content, updated_at: event.message.updated_at } : m));
+                    // }
+                  })
+                  .listen('.message.deleted', (event) => {
+                    // console.log('message deleted');
+                    // if (event.channel.id == channel.channel_id) {
+                    //   setMessages((prev) => prev.filter((m) => m.id !== event.message.id));
+                    // }
+
+                    const { channelMessages, setChannelMessages } = useChannelsStore.getState();
+
+                    if (channelMessages[channel.channel_id]) {
+                      console.log('Deleting from channel messages');
+
+                      // If the message exists in channelMessages, remove it
+                      setChannelMessages(channel.channel_id, channelMessages[channel.channel_id].filter((m) => m.id !== event.message.id));
+                    }
+
+                  });
+              });
+            });
           } else {
             localStorage.removeItem('token');
           }
@@ -96,7 +170,7 @@ function App() {
   useEffect(() => {
     // eslint-disable-next-line no-undef
     if (process.env.NODE_ENV === 'development') return;
-    
+
     const handleContextMenu = (e) => {
       e.preventDefault();
     };
@@ -115,7 +189,7 @@ function App() {
         store.user ? <Navigate to="/channels/@me" replace /> : <Navigate to="/login" replace />
       }
     />
-    <Route element={<GuestRoute/>}>
+    <Route element={<GuestRoute />}>
       <Route
         path="login"
         element={
