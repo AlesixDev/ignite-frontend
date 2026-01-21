@@ -14,6 +14,7 @@ export const useChannelsStore = create<ChannelsStore>((set) => ({
     channels: [],
     channelMessages: {},
     channelPendingMessages: {},
+    channelUnreads: {},
 
     setChannels: (channels) => set({ channels }),
     setChannelMessages: (channelId, messages) =>

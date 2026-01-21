@@ -13,6 +13,7 @@ import useStore from '../hooks/useStore';
 import { GuildsService } from '../services/guilds.service';
 import { ContextMenu, ContextMenuShortcut, ContextMenuContent, ContextMenuItem, ContextMenuSeparator, ContextMenuSub, ContextMenuSubContent, ContextMenuSubTrigger, ContextMenuTrigger } from '../components/ui/context-menu';
 import EditGuildChannelModal from '../components/Modals/EditGuildChannelModal';
+import { useUnreadsStore } from '../stores/unreads.store';
 
 const GuildSidebarHeader = ({ guildName = '', guild, onOpenServerSettings, canOpenServerSettings }) => {
   const navigate = useNavigate();
@@ -204,6 +205,23 @@ const GuildSidebarSection = ({
   const [expanded, setExpanded] = useState(true);
   const navigate = useNavigate();
   const sectionName = category?.name;
+  const { channelUnreads } = useUnreadsStore();
+
+  const isChannelUnread = (channelId) => {
+    // Find the channel unread with channel_id == channelId
+    const channelUnread = channelUnreads.find((cu) => String(cu.channel_id) === String(channelId));
+    if (!channelUnread) return true;
+
+    // If the timestamp of channel.last_message_id is greater than channelUnread.last_read_message_id
+    const channel = guild?.channels?.find((c) => String(c.channel_id) === String(channelId));
+    if (!channel || !channel.last_message_id) return false;
+
+    // Get timestamp of both message IDs (Snowflake)
+    const channelLastMessageTimestamp = BigInt(channel.last_message_id) >> 22n;
+    const channelUnreadLastReadTimestamp = BigInt(channelUnread.last_read_message_id) >> 22n;
+
+    return channelLastMessageTimestamp > channelUnreadLastReadTimestamp;
+  }
 
   const handleDeleteChannel = useCallback(
     async (channel, event) => {
@@ -289,7 +307,7 @@ const GuildSidebarSection = ({
                   }`}
               >
                 <Hash className="size-6 text-gray-500" />
-                <p className="ml-1 truncate text-base font-medium">{channel.name}</p>
+                <p className="ml-1 truncate text-base font-medium">{channel.name} {isChannelUnread(channel.channel_id) && "Unread"}</p>
                 {canManageChannels && (
                   <div className="absolute right-2 hidden items-center gap-1 rounded bg-gray-800/80 px-1 py-0.5 group-hover:flex">
                     <button
@@ -458,7 +476,7 @@ const GuildLayout = ({ children, guild }) => {
   );
 
   const canManageChannel = useMemo(() => {
-    
+
 
     return isGuildOwner;
   }, [isGuildOwner]);

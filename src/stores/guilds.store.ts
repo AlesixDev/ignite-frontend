@@ -46,11 +46,11 @@ export const useGuildsStore = create<GuildsStore>((set) => ({
   editGuildChannel: (guildId, channelId, updates) =>
     set((state) => ({
       guilds: state.guilds.map((g) => {
-        if (g.id === guildId) {
+        if (g.id == guildId) {
           return {
             ...g,
             channels: g.channels.map((c: any) =>
-              c.id === channelId ? { ...c, ...updates } : c
+              c.channel_id == channelId ? { ...c, ...updates } : c
             ),
           };
         }

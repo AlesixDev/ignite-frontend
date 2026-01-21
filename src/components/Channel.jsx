@@ -19,6 +19,7 @@ import { Button } from './ui/button';
 import { Smile } from 'lucide-react';
 import { useChannelsStore } from '../stores/channels.store';
 import { ChannelsService } from '../services/channels.service';
+import { UnreadsService } from '../services/unreads.service';
 
 const ChannelMessage = ({ message, prevMessage, pending }) => {
   const { guildId } = useGuildContext();
@@ -273,11 +274,11 @@ const ChannelMessage = ({ message, prevMessage, pending }) => {
             Mark Unread
           </ContextMenuItem>
           <ContextMenuItem onSelect={() => {
-            const link = `${window.location.origin}/channels/${message.channel_id}/${message.id}`;
+            const link = `${message.id}`;
             navigator.clipboard.writeText(link);
             toast.success('Message link copied to clipboard.');
           }}>
-            Copy Message Link
+            Copy Message ID
           </ContextMenuItem>
           <ContextMenuItem>
             Speak Message
@@ -505,16 +506,6 @@ const Channel = ({ channel }) => {
   const pendingMessages = channelPendingMessages[channel?.channel_id] || [];
 
   useEffect(() => {
-    // setMessages([]);
-    // setPendingMessages([]);
-    // setHasMore(true);
-
-    // fetchMessages({ limit: 50 }).then((data) => {
-    //   setMessages(data);
-    //   setHasMore(data?.length === 50);
-    //   setTimeout(() => setForceScrollDown(true), 0);
-    // });
-
     if (channelMessages[channel?.channel_id] == null) {
       ChannelsService.loadChannelMessages(channel?.channel_id).then(() => {
         setHasMore(channelMessages[channel?.channel_id]?.length === 50);
@@ -527,6 +518,37 @@ const Channel = ({ channel }) => {
     messagesRef.current.scrollTop = messagesRef.current.scrollHeight;
   }, [channel?.channel_id]);
 
+  // If scroll is near bottom send an ACK message
+  useEffect(() => {
+    if (!messages || !channel?.channel_id) return;
+
+    const el = messagesRef.current;
+    if (!el) return;
+
+    let lastAckTime = 0;
+
+    function checkAndAckAtBottom() {
+      const nearBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 100;
+      const now = Date.now();
+      if (nearBottom && messages.length > 0) {
+        if (now - lastAckTime > 10000) {
+          ChannelsService.acknowledgeChannelMessage(
+            channel.channel_id,
+            messages[messages.length - 1]?.id
+          );
+          lastAckTime = now;
+        }
+        UnreadsService.setLastReadMessageId(channel.channel_id, messages[messages.length - 1]?.id);
+      }
+    }
+
+    const interval = setInterval(checkAndAckAtBottom, 1000);
+
+    return () => {
+      clearInterval(interval);
+    };
+  }, [channel?.channel_id, messages]);
+
   useEffect(() => {
     if (!messagesRef.current) return;
     const nearBottom = messagesRef.current.scrollHeight - messagesRef.current.scrollTop - messagesRef.current.clientHeight < 100;
@@ -537,154 +559,6 @@ const Channel = ({ channel }) => {
       }
     }
   }, [pendingMessages, messages, forceScrollDown]);
-
-  useEffect(() => {
-    if (!channel) {
-      return;
-    }
-
-    // window.Echo.private(`channel.${channel.channel_id}`)
-    //   .listen('.message.created', (event) => {
-    //     if (event.channel.id == channel.channel_id) {
-    //       setMessages((prev) => {
-    //         if (
-    //           event.message.nonce
-    //             ? prev.some((m) => m.nonce === event.message.nonce)
-    //             : prev.some((m) => m.id === event.message.id)
-    //         ) {
-    //           return prev;
-    //         }
-    //         return [...prev, event.message];
-    //       });
-    //       setPendingMessages((prev) =>
-    //         event.message.nonce
-    //           ? prev.filter((m) => m.nonce !== event.message.nonce)
-    //           : prev.filter((m) => m.id !== event.message.id)
-    //       );
-    //     }
-    //   })
-    //   .listen('.message.updated', (event) => {
-    //     console.log('message updated');
-    //     if (event.channel.id == channel.channel_id) {
-    //       setMessages((prev) => prev.map((m) => m.id === event.message.id ? { ...m, content: event.message.content, updated_at: event.message.updated_at } : m));
-    //     }
-    //   })
-    //   .listen('.message.deleted', (event) => {
-    //     console.log('message deleted');
-    //     if (event.channel.id == channel.channel_id) {
-    //       setMessages((prev) => prev.filter((m) => m.id !== event.message.id));
-    //     }
-    //   });
-
-    return () => {
-      // window.Echo.leave(`channel.${channel.channel_id}`);
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [channel?.channel_id]);
-
-  // const loadMore = useCallback(async () => {
-  //   if (loadingMore || !hasMore) return;
-  //   if (!messagesRef.current) return;
-  //   if (!messages || messages.length === 0) return;
-
-  //   const oldestId = messages[0]?.id;
-  //   if (!oldestId) return;
-
-  //   setLoadingMore(true);
-
-  //   const container = messagesRef.current;
-  //   const prevScrollHeight = container.scrollHeight;
-
-  //   const older = await fetchMessages({ limit: 50, before: oldestId });
-
-  //   if (!older || older.length === 0) {
-  //     setHasMore(false);
-  //     setLoadingMore(false);
-  //     return;
-  //   }
-
-  //   setHasMore(older.length === 50);
-
-  //   const existing = new Set(messages.map((m) => String(m.id)));
-  //   const dedupedOlder = older.filter((m) => !existing.has(String(m.id)));
-
-  //   setMessages((prev) => [...dedupedOlder, ...prev]);
-
-  //   requestAnimationFrame(() => {
-  //     const newScrollHeight = container.scrollHeight;
-  //     container.scrollTop = newScrollHeight - prevScrollHeight + container.scrollTop;
-  //     setLoadingMore(false);
-  //   });
-  // }, [ hasMore, loadingMore, messages, setMessages]);
-
-  const scrollToMessage = useCallback((msgId) => {
-    setHighlightId(msgId);
-    setTimeout(() => setHighlightId(null), 2000);
-    setTimeout(() => {
-      const el = document.getElementById(`msg-${msgId}`);
-      if (el && messagesRef.current) {
-        el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-      }
-    }, 100);
-  }, []);
-
-  // const handleJumpToMessage = useCallback(async (msgId) => {
-  //   if (!msgId) return;
-  //   setForceScrollDown(false);
-
-  //   const existingEl = document.getElementById(`msg-${msgId}`);
-  //   if (existingEl) {
-  //     scrollToMessage(msgId);
-  //     return;
-  //   }
-
-  //   setLoadingMore(true);
-  //   let workingMessages = Array.isArray(messages) ? [...messages] : [];
-  //   let found = false;
-  //   let pages = 0;
-  //   const maxPages = 20;
-
-  //   while (!found && pages < maxPages) {
-  //     if (workingMessages.length === 0) {
-  //       const initial = await fetchMessages({ limit: 50 });
-  //       if (!initial || initial.length === 0) {
-  //         setHasMore(false);
-  //         break;
-  //       }
-  //       workingMessages = [...initial];
-  //       setMessages(workingMessages);
-  //     } else {
-  //       const oldestId = workingMessages[0]?.id;
-  //       if (!oldestId) break;
-
-  //       const older = await fetchMessages({ limit: 50, before: oldestId });
-  //       if (!older || older.length === 0) {
-  //         setHasMore(false);
-  //         break;
-  //       }
-
-  //       const existing = new Set(workingMessages.map((m) => String(m.id)));
-  //       const dedupedOlder = older.filter((m) => !existing.has(String(m.id)));
-  //       if (dedupedOlder.length > 0) {
-  //         workingMessages = [...dedupedOlder, ...workingMessages];
-  //         setMessages(workingMessages);
-  //       }
-  //     }
-
-  //     await new Promise((resolve) => requestAnimationFrame(resolve));
-  //     found = workingMessages.some((m) => String(m.id) === String(msgId));
-  //     pages += 1;
-  //   }
-
-  //   setLoadingMore(false);
-
-  //   const el = document.getElementById(`msg-${msgId}`);
-  //   if (el) {
-  //     scrollToMessage(msgId);
-  //   } else {
-  //     toast.error('Message not found in history.');
-  //   }
-  // }, [fetchMessages, messages, scrollToMessage, setMessages]);
 
   // TODO: This is duplicated
   const onMention = useCallback((user) => {

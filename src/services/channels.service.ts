@@ -70,5 +70,13 @@ export const ChannelsService = {
         } catch {
             toast.error('Unable to load channel messages.');
         }
+    },
+
+    async acknowledgeChannelMessage(channelId: string, messageId: string) {
+        try {
+            await api.put(`/channels/${channelId}/ack/${messageId}`);
+        } catch {
+            toast.error('Unable to acknowledge channel messages.');
+        }
     }
 };
