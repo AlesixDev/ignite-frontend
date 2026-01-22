@@ -230,7 +230,7 @@ const DirectMessagesPage = () => {
                       {[
                         { id: 'online', label: 'Online' },
                         { id: 'all', label: 'All' },
-                        { id: 'pending', label: 'Pending', count: friendRequests.length },
+                        { id: 'pending', label: 'Pending', count: friendRequests.filter(req => req.sender_id != currentUser.id).length },
                       ].map(tab => (
                         <Button
                           key={tab.id}
@@ -319,7 +319,7 @@ const DirectMessagesPage = () => {
                         return (
                           <div key={req.id} className="flex items-center justify-between border-t border-gray-600/30 px-2 py-3">
                             <div className="flex items-center gap-3">
-                              <div className="size-8 rounded-full bg-gray-500" />
+                              <Avatar user={user} className="size-8 rounded-full" />
                               <div>
                                 <div className="text-sm font-bold">{user.username}</div>
                                 <div className="text-xs text-gray-400">{isOutgoing ? 'Outgoing Friend Request' : 'Incoming Friend Request'}</div>

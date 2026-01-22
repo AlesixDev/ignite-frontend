@@ -15,6 +15,7 @@ import { useGuildsStore } from './stores/guilds.store';
 import { useChannelsStore } from './stores/channels.store';
 import notificationSound from './sounds/notification.wav'
 import { UnreadsService } from './services/unreads.service';
+import { RolesService } from './services/roles.service';
 
 const AuthRoute = ({ children }) => {
   const store = useStore();
@@ -48,6 +49,7 @@ const AuthRoute = ({ children }) => {
             }
 
             await GuildsService.loadGuilds();
+            await RolesService.initializeGuildRoles();
             await FriendsService.loadFriends();
             await FriendsService.loadRequests();
             UnreadsService.loadUnreads();
