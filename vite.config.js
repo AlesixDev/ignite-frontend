@@ -2,9 +2,11 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 
+const isElectron = process.env.VITE_ELECTRON === 'true';
+
 export default defineConfig({
   plugins: [react()],
-  base: './', // 🔑 Relative paths for Electron file:// URLs
+  base: isElectron ? './' : '/',  // 🔑 Relative paths for Electron file:// URLs
   build: {
     outDir: 'dist',
     rollupOptions: {

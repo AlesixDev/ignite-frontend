@@ -74,7 +74,7 @@ const ActionsIcons = () => {
 
 const UserBar = () => {
   return (
-    <div className="absolute left-0 bottom-0 mb-4 ml-4 flex h-14 items-center bg-gray-900 border border-gray-700 rounded-lg">
+    <div className="absolute left-0 bottom-0 mb-4 ml-4 flex h-14 items-center bg-gray-900 border border-gray-700 rounded-lg z-50">
       <div className="flex flex-auto items-center p-2">
         <div className="flex cursor-pointer gap-2 rounded p-1 hover:bg-gray-700 min-w-[210px]">
           <UserIcon />
