@@ -209,6 +209,15 @@ function App() {
     />
     <Route element={<GuestRoute />}>
       <Route
+        path="/index.html"
+        element={
+          <>
+            <PageTitle title="Login" />
+            <LoginPage />
+          </>
+        }
+      />
+      <Route
         path="login"
         element={
           <>

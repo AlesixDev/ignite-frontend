@@ -1,6 +1,6 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
-import { BrowserRouter } from 'react-router-dom';
+import { BrowserRouter, HashRouter } from 'react-router-dom';
 // eslint-disable-next-line no-unused-vars
 import Pusher from 'pusher-js';
 import Echo from 'laravel-echo';
@@ -28,7 +28,6 @@ function RouteLogger() {
   return null;
 }
 
-
 window.Echo = new Echo({
   broadcaster: 'reverb',
   key: import.meta.env.VITE_REVERB_APP_KEY,
@@ -55,12 +54,15 @@ window.Echo = new Echo({
   },
 });
 
+const isElectron = !!(window && window.process && window.process.versions && window.process.versions.electron);
+const Router = isElectron ? HashRouter : BrowserRouter;
+
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
-    <BrowserRouter>
+    <Router>
       <App />
       <Toaster />
       <RouteLogger />
-    </BrowserRouter>
+    </Router>
   </React.StrictMode>,
 );
