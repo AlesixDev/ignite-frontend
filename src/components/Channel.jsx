@@ -25,7 +25,7 @@ const UnreadDivider = () => (
   <div className="flex items-center justify-center mt-6 mb-2 relative group w-full animate-in fade-in duration-300">
     {/* The Red Line */}
     <div className="absolute left-0 right-0 top-1/2 h-px bg-red-500/80 shadow-[0_0_4px_rgba(239,68,68,0.4)]"></div>
-    
+
     {/* The Badge */}
     <span className="relative z-10 bg-gray-700 px-2 text-[10px] font-bold text-red-500 uppercase tracking-widest flex items-center gap-1">
       <span>New Messages</span>
@@ -540,20 +540,25 @@ const Channel = ({ channel }) => {
     if (!el) return;
 
     let lastAckTime = 0;
+    let lastAckedMessageId = null;
 
     function checkAndAckAtBottom() {
       const nearBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 100;
       const now = Date.now();
       if (nearBottom && messages.length > 0) {
-        if (now - lastAckTime > 10000) {
+        const lastMessageId = messages[messages.length - 1]?.id;
+
+        if (now - lastAckTime > 10000 && lastAckedMessageId !== lastMessageId) {
           ChannelsService.acknowledgeChannelMessage(
             channel.channel_id,
-            messages[messages.length - 1]?.id
+            lastMessageId
           );
+
           lastAckTime = now;
+          lastAckedMessageId = lastMessageId;
         }
 
-        UnreadsService.setLastReadMessageId(channel.channel_id, messages[messages.length - 1]?.id);
+        UnreadsService.setLastReadMessageId(channel.channel_id, lastMessageId);
       }
     }
 
@@ -562,7 +567,7 @@ const Channel = ({ channel }) => {
     return () => {
       clearInterval(interval);
     };
-  }, [channel?.channel_id]);
+  }, [channel?.channel_id, messages]);
 
   useEffect(() => {
     if (!messagesRef.current) return;

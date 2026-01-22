@@ -48,7 +48,11 @@ const Sidebar = () => {
     const channelLastMessageTimestamp = BigInt(channel.last_message_id) >> 22n;
     const channelUnreadLastReadTimestamp = BigInt(channelUnread.last_read_message_id) >> 22n;
 
-    return channelLastMessageTimestamp > channelUnreadLastReadTimestamp;
+    if (channelLastMessageTimestamp > channelUnreadLastReadTimestamp) {
+      return true;
+    }
+
+    return false;
   }
 
   const [isGuildDialogOpen, setIsGuildDialogOpen] = useState(false);
