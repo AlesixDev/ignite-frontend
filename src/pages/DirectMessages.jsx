@@ -10,6 +10,12 @@ import UserSettings from '../components/Settings/UserSettings';
 import { GuildContextProvider } from '../contexts/GuildContext';
 import Avatar from '../components/Avatar';
 
+import { Button } from "../components/ui/button";
+import { Input } from "../components/ui/input";
+import { ScrollArea } from "../components/ui/scroll-area";
+import { Separator } from "../components/ui/separator";
+import { Badge } from "../components/ui/badge";
+
 const DirectMessagesPage = () => {
   const store = useStore();
   const currentUser = store.user || { id: 'me', username: 'You', name: 'You' };
@@ -163,23 +169,20 @@ const DirectMessagesPage = () => {
   return (
     <GuildContextProvider>
       <BaseAuthLayout>
-        <div className="flex h-screen w-screen overflow-hidden bg-gray-700 text-gray-100">
+        <div className="flex h-screen w-screen overflow-hidden bg-gray-700 text-gray-100 select-none">
 
           {/* SIDEBAR */}
           <aside className={`fixed inset-y-0 left-0 z-40 w-64 flex-col bg-gray-800 transition-transform md:relative md:translate-x-0 ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}>
-            <div className="flex h-12 items-center border-b border-gray-900 px-4 shadow-sm">
-              <input className="h-7 w-full rounded bg-gray-900 px-2 text-xs" placeholder="Find or start a conversation" />
-            </div>
-
             <div className="flex-1 overflow-y-auto p-2">
               {/* Friends Navigation Button */}
-              <button
-                onClick={() => { setActiveThreadId('friends'); setIsSidebarOpen(false); }}
-                className={`flex w-full items-center gap-3 rounded px-3 py-2 text-sm transition-colors ${activeThreadId === 'friends' ? 'bg-gray-700 text-white' : 'text-gray-400 hover:bg-gray-700/50 hover:text-gray-200'}`}
+              <Button
+                variant={activeThreadId === 'friends' ? "secondary" : "ghost"}
+                className="w-full justify-start gap-3 mb-1"
+                onClick={() => setActiveThreadId('friends')}
               >
-                <Users size={20} />
+                <Users className="h-5 w-5" />
                 <span className="font-medium">Friends</span>
-              </button>
+              </Button>
 
               <div className="mt-4 px-2 text-[10px] font-semibold tracking-wider text-gray-500 uppercase">
                 Direct Messages
@@ -216,46 +219,66 @@ const DirectMessagesPage = () => {
             {activeThreadId === 'friends' ? (
               <div className="flex h-full flex-col">
                 {/* Friends Header */}
-                <header className="flex h-12 items-center gap-4 border-b border-gray-900 bg-gray-700 px-4 shadow-sm">
-                  <div className="flex items-center gap-2 pr-4 border-r border-gray-600">
-                    <Users size={20} className="text-gray-400" />
-                    <span className="font-bold">Friends</span>
-                  </div>
-                  <nav className="flex items-center gap-4 text-sm font-medium">
-                    {['online', 'all', 'pending'].map(tab => (
-                      <button
-                        key={tab}
-                        onClick={() => setActiveTab(tab)}
-                        className={`rounded px-2 py-1 capitalize ${activeTab === tab ? 'bg-gray-600 text-white' : 'text-gray-400 hover:bg-gray-600/50 hover:text-gray-200'}`}
+                <header className="flex h-12 items-center justify-between px-4 shadow-sm border-b border-[#1f2124]">
+                  <div className="flex items-center gap-4">
+                    <div className="flex items-center gap-2 text-[#f2f3f5] font-semibold">
+                      <Users size={20} className="text-[#80848e]" />
+                      Friends
+                    </div>
+                    <Separator orientation="vertical" className="h-6 bg-[#4e5058]" />
+                    <nav className="flex items-center gap-2">
+                      {[
+                        { id: 'online', label: 'Online' },
+                        { id: 'all', label: 'All' },
+                        { id: 'pending', label: 'Pending', count: friendRequests.length },
+                      ].map(tab => (
+                        <Button
+                          key={tab.id}
+                          variant={activeTab === tab.id ? "secondary" : "ghost"}
+                          size="sm"
+                          className="h-7 px-3 text-sm font-medium"
+                          onClick={() => setActiveTab(tab.id)}
+                        >
+                          {tab.label}
+                          {tab.count > 0 && (
+                            <Badge className="ml-2 h-4 min-w-4 bg-[#f23f42] p-1 text-[10px] hover:bg-[#f23f42]">
+                              {tab.count}
+                            </Badge>
+                          )}
+                        </Button>
+                      ))}
+                      <Button
+                        variant={activeTab === 'add_friend' ? "ghost" : "default"}
+                        size="sm"
+                        className={`h-7 px-2 text-sm font-medium ${activeTab === 'add_friend' ? 'text-[#23a559]' : 'bg-[#248046] hover:bg-[#1a6334] text-white'}`}
+                        onClick={() => setActiveTab('add_friend')}
                       >
-                        {tab}
-                      </button>
-                    ))}
-                    <button
-                      onClick={() => setActiveTab('add_friend')}
-                      className={`rounded px-2 py-1 text-green-500 ${activeTab === 'add_friend' ? 'bg-transparent text-green-400' : 'bg-green-600 text-white hover:bg-green-700'}`}
-                    >
-                      Add Friend
-                    </button>
-                  </nav>
+                        Add Friend
+                      </Button>
+                    </nav>
+                  </div>
                 </header>
 
                 <div className="flex-1 overflow-y-auto p-6">
                   {/* Add Friend View */}
                   {activeTab === 'add_friend' && (
-                    <div className="max-w-2xl">
-                      <h2 className="mb-2 text-sm font-bold uppercase">Add Friend</h2>
-                      <p className="mb-4 text-xs text-gray-400">You can add a friend with their username.</p>
-                      <form onSubmit={(e) => { e.preventDefault(); sendFriendRequest(); }} className="flex rounded-lg bg-gray-900 p-3 focus-within:ring-1 focus-within:ring-blue-500">
-                        <input
+                    <div className="w-full">
+                      <h2 className="text-lg font-semibold text-white mb-2">Add Friend</h2>
+                      <p className="text-xs text-white mb-4">You can add a friend with their Ignite username.</p>
+                      <form onSubmit={sendFriendRequest} className="relative flex items-center bg-[#1e1f22] rounded-sm p-1.5 px-0.5 border border-gray-600 focus-within:border-[#00a8fc]">
+                        <Input
                           value={friendUsername}
                           onChange={e => setFriendUsername(e.target.value)}
-                          className="flex-1 bg-transparent outline-none"
-                          placeholder="Enter a Username"
+                          className="border-0 bg-transparent focus-visible:ring-0 text-sm"
+                          placeholder="You can add friends with their Ignite username"
                         />
-                        <button className="rounded bg-indigo-600 px-4 py-1 text-sm font-medium hover:bg-indigo-700 disabled:opacity-50" disabled={!friendUsername}>
+                        <Button
+                          type="submit"
+                          disabled={!friendUsername}
+                          className="bg-[#5865f2] hover:bg-[#4752c4] h-8 text-xs font-medium mr-2"
+                        >
                           Send Friend Request
-                        </button>
+                        </Button>
                       </form>
                     </div>
                   )}
