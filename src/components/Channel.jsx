@@ -519,7 +519,8 @@ const Channel = ({ channel }) => {
   const pendingMessages = channelPendingMessages[channel?.channel_id] || [];
 
   useEffect(() => {
-    if (channelMessages[channel?.channel_id] == null) {
+    // If the channel id exists and we don't have messages loaded yet, load them
+    if (channel?.channel_id && channelMessages[channel?.channel_id] == null) {
       ChannelsService.loadChannelMessages(channel?.channel_id).then(() => {
         setHasMore(channelMessages[channel?.channel_id]?.length === 50);
         setTimeout(() => setForceScrollDown(true), 0);
@@ -551,16 +552,17 @@ const Channel = ({ channel }) => {
           );
           lastAckTime = now;
         }
+
         UnreadsService.setLastReadMessageId(channel.channel_id, messages[messages.length - 1]?.id);
       }
     }
 
-    const interval = setInterval(checkAndAckAtBottom, 1000);
+    const interval = setInterval(checkAndAckAtBottom, 100);
 
     return () => {
       clearInterval(interval);
     };
-  }, [channel?.channel_id, messages]);
+  }, [channel?.channel_id]);
 
   useEffect(() => {
     if (!messagesRef.current) return;

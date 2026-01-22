@@ -1,13 +1,15 @@
 import { create } from 'zustand';
 
 type UnreadsStore = {
-    channelUnreads: any [];
+    channelUnreads: any[];
+    channelUnreadsLoaded: boolean;
 
-    setChannelUnreads: (channelUnreads: any []) => void;
+    setChannelUnreads: (channelUnreads: any[]) => void;
 };
 
 export const useUnreadsStore = create<UnreadsStore>((set) => ({
     channelUnreads: [],
+    channelUnreadsLoaded: false,
 
-    setChannelUnreads: (channelUnreads) => set({ channelUnreads }),
+    setChannelUnreads: (channelUnreads) => set({ channelUnreads, channelUnreadsLoaded: true }),
 }));

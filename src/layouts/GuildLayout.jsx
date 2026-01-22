@@ -205,9 +205,11 @@ const GuildSidebarSection = ({
   const [expanded, setExpanded] = useState(true);
   const navigate = useNavigate();
   const sectionName = category?.name;
-  const { channelUnreads } = useUnreadsStore();
+  const { channelUnreads, channelUnreadsLoaded } = useUnreadsStore();
 
   const isChannelUnread = (channelId) => {
+    if (!channelUnreadsLoaded) return false;
+
     // Find the channel unread with channel_id == channelId
     const channelUnread = channelUnreads.find((cu) => String(cu.channel_id) === String(channelId));
     if (!channelUnread) return true;
