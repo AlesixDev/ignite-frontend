@@ -251,7 +251,7 @@ const PrivateMessageLayout = () => {
 
   useEffect(() => {
     if (!currentUser || !currentUser.id) return;
-    
+
     window.Echo.private(`user.${currentUser.id}`)
       .listen('.friendrequest.created', (event) => {
         // {"friendRequest":{"sender_id":"1357682785875132416","receiver_id":"1","id":"1357686439940194304","created_at":"2026-01-11T12:01:11.000000Z"}}
@@ -389,7 +389,7 @@ const PrivateMessageLayout = () => {
                   .map((request) => {
                     // Extract request and recipient details
                     const requestId = request?.id || request?.request_id || request?.requestId;
-                    const recipient = request?.recipient || {};
+                    const recipient = request?.receiver || {};
                     const recipientName = recipient?.username || recipient?.name || request?.username || request?.name || 'Unknown';
                     return (
                       <div
@@ -403,7 +403,7 @@ const PrivateMessageLayout = () => {
                           onClick={() => cancelFriendRequest(requestId)}
                           className="rounded bg-red-600/80 px-2 py-1 text-[10px] text-white hover:bg-red-500"
                         >
-                          Cancel
+                          Cancels
                         </button>
                       </div>
                     );
@@ -417,17 +417,11 @@ const PrivateMessageLayout = () => {
                   Friends
                 </div>
                 {friends.map((friend) => {
-                  const friendId =
-                    friend?.id || friend?.user_id || friend?.userId || friend?.user?.id;
-                  const friendName =
-                    friend?.username ||
-                    friend?.name ||
-                    friend?.user?.username ||
-                    friend?.user?.name ||
-                    'Unknown';
+                  const friendId = friend.id;
+                  const friendName = friend.username || 'Unknown';
                   return (
                     <div
-                      key={friendId || friendName}
+                      key={friendId}
                       className="flex items-center justify-between rounded bg-gray-800/70 p-2"
                     >
                       <span className="truncate text-gray-200">{friendName}</span>

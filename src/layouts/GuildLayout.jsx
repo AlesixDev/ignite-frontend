@@ -14,6 +14,8 @@ import { GuildsService } from '../services/guilds.service';
 import { ContextMenu, ContextMenuShortcut, ContextMenuContent, ContextMenuItem, ContextMenuSeparator, ContextMenuSub, ContextMenuSubContent, ContextMenuSubTrigger, ContextMenuTrigger } from '../components/ui/context-menu';
 import EditGuildChannelModal from '../components/Modals/EditGuildChannelModal';
 import { useUnreadsStore } from '../stores/unreads.store';
+import { UnreadsService } from '../services/unreads.service';
+import { ChannelsService } from '../services/channels.service';
 
 const GuildSidebarHeader = ({ guildName = '', guild, onOpenServerSettings, canOpenServerSettings }) => {
   const navigate = useNavigate();
@@ -322,7 +324,7 @@ const GuildSidebarSection = ({
                   <p className={`ml-1 truncate text-base transition-all ${isActive || isUnread ? 'font-semibold text-white' : 'font-medium'}`}>
                     {channel.name}
                   </p>
-
+                  {/* 
                   {canManageChannels && (
                     <div className="absolute right-2 hidden items-center gap-1 rounded bg-gray-800/90 px-1 py-0.5 shadow-sm group-hover:flex">
                       <button
@@ -346,16 +348,58 @@ const GuildSidebarSection = ({
                         <Trash className="size-3.5" />
                       </button>
                     </div>
-                  )}
+                  )} */}
                 </div>
               </Link>
             </ContextMenuTrigger>
             <ContextMenuContent className="w-52">
+              {/* Mark as Read */}
+              <ContextMenuItem
+                disabled={isChannelUnread(channel.channel_id) === false}
+                onSelect={async () => {
+                  UnreadsService.setLastReadMessageId(channel.channel_id, channel.last_message_id || null);
+                  toast.success('Channel marked as read.');
+                  ChannelsService.acknowledgeChannelMessage(channel.channel_id, channel.last_message_id || null);
+                }}>
+                Mark as Read
+              </ContextMenuItem>
+              <ContextMenuSeparator />
+              {/* Go to Channel */}
+              <ContextMenuItem onSelect={() => navigate(`/channels/${channel.guild_id}/${channel.channel_id}`)}>
+                Go to Channel
+              </ContextMenuItem>
+              {/* Copy Link */}
+              <ContextMenuItem onSelect={async () => {
+                const channelLink = `${window.location.origin}/channels/${channel.guild_id}/${channel.channel_id}`;
+                try {
+                  await navigator.clipboard.writeText(channelLink);
+                  toast.success('Channel link copied to clipboard.');
+                } catch {
+                  toast.error('Could not copy channel link to clipboard.');
+                }
+              }}>
+                Copy Link
+              </ContextMenuItem>
+
+
+              <ContextMenuSeparator />
               <ContextMenuItem onSelect={() => onEditChannel?.(channel)}>
                 Edit Channel
               </ContextMenuItem>
               <ContextMenuItem onSelect={(e) => handleDeleteChannel(channel, e)} className="text-red-500 hover:bg-red-600/20">
                 Delete Channel
+              </ContextMenuItem>
+              <ContextMenuSeparator />
+              {/* Copy Channel ID */}
+              <ContextMenuItem onSelect={async () => {
+                try {
+                  await navigator.clipboard.writeText(String(channel.channel_id));
+                  toast.success('Channel ID copied to clipboard.');
+                } catch {
+                  toast.error('Could not copy channel ID to clipboard.');
+                }
+              }}>
+                Copy Channel ID
               </ContextMenuItem>
             </ContextMenuContent>
           </ContextMenu>
