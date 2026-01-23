@@ -344,7 +344,7 @@ const DirectMessagesPage = () => {
               </div>
             ) : (
               <ChannelContextProvider>
-                <Channel channel={{ ...activeChannel, name: activeChannel.user.name }} />
+                <Channel channel={activeChannel} />
               </ChannelContextProvider>
             )}
           </main>

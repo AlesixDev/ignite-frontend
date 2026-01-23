@@ -309,9 +309,11 @@ const ChannelMessage = ({ message, prevMessage, pending }) => {
 };
 
 const ChannelMessages = ({ channelId, messagesRef, highlightId, onLoadMore, loadingMore, hasMore }) => {
-  const { pendingMessages, setEditingId, replyingId, setReplyingId } = useChannelContext();
-  const { channelMessages } = useChannelsStore();
+  const { setEditingId, replyingId, setReplyingId } = useChannelContext();
+  const { channelMessages, channelPendingMessages } = useChannelsStore();
   const [atTop, setAtTop] = useState(false);
+
+  const pendingMessages = channelPendingMessages[channelId] || [];
 
   useEffect(() => {
     const handleEscape = (event) => {
@@ -387,7 +389,7 @@ const ChannelMessages = ({ channelId, messagesRef, highlightId, onLoadMore, load
 const MAX_MESSAGE_LENGTH = 2000;
 
 const ChannelInput = ({ channel }) => {
-  const { messages, setMessages, pendingMessages, setPendingMessages, replyingId, setReplyingId, inputMessage, setInputMessage, inputRef } = useChannelContext();
+  const { messages, setMessages, replyingId, setReplyingId, inputMessage, setInputMessage, inputRef } = useChannelContext();
 
   const replyMessage = useMemo(() => replyingId ? messages.find((m) => m.id == replyingId) : null, [messages, replyingId]);
 
@@ -398,41 +400,37 @@ const ChannelInput = ({ channel }) => {
       return;
     }
 
-    try {
-      const generatedNonce = Date.now().toString() + Math.floor(Math.random() * 1000).toString();
+    // try {
+    //   const generatedNonce = Date.now().toString() + Math.floor(Math.random() * 1000).toString();
 
-      setPendingMessages([...pendingMessages, {
-        nonce: generatedNonce,
-        content: inputMessage,
-        author: {
-          id: useStore.getState().user.id,
-          name: useStore.getState().user.name ?? useStore.getState().user.username,
-          username: useStore.getState().user.username,
-        },
-        created_at: new Date().toISOString(),
-      }]);
+    //   setPendingMessages([...pendingMessages, {
+    //     nonce: generatedNonce,
+    //     content: inputMessage,
+    //     author: {
+    //       id: useStore.getState().user.id,
+    //       name: useStore.getState().user.name ?? useStore.getState().user.username,
+    //       username: useStore.getState().user.username,
+    //     },
+    //     created_at: new Date().toISOString(),
+    //   }]);
 
-      api.post(`/channels/${channel.channel_id}/messages`, {
-        content: inputMessage,
-        nonce: generatedNonce,
-        reply_to: replyingId
-      }).then((response) => {
-        setPendingMessages((pendingMessages) => pendingMessages.filter((m) => m.nonce !== generatedNonce));
-        setMessages((messages) => {
-          if (messages.some((m) => m.nonce === generatedNonce)) {
-            return messages;
-          }
-          return [...messages, response.data];
-        });
-      });
+    //   api.post(`/channels/${channel.channel_id}/messages`, {
+    //     content: inputMessage,
+    //     nonce: generatedNonce,
+    //     reply_to: replyingId
+    //   });
 
-      setInputMessage('');
-      setReplyingId(null);
-    } catch (error) {
-      console.error(error);
-      toast.error(error.response?.data?.message || 'Could not send message.');
-    }
-  }, [channel?.channel_id, inputMessage, pendingMessages, replyingId, setInputMessage, setMessages, setPendingMessages, setReplyingId]);
+    //   setInputMessage('');
+    //   setReplyingId(null);
+    // } catch (error) {
+    //   console.error(error);
+    //   toast.error(error.response?.data?.message || 'Could not send message.');
+    // }
+    ChannelsService.sendChannelMessage(channel.channel_id, inputMessage);
+
+    setInputMessage('');
+    setReplyingId(null);
+  }, [channel?.channel_id, inputMessage, replyingId, setInputMessage, setMessages, setReplyingId]);
 
   useEffect(() => {
     // if (replyingId) {
@@ -511,7 +509,6 @@ const Channel = ({ channel }) => {
   const { channelMessages, channelPendingMessages } = useChannelsStore();
 
   const messages = channelMessages[channel?.channel_id] || [];
-  const pendingMessages = channelPendingMessages[channel?.channel_id] || [];
 
   useEffect(() => {
     // If the channel id exists and we don't have messages loaded yet, load them
@@ -573,7 +570,7 @@ const Channel = ({ channel }) => {
         setForceScrollDown(false);
       }
     }
-  }, [pendingMessages, messages, forceScrollDown]);
+  }, [channelPendingMessages, messages, forceScrollDown]);
 
   // TODO: This is duplicated
   const onMention = useCallback((user) => {
@@ -622,7 +619,7 @@ const Channel = ({ channel }) => {
           <ChannelInput channel={channel} />
         </div>
 
-        {channel.type !== 1 && (
+        {channel?.type !== 1 && (
           <div className={`relative z-0 transition-all duration-300 ${memberListOpen ? 'w-60 md:w-72' : 'w-0'}`}>
             {memberListOpen && (
               <div className="flex h-full flex-col border-l border-gray-800 bg-gray-800">

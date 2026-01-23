@@ -8,7 +8,6 @@ export const ChannelContextProvider = ({ children }) => {
     const [editingId, setEditingId] = useState(null);
     const [replyingId, setReplyingId] = useState(null);
     const [pinnedMessages, setPinnedMessages] = useState([]);
-    const [pendingMessages, setPendingMessages] = useState([]);
     const [inputMessage, setInputMessage] = useState('');
     const [memberListOpen, setMemberListOpen] = useState(true);
     const inputRef = useRef(null);
@@ -26,8 +25,6 @@ export const ChannelContextProvider = ({ children }) => {
                 setReplyingId,
                 pinnedMessages,
                 setPinnedMessages,
-                pendingMessages,
-                setPendingMessages,
                 inputMessage,
                 setInputMessage, 
                 memberListOpen,
