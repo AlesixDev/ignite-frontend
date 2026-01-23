@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { toast } from 'sonner';
-import { UserPlus, MessageSquare, UserCheck, UserMinus, Users } from 'lucide-react'; // Optional: for icons
+import { UserPlus, MessageSquare, UserCheck, UserMinus, Users } from 'lucide-react'; 
 import BaseAuthLayout from '../layouts/BaseAuthLayout';
 import useStore from '../hooks/useStore';
 import api from '../api';
@@ -19,6 +19,7 @@ import { FriendsService } from '../services/friends.service';
 import { useFriendsStore } from '../stores/friends.store';
 import { useChannelsStore } from '../stores/channels.store';
 import { ChannelsService } from '../services/channels.service';
+import { useUnreadsStore } from '../stores/unreads.store';
 
 const DirectMessagesPage = () => {
   const store = useStore();
@@ -36,6 +37,7 @@ const DirectMessagesPage = () => {
 
   const { friends, requests } = useFriendsStore();
   const { channels } = useChannelsStore();
+  const { channelUnreads, channelUnreadsLoaded } = useUnreadsStore();
 
   // UI State
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
@@ -48,31 +50,9 @@ const DirectMessagesPage = () => {
     return { id, channel_id: id, user: otherUser };
   }, [currentUser.id]);
 
-  // const createDmThread = useCallback(async (recipientId) => {
-  //   // try {
-  //   //   const { data } = await api.post('@me/channels', { recipients: [recipientId] });
-  //   //   const normalized = normalizeThread(data);
-  //   //   if (normalized) {
-  //   //     setDmThreads(prev => prev.find(t => t.id === normalized.id) ? prev : [normalized, ...prev]);
-  //   //     setActiveThreadId(normalized.id);
-  //   //   }
-  //   // } catch { toast.error('Failed to create DM'); }
-  // }, [normalizeThread]);
-
-  // Real-time listeners
-  // useEffect(() => {
-  //   if (!currentUser?.id) return;
-  //   const channel = window.Echo.private(`user.${currentUser.id}`);
-  //   channel.listen('.friendrequest.created', () => { toast.info('New friend request!'); })
-  //     .listen('.friendrequest.accepted', () => { })
-  //     .listen('.channel.created', () => { });
-  //   return () => window.Echo.leave(`user.${currentUser.id}`);
-  // }, [currentUser?.id]);
-
   const messageUser = useCallback((userId) => {
     const existingChannel = channels.find(c => c.type === 1 && c.recipients.some(r => r.id === userId));
 
-    console.log('existingChannel', existingChannel);
     if (existingChannel) {
       setActiveThreadId(existingChannel.channel_id);
     } else {
@@ -122,6 +102,33 @@ const DirectMessagesPage = () => {
       });
   }, [friendUsername]);
 
+  const isChannelUnread = (channelId) => {
+    if (!channelUnreadsLoaded) return false;
+
+    // Find the channel unread with channel_id == channelId
+    const channelUnread = channelUnreads.find((cu) => String(cu.channel_id) === String(channelId));
+    
+    // If we have no record of reading it, but it exists, it might be unread. 
+    // However, usually "no record" means read everything if the logic implies tracking unreads.
+    // For Discord logic: if there is no unread object, usually it means it's fully read OR we haven't fetched it.
+    // Assuming here: if no record exists, check if channel has messages.
+    if (!channelUnread) return false; 
+
+    const channel = channels.find((c) => String(c.channel_id) == String(channelId));
+    console.log('Checking unread for channel:', channel, 'ChannelUnread:', channelUnread);
+    if (!channel || !channel.last_message_id) return false;
+
+    // Get timestamp of both message IDs (Snowflake)
+    const channelLastMessageTimestamp = BigInt(channel.last_message_id) >> 22n;
+    const channelUnreadLastReadTimestamp = BigInt(channelUnread.last_read_message_id) >> 22n;
+
+    if (channelLastMessageTimestamp > channelUnreadLastReadTimestamp) {
+      return true;
+    }
+
+    return false;
+  }
+
   const dmChannels = useMemo(() => channels.filter(c => c.type === 1).map(normalizeThread), [channels]);
 
   const activeChannel = useMemo(() =>
@@ -147,25 +154,44 @@ const DirectMessagesPage = () => {
                 <span className="font-medium">Friends</span>
               </Button>
 
-              <div className="mt-4 px-2 text-[10px] font-semibold tracking-wider text-gray-500 uppercase">
+              <div className="mt-4 flex items-center justify-between px-2 text-[10px] font-semibold tracking-wider text-gray-500 uppercase group-hover:text-gray-300">
                 Direct Messages
+                <span className="text-xl leading-none cursor-pointer hover:text-gray-200">+</span>
               </div>
 
               <div className="mt-2 space-y-0.5">
-                {dmChannels.map((channel) => (
-                  <button
-                    key={channel.channel_id}
-                    onClick={() => { setActiveThreadId(channel.channel_id); setIsSidebarOpen(false); }}
-                    className={`group flex w-full items-center gap-3 rounded px-2 py-1.5 text-sm ${activeThreadId === channel.channel_id ? 'bg-gray-700 text-white' : 'text-gray-400 hover:bg-gray-700/50 hover:text-gray-200'}`}
-                  >
-                    <div className="relative">
-                      <Avatar user={thread.user} className="size-8 rounded-full" />
-                      <div className="absolute bottom-0 right-0 size-3 rounded-full border-2 border-gray-800 bg-green-500" />
-                    </div>
-                    <span className="font-medium truncate">{channel.user.name}</span>
+                {dmChannels.map((channel) => {
+                  const isActive = activeThreadId === channel.channel_id;
+                  const isUnread = isChannelUnread(channel.channel_id);
 
-                  </button>
-                ))}
+                  return (
+                    <button
+                      key={channel.channel_id}
+                      onClick={() => { setActiveThreadId(channel.channel_id); setIsSidebarOpen(false); }}
+                      className={`
+                        group relative flex w-full items-center gap-3 rounded px-2 py-1.5 text-sm transition-all
+                        ${isActive 
+                          ? 'bg-gray-700 text-white' 
+                          : 'text-gray-400 hover:bg-gray-700/50 hover:text-gray-200'}
+                        ${!isActive && isUnread ? 'text-gray-100' : ''} 
+                      `}
+                    >
+                      {/* Discord-style Unread Pill */}
+                      {!isActive && isUnread && (
+                        <div className="absolute left-0 top-1/2 h-2 w-1 -translate-y-1/2 rounded-r-full bg-white transition-all group-hover:h-4" />
+                      )}
+
+                      <div className="relative">
+                        <Avatar user={channel.user} className="size-8 rounded-full" />
+                        <div className="absolute bottom-0 right-0 size-3 rounded-full border-2 border-gray-800 bg-green-500" />
+                      </div>
+                      
+                      <span className={`truncate ${!isActive && isUnread ? 'font-bold text-gray-100' : 'font-medium'}`}>
+                        {channel.user.name}
+                      </span>
+                    </button>
+                  );
+                })}
               </div>
             </div>
           </aside>
