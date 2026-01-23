@@ -5,6 +5,41 @@ import axios from 'axios';
 import useStore from '../hooks/useStore';
 
 export const ChannelsService = {
+    /**
+     * Load DM/Group channels for the current user and update the local store.
+     * 
+     * @returns void
+     */
+    async loadChannels() {
+        const { setChannels } = useChannelsStore.getState();
+        try {
+            const { data } = await api.get('/@me/channels');
+            setChannels(data);
+        } catch {
+            toast.error('Unable to load channels.');
+        }
+    },
+
+    /**
+     * Create a new DM/Group channel with specified recipients IDs and update the local store.
+     * 
+     * @param recipientsIds Array of user IDs to create a channel with
+     * @returns The created channel data
+     */
+    async createChannel(recipientsIds: string[]) {
+        try {
+            const { data } = await api.post('@me/channels', { recipients: recipientsIds });
+
+            // Update local store
+            const { channels, setChannels } = useChannelsStore.getState();
+            setChannels([...channels, data]);
+
+            return data;
+        } catch { 
+            toast.error('Failed to create DM'); 
+        }
+    },
+
     async sendChannelMessage(channelId: string, content: string) {
         const { setChannelPendingMessages, channelPendingMessages } = useChannelsStore.getState();
 

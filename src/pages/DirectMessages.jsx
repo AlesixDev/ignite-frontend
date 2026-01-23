@@ -15,6 +15,10 @@ import { Input } from "../components/ui/input";
 import { ScrollArea } from "../components/ui/scroll-area";
 import { Separator } from "../components/ui/separator";
 import { Badge } from "../components/ui/badge";
+import { FriendsService } from '../services/friends.service';
+import { useFriendsStore } from '../stores/friends.store';
+import { useChannelsStore } from '../stores/channels.store';
+import { ChannelsService } from '../services/channels.service';
 
 const DirectMessagesPage = () => {
   const store = useStore();
@@ -29,141 +33,100 @@ const DirectMessagesPage = () => {
   const [loadingThreads, setLoadingThreads] = useState(true);
   const [threadError, setThreadError] = useState('');
   const [friendUsername, setFriendUsername] = useState('');
-  const [friendRequests, setFriendRequests] = useState([]);
-  const [friends, setFriends] = useState([]);
+
+  const { friends, requests } = useFriendsStore();
+  const { channels } = useChannelsStore();
 
   // UI State
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isUserSettingsOpen, setIsUserSettingsOpen] = useState(false);
-  const memberCacheRef = useRef(new Map());
-
-  // ... (Keep your existing useCallback functions: toastResponse, normalizeUser, resolveMemberInfo, hydrateThreadUsers, normalizeThread)
-  // [Omitted for brevity, but keep them in your code]
-  const toastResponse = useCallback((label, payload) => {
-    let serialized = '';
-    try { serialized = JSON.stringify(payload); } catch { serialized = '[unserializable]'; }
-    toast.info(`${label}: ${serialized}`);
-  }, []);
-
-  const normalizeUser = useCallback((user) => {
-    if (!user) return { id: null, name: 'Unknown' };
-    return { ...user, name: user.name || user.username || 'Unknown' };
-  }, []);
-
-  const resolveMemberInfo = useCallback(async (memberId) => {
-    if (!memberId) return null;
-    const cached = memberCacheRef.current.get(memberId);
-    if (cached) return cached;
-    try {
-      const { data } = await api.get(`/users/${memberId}`);
-      const payload = data?.user || data;
-      const info = { id: memberId, name: payload?.username || 'Unknown', avatar: payload?.avatar };
-      memberCacheRef.current.set(memberId, info);
-      return info;
-    } catch { return null; }
-  }, []);
-
-  const hydrateThreadUsers = useCallback(async (threads) => {
-    const targets = (threads || []).filter(t => t.user.name === 'Unknown' || t.user.name?.startsWith('DM '));
-    if (targets.length === 0) return;
-    const results = await Promise.all(targets.map((t) => resolveMemberInfo(t.recipientId || t.user.id)));
-    const resolved = new Map(results.filter(Boolean).map((i) => [i.id, i]));
-    setDmThreads((prev) => prev.map((t) => {
-      const info = resolved.get(t.recipientId || t.user?.id);
-      return info ? { ...t, user: { ...t.user, ...info } } : t;
-    }));
-  }, [resolveMemberInfo]);
 
   const normalizeThread = useCallback((thread) => {
     if (!thread) return null;
     const id = thread.id || thread.channel_id || thread.channelId;
     const otherUser = (thread.recipients || []).find(r => r.id !== currentUser.id) || thread.user || {};
-    return { id, channel_id: id, user: normalizeUser(otherUser) };
-  }, [currentUser.id, normalizeUser]);
+    return { id, channel_id: id, user: otherUser };
+  }, [currentUser.id]);
 
-  const loadThreads = useCallback(async () => {
-    setLoadingThreads(true);
-    try {
-      const { data } = await api.get('@me/channels');
-      const normalized = (Array.isArray(data) ? data : data?.data || []).map(normalizeThread).filter(Boolean);
-      setDmThreads(normalized);
-      hydrateThreadUsers(normalized);
-    } catch { toast.error('Failed to load DMs'); }
-    finally { setLoadingThreads(false); }
-  }, [hydrateThreadUsers, normalizeThread]);
-
-  const loadFriendRequests = useCallback(async () => {
-    try {
-      const { data } = await api.get('@me/friends/requests');
-      setFriendRequests(Array.isArray(data) ? data : data?.data || []);
-    } catch { toast.error('Failed to load requests'); }
-  }, []);
-
-  const loadFriends = useCallback(async () => {
-    try {
-      const { data } = await api.get('@me/friends');
-      setFriends(Array.isArray(data) ? data : data?.data || []);
-    } catch { toast.error('Failed to load friends'); }
-  }, []);
-
-  const createDmThread = useCallback(async (recipientId) => {
-    try {
-      const { data } = await api.post('@me/channels', { recipients: [recipientId] });
-      const normalized = normalizeThread(data);
-      if (normalized) {
-        setDmThreads(prev => prev.find(t => t.id === normalized.id) ? prev : [normalized, ...prev]);
-        setActiveThreadId(normalized.id);
-      }
-    } catch { toast.error('Failed to create DM'); }
-  }, [normalizeThread]);
-
-  const sendFriendRequest = useCallback(async () => {
-    if (!friendUsername.trim()) return;
-    try {
-      await api.post('@me/friends/requests', null, { params: { username: friendUsername.trim() } });
-      toast.success('Friend request sent!');
-      setFriendUsername('');
-      loadFriendRequests();
-      setActiveTab('pending');
-    } catch { toast.error('User not found'); }
-  }, [friendUsername, loadFriendRequests]);
-
-  const acceptFriendRequest = useCallback(async (id) => {
-    try {
-      await api.post(`@me/friends/requests/${id}/accept`);
-      loadFriendRequests();
-      loadFriends();
-      toast.success('Request accepted');
-    } catch { toast.error('Action failed'); }
-  }, [loadFriendRequests, loadFriends]);
-
-  const deleteFriend = useCallback(async (id) => {
-    try {
-      await api.delete(`@me/friends/${id}`);
-      loadFriends();
-      toast.info('Friend removed');
-    } catch { toast.error('Action failed'); }
-  }, [loadFriends]);
+  // const createDmThread = useCallback(async (recipientId) => {
+  //   // try {
+  //   //   const { data } = await api.post('@me/channels', { recipients: [recipientId] });
+  //   //   const normalized = normalizeThread(data);
+  //   //   if (normalized) {
+  //   //     setDmThreads(prev => prev.find(t => t.id === normalized.id) ? prev : [normalized, ...prev]);
+  //   //     setActiveThreadId(normalized.id);
+  //   //   }
+  //   // } catch { toast.error('Failed to create DM'); }
+  // }, [normalizeThread]);
 
   // Real-time listeners
-  useEffect(() => {
-    if (!currentUser?.id) return;
-    const channel = window.Echo.private(`user.${currentUser.id}`);
-    channel.listen('.friendrequest.created', () => { toast.info('New friend request!'); loadFriendRequests(); })
-      .listen('.friendrequest.accepted', () => { loadFriendRequests(); loadFriends(); })
-      .listen('.channel.created', () => loadThreads());
-    return () => window.Echo.leave(`user.${currentUser.id}`);
-  }, [currentUser?.id, loadFriendRequests, loadFriends, loadThreads]);
+  // useEffect(() => {
+  //   if (!currentUser?.id) return;
+  //   const channel = window.Echo.private(`user.${currentUser.id}`);
+  //   channel.listen('.friendrequest.created', () => { toast.info('New friend request!'); })
+  //     .listen('.friendrequest.accepted', () => { })
+  //     .listen('.channel.created', () => { });
+  //   return () => window.Echo.leave(`user.${currentUser.id}`);
+  // }, [currentUser?.id]);
 
-  useEffect(() => {
-    loadThreads();
-    loadFriends();
-    loadFriendRequests();
-  }, [loadThreads, loadFriends, loadFriendRequests]);
+  const messageUser = useCallback((userId) => {
+    const existingChannel = channels.find(c => c.type === 1 && c.recipients.some(r => r.id === userId));
+
+    console.log('existingChannel', existingChannel);
+    if (existingChannel) {
+      setActiveThreadId(existingChannel.channel_id);
+    } else {
+      ChannelsService.createChannel([userId])
+        .then(channel => {
+          setActiveThreadId(channel.channel_id);
+        })
+        .catch(() => {
+          toast.error('Failed to create DM channel');
+        });
+    }
+  }, [channels]);
+
+  const cancelFriendRequest = useCallback((requestId) => {
+    FriendsService.cancelRequest(requestId)
+      .then(() => {
+        toast.success('Friend request cancelled');
+      })
+      .catch(() => {
+        toast.error('Failed to cancel friend request');
+      });
+  }, []);
+
+  const acceptFriendRequest = useCallback((requestId) => {
+    FriendsService.acceptRequest(requestId)
+      .then(() => {
+        toast.success('Friend request accepted');
+      })
+      .catch(() => {
+        toast.error('Failed to accept friend request');
+      });
+  }, []);
+
+  const sendFriendRequest = useCallback((e) => {
+    e.preventDefault();
+    FriendsService.sendRequest(friendUsername)
+      .then(() => {
+        toast.success('Friend request sent');
+        setFriendUsername('');
+      })
+      .catch((error) => {
+        if (error?.response?.status === 404) {
+          toast.error('User not found');
+        } else {
+          toast.error('Failed to send friend request');
+        }
+      });
+  }, [friendUsername]);
+
+  const dmChannels = useMemo(() => channels.filter(c => c.type === 1).map(normalizeThread), [channels]);
 
   const activeChannel = useMemo(() =>
-    activeThreadId === 'friends' ? null : dmThreads.find(t => t.id === activeThreadId),
-    [activeThreadId, dmThreads]
+    activeThreadId === 'friends' ? null : dmChannels.find(t => t.id === activeThreadId),
+    [activeThreadId, dmChannels]
   );
 
   return (
@@ -189,11 +152,11 @@ const DirectMessagesPage = () => {
               </div>
 
               <div className="mt-2 space-y-0.5">
-                {dmThreads.map((thread) => (
+                {dmChannels.map((channel) => (
                   <button
-                    key={thread.id}
-                    onClick={() => { setActiveThreadId(thread.id); setIsSidebarOpen(false); }}
-                    className={`group flex w-full items-center gap-3 rounded px-2 py-1.5 text-sm ${activeThreadId === thread.id ? 'bg-gray-700 text-white' : 'text-gray-400 hover:bg-gray-700/50 hover:text-gray-200'}`}
+                    key={channel.channel_id}
+                    onClick={() => { setActiveThreadId(channel.channel_id); setIsSidebarOpen(false); }}
+                    className={`group flex w-full items-center gap-3 rounded px-2 py-1.5 text-sm ${activeThreadId === channel.channel_id ? 'bg-gray-700 text-white' : 'text-gray-400 hover:bg-gray-700/50 hover:text-gray-200'}`}
                   >
                     <div className="relative">
                       {/* {thread.user.avatar ? (
@@ -203,10 +166,10 @@ const DirectMessagesPage = () => {
                           {thread.user.name.slice(0, 1)}
                         </div>
                       )} */}
-                      <Avatar user={thread.user} className="size-8 rounded-full" />
+                      <Avatar user={channel.user} className="size-8 rounded-full" />
                       <div className="absolute bottom-0 right-0 size-3 rounded-full border-2 border-gray-800 bg-green-500" />
                     </div>
-                    <span className="font-medium truncate">{thread.user.name}</span>
+                    <span className="font-medium truncate">{channel.user.name}</span>
 
                   </button>
                 ))}
@@ -230,7 +193,7 @@ const DirectMessagesPage = () => {
                       {[
                         { id: 'online', label: 'Online' },
                         { id: 'all', label: 'All' },
-                        { id: 'pending', label: 'Pending', count: friendRequests.filter(req => req.sender_id != currentUser.id).length },
+                        { id: 'pending', label: 'Pending', count: requests.filter(req => req.sender_id != currentUser.id).length },
                       ].map(tab => (
                         <Button
                           key={tab.id}
@@ -297,7 +260,7 @@ const DirectMessagesPage = () => {
                             </div>
                           </div>
                           <div className="flex gap-2">
-                            <button onClick={() => createDmThread(friend.id)} className="flex size-9 items-center justify-center rounded-full bg-gray-800 text-gray-300 hover:text-green-400">
+                            <button onClick={() => messageUser(friend.id)} className="flex size-9 items-center justify-center rounded-full bg-gray-800 text-gray-300 hover:text-green-400">
                               <MessageSquare size={18} />
                             </button>
                             <button onClick={() => deleteFriend(friend.id)} className="flex size-9 items-center justify-center rounded-full bg-gray-800 text-gray-300 hover:text-red-400">
@@ -312,8 +275,8 @@ const DirectMessagesPage = () => {
                   {/* Pending Requests View */}
                   {activeTab === 'pending' && (
                     <div className="space-y-1">
-                      <div className="mb-4 text-[10px] font-semibold uppercase text-gray-400">Pending — {friendRequests.length}</div>
-                      {friendRequests.map(req => {
+                      <div className="mb-4 text-[10px] font-semibold uppercase text-gray-400">Pending — {requests.length}</div>
+                      {requests.map(req => {
                         const isOutgoing = req.sender_id === currentUser.id;
                         const user = isOutgoing ? req.receiver : req.sender;
                         return (
@@ -331,7 +294,7 @@ const DirectMessagesPage = () => {
                                   <UserCheck size={18} />
                                 </button>
                               )}
-                              <button className="flex size-9 items-center justify-center rounded-full bg-gray-800 text-red-500 hover:bg-gray-900">
+                              <button onClick={() => cancelFriendRequest(req.id)} className="flex size-9 items-center justify-center rounded-full bg-gray-800 text-red-500 hover:bg-gray-900">
                                 <UserMinus size={18} />
                               </button>
                             </div>

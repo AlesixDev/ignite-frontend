@@ -16,6 +16,7 @@ import { useChannelsStore } from './stores/channels.store';
 import notificationSound from './sounds/notification.wav'
 import { UnreadsService } from './services/unreads.service';
 import { RolesService } from './services/roles.service';
+import { ChannelsService } from './services/channels.service';
 
 const AuthRoute = ({ children }) => {
   const store = useStore();
@@ -52,15 +53,33 @@ const AuthRoute = ({ children }) => {
             await RolesService.initializeGuildRoles();
             await FriendsService.loadFriends();
             await FriendsService.loadRequests();
+            await ChannelsService.loadChannels();
             UnreadsService.loadUnreads();
+
+            // Subsribe to the user private channel via Echo
+            console.log(`Subscribing to private.user.${user.id}`);
+
+            window.Echo.private(`user.${user.id}`)
+              .listen('.friend.requested', (event) => {
+                console.log('Received friend request event:', event);
+                FriendsService.loadRequests();
+              })
+              .listen('.friend.accepted', (event) => {
+                console.log('Friend request accepted event:', event);
+                FriendsService.loadFriends();
+                FriendsService.loadRequests();
+              })
+              .listen('.friend.deleted', (event) => {
+                console.log('Friend deleted event:', event);
+                FriendsService.loadFriends();
+                FriendsService.loadRequests();
+              });
 
             // Subscribe to all channels via Echo
             const guilds = useGuildsStore.getState().guilds;
             guilds.forEach(guild => {
               guild.channels?.forEach(channel => {
                 console.log(`Subscribing to channel.${channel.channel_id}`);
-
-
 
                 window.Echo.private(`channel.${channel.channel_id}`)
                   .listen('.message.created', (event) => {
