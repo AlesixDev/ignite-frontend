@@ -17,6 +17,7 @@ import GuildMemberPopoverContent from './GuildMemberPopoverContent';
 import { EmojiPicker, EmojiPickerContent, EmojiPickerFooter, EmojiPickerSearch } from './ui/emoji-picker';
 import { Button } from './ui/button';
 import { Smile } from 'lucide-react';
+import Avatar from './Avatar.jsx';
 import axios from 'axios';
 
 const ChannelMessage = ({ message, prevMessage, pending }) => {
@@ -162,13 +163,7 @@ const ChannelMessage = ({ message, prevMessage, pending }) => {
               <ContextMenu>
                 <PopoverTrigger>
                   <ContextMenuTrigger>
-                    {message?.author.avatar ? (
-                      <img className="h-10 cursor-pointer rounded-full bg-transparent" src={message?.author.avatar} alt="User avatar" />
-                    ) : (
-                      <div className="mr-4 flex size-10 cursor-pointer items-center justify-center rounded-full bg-gray-800 text-gray-300">
-                        {message?.author?.name?.slice(0, 1).toUpperCase()}
-                      </div>
-                    )}
+                    <Avatar user={message.author} className="size-10" />
                   </ContextMenuTrigger>
                   <ContextMenuContent>
                     <GuildMemberContextMenu user={message.author} onMention={onMention} />
@@ -700,13 +695,7 @@ const DiscordChannel = ({ channel }) => {
                         <PopoverTrigger className="w-full">
                           <ContextMenuTrigger>
                             <div key={member.user.id} className="flex items-center gap-3 rounded-md p-2 transition hover:bg-gray-700/50">
-                              {member.user.avatar_url ? (
-                                <img className="size-8 rounded-full bg-transparent" src={member.user.avatar_url} alt="User avatar" />
-                              ) : (
-                                <div className="flex size-8 items-center justify-center rounded-full bg-gray-700 text-gray-300">
-                                  {member.user.username?.slice(0, 1).toUpperCase()}
-                                </div>
-                              )}
+                              <Avatar user={member.user} className="size-8" />
                               <div>
                                 <p className="text-sm font-medium text-gray-100">{member.user.name ?? member.user.username}</p>
                                 <p className="text-xs text-gray-400">{member.user.status}</p>

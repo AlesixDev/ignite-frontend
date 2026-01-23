@@ -1,10 +1,10 @@
 const Avatar = ({ user, className = 'h-10' }) => {
   return (
     <>
-      {user.avatar ? (
+      {user.avatar_url ? (
         <img
-          className={`cursor-pointer rounded-full bg-transparent ${className}`}
-          src={user.avatar}
+          className={`cursor-pointer border-none rounded-full bg-transparent ${className}`}
+          src={user.avatar_url}
           alt={`${user.name} avatar`}
         />
       ) : (

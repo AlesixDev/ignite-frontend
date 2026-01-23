@@ -196,13 +196,6 @@ const DirectMessagesPage = () => {
                     className={`group flex w-full items-center gap-3 rounded px-2 py-1.5 text-sm ${activeThreadId === thread.id ? 'bg-gray-700 text-white' : 'text-gray-400 hover:bg-gray-700/50 hover:text-gray-200'}`}
                   >
                     <div className="relative">
-                      {/* {thread.user.avatar ? (
-                        <img src={thread.user.avatar} className="size-8 rounded-full" alt="" />
-                      ) : (
-                        <div className="flex size-8 items-center justify-center rounded-full bg-gray-600 text-xs">
-                          {thread.user.name.slice(0, 1)}
-                        </div>
-                      )} */}
                       <Avatar user={thread.user} className="size-8 rounded-full" />
                       <div className="absolute bottom-0 right-0 size-3 rounded-full border-2 border-gray-800 bg-green-500" />
                     </div>
