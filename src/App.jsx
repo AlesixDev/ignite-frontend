@@ -101,16 +101,19 @@ const AuthRoute = ({ children }) => {
                       console.log(channelMessages[channel.channel_id]);
                       setChannelMessages(channel.channel_id, [...(channelMessages[channel.channel_id] || []), event.message]);
 
-                      if (event.message.author.id !== user.id) {
-                        // Play notification sound for incoming message
-                        const audio = new Audio(notificationSound);
-                        audio.play().catch((e) => {
-                          console.error('Failed to play notification sound:', e);
-                        });
-                      }
-
                       // Set guild channel last_message_id for unreads
                       editGuildChannel(channel.guild_id, channel.channel_id, { last_message_id: event.message.id });
+                    }
+
+                    /**
+                     * Play notification sound if the message is from another user
+                     */
+                    if (event.message.author.id !== user.id) {
+                      // Play notification sound for incoming message
+                      const audio = new Audio(notificationSound);
+                      audio.play().catch((e) => {
+                        console.error('Failed to play notification sound:', e);
+                      });
                     }
                   })
                   .listen('.message.updated', (event) => {
