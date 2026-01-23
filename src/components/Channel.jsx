@@ -173,7 +173,7 @@ const ChannelMessage = ({ message, prevMessage, pending }) => {
         <ContextMenuTrigger className={`group relative block py-1 data-[state=open]:bg-gray-800/60 ${isEditing ? 'bg-gray-800/60' : 'hover:bg-gray-800/60'} ${shouldStack ? '' : 'mt-3.5'}`}>
           <div className="flex items-start px-4 gap-4">
             {shouldStack ? (
-              <div className="w-14" />
+              <div className="w-10" />
             ) : (
               <ContextMenu>
                 <PopoverTrigger>
