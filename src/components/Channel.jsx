@@ -20,6 +20,7 @@ import { Smile } from 'lucide-react';
 import { useChannelsStore } from '../stores/channels.store';
 import { ChannelsService } from '../services/channels.service';
 import { UnreadsService } from '../services/unreads.service';
+import Avatar from './Avatar.jsx';
 
 const UnreadDivider = () => (
   <div className="flex items-center justify-center mt-6 mb-2 relative group w-full animate-in fade-in duration-300">
@@ -170,20 +171,14 @@ const ChannelMessage = ({ message, prevMessage, pending }) => {
     <Popover>
       <ContextMenu>
         <ContextMenuTrigger className={`group relative block py-1 data-[state=open]:bg-gray-800/60 ${isEditing ? 'bg-gray-800/60' : 'hover:bg-gray-800/60'} ${shouldStack ? '' : 'mt-3.5'}`}>
-          <div className="flex items-start px-4">
+          <div className="flex items-start px-4 gap-4">
             {shouldStack ? (
               <div className="w-14" />
             ) : (
               <ContextMenu>
                 <PopoverTrigger>
                   <ContextMenuTrigger>
-                    {message?.author.avatar ? (
-                      <img className="h-10 cursor-pointer rounded-full bg-transparent" src={message?.author.avatar} alt="User avatar" />
-                    ) : (
-                      <div className="mr-4 flex size-10 cursor-pointer items-center justify-center rounded-full bg-gray-800 text-gray-300">
-                        {message?.author?.name?.slice(0, 1).toUpperCase()}
-                      </div>
-                    )}
+                    <Avatar user={message.author} className="size-10" />
                   </ContextMenuTrigger>
                   <ContextMenuContent>
                     <GuildMemberContextMenu user={message.author} onMention={onMention} />
@@ -640,13 +635,7 @@ const Channel = ({ channel }) => {
                         <PopoverTrigger className="w-full">
                           <ContextMenuTrigger>
                             <div key={member.user.id} className="flex items-center gap-3 rounded-md p-2 transition hover:bg-gray-700/50">
-                              {member.user.avatar_url ? (
-                                <img className="size-8 rounded-full bg-transparent" src={member.user.avatar_url} alt="User avatar" />
-                              ) : (
-                                <div className="flex size-8 items-center justify-center rounded-full bg-gray-700 text-gray-300">
-                                  {member.user.username?.slice(0, 1).toUpperCase()}
-                                </div>
-                              )}
+                              <Avatar user={member.user} className="size-8" />
                               <div>
                                 <p className="text-sm font-medium text-gray-100">{member.user.name ?? member.user.username}</p>
                                 <p className="text-xs text-gray-400">{member.user.status}</p>

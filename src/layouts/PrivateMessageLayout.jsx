@@ -6,6 +6,7 @@ import api from '../api';
 import Channel from '../components/Channel';
 import { ChannelContextProvider } from '../contexts/ChannelContext';
 import UserSettings from '../components/Settings/UserSettings';
+import Avatar from '../components/Avatar';
 
 const PrivateMessageLayout = () => {
   const store = useStore();
@@ -478,13 +479,7 @@ const PrivateMessageLayout = () => {
                     className={`mb-2 flex w-full items-center gap-3 rounded px-3 py-2 text-left text-sm transition-colors ${isActive ? 'bg-gray-700 text-white' : 'text-gray-400 hover:bg-gray-800/60'
                       }`}
                   >
-                    {thread.user?.avatar ? (
-                      <img src={thread.user.avatar} alt={name} className="size-9 rounded-full" />
-                    ) : (
-                      <div className="flex size-9 items-center justify-center rounded-full bg-gray-800 text-xs text-gray-300">
-                        {name.slice(0, 2).toUpperCase()}
-                      </div>
-                    )}
+                    <Avatar user={thread.user} className="size-9" />
                     <div className="min-w-0">
                       <div className="truncate font-medium text-gray-200">{name}</div>
                       <div className="truncate text-xs text-gray-500">

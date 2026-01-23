@@ -20,7 +20,7 @@ const TabAccount = () => {
     defaultValues: {
       name: store.user?.name || '',
       bio: store.user?.bio || '',
-      avatar: store.user?.avatar || '',
+      avatar_url: store.user?.avatar_url || '',
     },
   });
 
@@ -32,6 +32,7 @@ const TabAccount = () => {
       store.setUser({
         ...store.user,
         name: data.name,
+        avatar_url: data.avatar_url,
       });
       toast.success('Profile updated successfully');
     } catch (error) {
@@ -136,11 +137,31 @@ const TabAccount = () => {
                     />
                   </Field>
                   <Field>
-                    <FieldLabel htmlFor="avatar">
+                    <FieldLabel htmlFor="avatar_url">
                       Avatar
                     </FieldLabel>
-                    <Button type="button" variant="secondary">
-                      Upload Avatar
+                    <Controller
+                      name="avatar_url"
+                      rules={{
+                        pattern: {
+                          value: /^https:\/\/.+\.(jpg|jpeg|png|webp|gif)$/i,
+                          message:
+                            'Avatar URL must start with https:// and end with .jpg, .jpeg, .png, .webp, or .gif.',
+                        },
+                      }}
+                      render={({ field, formState }) => (
+                        <>
+                          <Input
+                            id="avatar_url"
+                            placeholder="https://example.com/my-avatar.png"
+                            {...field}
+                          />
+                          <FieldError>{formState.errors.avatar_url?.message}</FieldError>
+                        </>
+                      )}
+                    />
+                    <Button type="button" variant="secondary" disabled>
+                      Upload Avatar (not implemented yet)
                     </Button>
                   </Field>
                 </FieldGroup>
