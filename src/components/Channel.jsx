@@ -621,42 +621,45 @@ const Channel = ({ channel }) => {
           />
           <ChannelInput channel={channel} />
         </div>
-        <div className={`relative z-0 transition-all duration-300 ${memberListOpen ? 'w-60 md:w-72' : 'w-0'}`}>
-          {memberListOpen && (
-            <div className="flex h-full flex-col border-l border-gray-800 bg-gray-800">
-              <div className="flex h-12 items-center border-b border-gray-700 px-4 text-sm font-semibold text-gray-300">
-                Members
-              </div>
-              <div className="flex flex-1 flex-col gap-1 p-2 text-gray-400">
-                {activeGuildMembers?.map((member) => (
-                  <div key={member.user.id}>
-                    <Popover>
-                      <ContextMenu>
-                        <PopoverTrigger className="w-full">
-                          <ContextMenuTrigger>
-                            <div key={member.user.id} className="flex items-center gap-3 rounded-md p-2 transition hover:bg-gray-700/50">
-                              <Avatar user={member.user} className="size-8" />
-                              <div>
-                                <p className="text-sm font-medium text-gray-100">{member.user.name ?? member.user.username}</p>
-                                <p className="text-xs text-gray-400">{member.user.status}</p>
+
+        {channel.type !== 1 && (
+          <div className={`relative z-0 transition-all duration-300 ${memberListOpen ? 'w-60 md:w-72' : 'w-0'}`}>
+            {memberListOpen && (
+              <div className="flex h-full flex-col border-l border-gray-800 bg-gray-800">
+                <div className="flex h-12 items-center border-b border-gray-700 px-4 text-sm font-semibold text-gray-300">
+                  Members
+                </div>
+                <div className="flex flex-1 flex-col gap-1 p-2 text-gray-400">
+                  {activeGuildMembers?.map((member) => (
+                    <div key={member.user.id}>
+                      <Popover>
+                        <ContextMenu>
+                          <PopoverTrigger className="w-full">
+                            <ContextMenuTrigger>
+                              <div key={member.user.id} className="flex items-center gap-3 rounded-md p-2 transition hover:bg-gray-700/50">
+                                <Avatar user={member.user} className="size-8" />
+                                <div>
+                                  <p className="text-sm font-medium text-gray-100">{member.user.name ?? member.user.username}</p>
+                                  <p className="text-xs text-gray-400">{member.user.status}</p>
+                                </div>
                               </div>
-                            </div>
-                          </ContextMenuTrigger>
-                        </PopoverTrigger>
-                        <ContextMenuContent>
-                          <GuildMemberContextMenu user={member.user} onMention={onMention} />
-                        </ContextMenuContent>
-                      </ContextMenu>
-                      <PopoverContent className="w-auto p-2" align="start" alignOffset={0}>
-                        <GuildMemberPopoverContent user={member.user} guild={null} />
-                      </PopoverContent>
-                    </Popover>
-                  </div>
-                ))}
+                            </ContextMenuTrigger>
+                          </PopoverTrigger>
+                          <ContextMenuContent>
+                            <GuildMemberContextMenu user={member.user} onMention={onMention} />
+                          </ContextMenuContent>
+                        </ContextMenu>
+                        <PopoverContent className="w-auto p-2" align="start" alignOffset={0}>
+                          <GuildMemberPopoverContent user={member.user} guild={null} />
+                        </PopoverContent>
+                      </Popover>
+                    </div>
+                  ))}
+                </div>
               </div>
-            </div>
-          )}
-        </div>
+            )}
+          </div>
+        )}
       </div>
     </div>
   );

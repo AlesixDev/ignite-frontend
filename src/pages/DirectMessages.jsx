@@ -62,9 +62,11 @@ const DirectMessagesPage = () => {
 
   const normalizeThread = useCallback((thread) => {
     if (!thread) return null;
-    const id = thread.id || thread.channel_id || thread.channelId;
     const otherUser = (thread.recipients || []).find(r => r.id !== currentUser.id) || thread.user || {};
-    return { id, channel_id: id, user: otherUser };
+    return {
+      ...thread,
+      user: otherUser,
+    }
   }, [currentUser.id]);
 
   const messageUser = useCallback((userId) => {
@@ -148,7 +150,7 @@ const DirectMessagesPage = () => {
   const dmChannels = useMemo(() => channels.filter(c => c.type === 1).map(normalizeThread), [channels]);
 
   const activeChannel = useMemo(() =>
-    activeThreadId === 'friends' ? null : dmChannels.find(t => t.id === activeThreadId),
+    activeThreadId === 'friends' ? null : dmChannels.find(t => t.channel_id === activeThreadId),
     [activeThreadId, dmChannels]
   );
 
