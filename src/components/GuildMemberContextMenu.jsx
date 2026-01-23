@@ -37,7 +37,7 @@ const GuildMemberContextMenu = ({ user, onMention = undefined }) => {
       toast.info('You cannot DM yourself.');
       return;
     }
-  
+
     try {
       await api.post('@me/channels', { recipients: [author.id] });
       navigate('/channels/@me');
@@ -46,6 +46,38 @@ const GuildMemberContextMenu = ({ user, onMention = undefined }) => {
       toast.error(error.response?.data?.message || 'Could not create direct message.');
     }
   }, [navigate, store.user.id]);
+
+  const sendFriendRequest = () => {
+    FriendsService.sendRequest(user.username).then(() => {
+      toast.success(`Friend request sent to ${user.username}`);
+    }).catch(() => {
+      toast.error(`Failed to send friend request to ${user.username}`);
+    });
+  };
+
+  const removeFriend = () => {
+    FriendsService.removeFriend(friendRequestId).then(() => {
+      toast.success(`Removed ${user.username} from friends`);
+    }).catch(() => {
+      toast.error(`Failed to remove ${user.username} from friends`);
+    });
+  };
+
+  const cancelFriendRequest = () => {
+    FriendsService.cancelRequest(friendRequestId).then(() => {
+      toast.success(`Friend request to ${user.username} cancelled`);
+    }).catch(() => {
+      toast.error(`Failed to cancel friend request to ${user.username}`);
+    });
+  };
+
+  const acceptFriendRequest = () => {
+    FriendsService.acceptRequest(friendRequestId).then(() => {
+      toast.success(`Friend request from ${user.username} accepted`);
+    }).catch(() => {
+      toast.error(`Failed to accept friend request from ${user.username}`);
+    });
+  };
 
   return (
     <>
@@ -71,22 +103,22 @@ const GuildMemberContextMenu = ({ user, onMention = undefined }) => {
             Change Nickname
           </ContextMenuItem>
           {!isFriend && !hasSentRequest && !hasReceivedRequest && (
-            <ContextMenuItem onSelect={() => FriendsService.sendRequest(user.username)}>
+            <ContextMenuItem onSelect={sendFriendRequest}>
               Add Friend
             </ContextMenuItem>
           )}
           {isFriend && (
-            <ContextMenuItem onSelect={() => FriendsService.removeFriend(friendRequestId)}>
+            <ContextMenuItem onSelect={removeFriend}>
               Remove Friend
             </ContextMenuItem>
           )}
           {hasSentRequest && (
-            <ContextMenuItem onSelect={() => FriendsService.cancelRequest(friendRequestId)}>
+            <ContextMenuItem onSelect={cancelFriendRequest}>
               Cancel Friend Request
             </ContextMenuItem>
           )}
           {hasReceivedRequest && (
-            <ContextMenuItem onSelect={() => FriendsService.acceptRequest(friendRequestId)}>
+            <ContextMenuItem onSelect={acceptFriendRequest}>
               Accept Friend Request
             </ContextMenuItem>
           )}

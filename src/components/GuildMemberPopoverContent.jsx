@@ -7,6 +7,7 @@ import { useFriendsStore } from '../stores/friends.store';
 import { ContextMenu, ContextMenuContent, ContextMenuTrigger } from './ui/context-menu';
 import { CircleNotch, DotsThree } from '@phosphor-icons/react';
 import GuildMemberContextMenu from './GuildMemberContextMenu';
+import { toast } from 'sonner';
 
 const GuildMemberPopoverContent = ({ user, guild = null }) => {
   const store = useStore();
@@ -33,6 +34,14 @@ const GuildMemberPopoverContent = ({ user, guild = null }) => {
     const request = requests.find((request) => request.sender_id === user.id || request.receiver_id === user.id);
     return request ? request.id : null;
   }, [requests, user.id]);
+
+  const sendFriendRequest = () => {
+    FriendsService.sendRequest(user.username).then(() => {
+      toast.success(`Friend request sent to ${user.username}`);
+    }).catch(() => {
+      toast.error(`Failed to send friend request to ${user.username}`);
+    });
+  };
 
   setTimeout(() => {
     setLoading(false);
@@ -61,7 +70,7 @@ const GuildMemberPopoverContent = ({ user, guild = null }) => {
                   {!isFriend && !hasSentRequest && !hasReceivedRequest && (
                     <button
                       type="button"
-                      onClick={() => FriendsService.sendRequest(user.username)}
+                      onClick={sendFriendRequest}
                       className="flex items-center justify-center rounded-full bg-black/30 p-1.5 text-white transition hover:bg-black/40"
                     >
                       <UserPlus className="size-4" />

@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { toast } from 'sonner';
-import { UserPlus, MessageSquare, UserCheck, UserMinus, Users } from 'lucide-react'; 
+import { UserPlus, MessageSquare, UserCheck, UserMinus, Users } from 'lucide-react';
 import BaseAuthLayout from '../layouts/BaseAuthLayout';
 import useStore from '../hooks/useStore';
 import api from '../api';
@@ -20,14 +20,19 @@ import { useFriendsStore } from '../stores/friends.store';
 import { useChannelsStore } from '../stores/channels.store';
 import { ChannelsService } from '../services/channels.service';
 import { useUnreadsStore } from '../stores/unreads.store';
+import { useNavigate, useParams } from 'react-router-dom';
 
 const DirectMessagesPage = () => {
   const store = useStore();
   const currentUser = store.user || { id: 'me', username: 'You', name: 'You' };
 
+  // Get the channelId from the URL params (if any)
+  const { channelId } = useParams();
+
   // Navigation State
   const [activeThreadId, setActiveThreadId] = useState('friends'); // 'friends' or channel ID
   const [activeTab, setActiveTab] = useState('online'); // online, all, pending, add_friend
+  const navigate = useNavigate();
 
   // Data State
   const [dmThreads, setDmThreads] = useState([]);
@@ -43,6 +48,18 @@ const DirectMessagesPage = () => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isUserSettingsOpen, setIsUserSettingsOpen] = useState(false);
 
+  // If channelId param changes, set active thread to it
+  useEffect(() => {
+    if (channelId) {
+      setActiveThreadId(channelId);
+    }
+  }, [channelId]);
+
+  //
+  const navigateTo = (page) => {
+    navigate(`/channels/@me/${page}`);
+  };
+
   const normalizeThread = useCallback((thread) => {
     if (!thread) return null;
     const id = thread.id || thread.channel_id || thread.channelId;
@@ -54,11 +71,11 @@ const DirectMessagesPage = () => {
     const existingChannel = channels.find(c => c.type === 1 && c.recipients.some(r => r.id === userId));
 
     if (existingChannel) {
-      setActiveThreadId(existingChannel.channel_id);
+      navigateTo(existingChannel.channel_id);
     } else {
       ChannelsService.createChannel([userId])
         .then(channel => {
-          setActiveThreadId(channel.channel_id);
+          navigateTo(channel.channel_id);
         })
         .catch(() => {
           toast.error('Failed to create DM channel');
@@ -90,7 +107,7 @@ const DirectMessagesPage = () => {
     e.preventDefault();
     FriendsService.sendRequest(friendUsername)
       .then(() => {
-        toast.success('Friend request sent');
+        toast.success(`Friend request sent to ${user.username}`);
         setFriendUsername('');
       })
       .catch((error) => {
@@ -107,15 +124,14 @@ const DirectMessagesPage = () => {
 
     // Find the channel unread with channel_id == channelId
     const channelUnread = channelUnreads.find((cu) => String(cu.channel_id) === String(channelId));
-    
+
     // If we have no record of reading it, but it exists, it might be unread. 
     // However, usually "no record" means read everything if the logic implies tracking unreads.
     // For Discord logic: if there is no unread object, usually it means it's fully read OR we haven't fetched it.
     // Assuming here: if no record exists, check if channel has messages.
-    if (!channelUnread) return false; 
+    if (!channelUnread) return false;
 
     const channel = channels.find((c) => String(c.channel_id) == String(channelId));
-    console.log('Checking unread for channel:', channel, 'ChannelUnread:', channelUnread);
     if (!channel || !channel.last_message_id) return false;
 
     // Get timestamp of both message IDs (Snowflake)
@@ -148,7 +164,7 @@ const DirectMessagesPage = () => {
               <Button
                 variant={activeThreadId === 'friends' ? "secondary" : "ghost"}
                 className="w-full justify-start gap-3 mb-1"
-                onClick={() => setActiveThreadId('friends')}
+                onClick={() => navigateTo('friends')}
               >
                 <Users className="h-5 w-5" />
                 <span className="font-medium">Friends</span>
@@ -167,11 +183,11 @@ const DirectMessagesPage = () => {
                   return (
                     <button
                       key={channel.channel_id}
-                      onClick={() => { setActiveThreadId(channel.channel_id); setIsSidebarOpen(false); }}
+                      onClick={() => { navigateTo(channel.channel_id); setIsSidebarOpen(false); }}
                       className={`
                         group relative flex w-full items-center gap-3 rounded px-2 py-1.5 text-sm transition-all
-                        ${isActive 
-                          ? 'bg-gray-700 text-white' 
+                        ${isActive
+                          ? 'bg-gray-700 text-white'
                           : 'text-gray-400 hover:bg-gray-700/50 hover:text-gray-200'}
                         ${!isActive && isUnread ? 'text-gray-100' : ''} 
                       `}
@@ -185,7 +201,7 @@ const DirectMessagesPage = () => {
                         <Avatar user={channel.user} className="size-8 rounded-full" />
                         <div className="absolute bottom-0 right-0 size-3 rounded-full border-2 border-gray-800 bg-green-500" />
                       </div>
-                      
+
                       <span className={`truncate ${!isActive && isUnread ? 'font-bold text-gray-100' : 'font-medium'}`}>
                         {channel.user.name}
                       </span>

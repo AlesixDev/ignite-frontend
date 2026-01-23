@@ -16,6 +16,7 @@ import EditGuildChannelModal from '../components/Modals/EditGuildChannelModal';
 import { useUnreadsStore } from '../stores/unreads.store';
 import { UnreadsService } from '../services/unreads.service';
 import { ChannelsService } from '../services/channels.service';
+import { useChannelsStore } from '../stores/channels.store';
 
 const GuildSidebarHeader = ({ guildName = '', guild, onOpenServerSettings, canOpenServerSettings }) => {
   const navigate = useNavigate();
@@ -209,22 +210,28 @@ const GuildSidebarSection = ({
   const sectionName = category?.name;
   const { channelUnreads, channelUnreadsLoaded } = useUnreadsStore();
 
-  const isChannelUnread = (channelId) => {
-    if (!channelUnreadsLoaded) return false;
+  const isChannelUnread = (channel) => {
+    if (!channel || !channelUnreadsLoaded || !channel.last_message_id) return false;
 
-    // Find the channel unread with channel_id == channelId
-    const channelUnread = channelUnreads.find((cu) => String(cu.channel_id) === String(channelId));
+    // Find the channel unread with channel_id == channel.channelId
+    const channelUnread = channelUnreads.find((cu) => String(cu.channel_id) === String(channel.channel_id));
     if (!channelUnread) return true;
 
-    // If the timestamp of channel.last_message_id is greater than channelUnread.last_read_message_id
-    const channel = guild?.channels?.find((c) => String(c.channel_id) === String(channelId));
-    if (!channel || !channel.last_message_id) return false;
+    //console.log('channelUnread:', channelUnread, 'channel:', channel);
 
+    if (channel.channel_id == "1361304246670065664") {
+      //console.log('Debugging channelUnread:', channelUnread.last_read_message_id, 'channel:', channel.last_message_id);
+    }
     // Get timestamp of both message IDs (Snowflake)
     const channelLastMessageTimestamp = BigInt(channel.last_message_id) >> 22n;
     const channelUnreadLastReadTimestamp = BigInt(channelUnread.last_read_message_id) >> 22n;
 
-    return channelLastMessageTimestamp > channelUnreadLastReadTimestamp;
+    // If the timestamp of channel.last_message_id is greater than channelUnread.last_read_message_id
+    if (channelLastMessageTimestamp > channelUnreadLastReadTimestamp) {
+      return true;
+    }
+
+    return false;
   }
 
   const handleDeleteChannel = useCallback(
@@ -298,7 +305,7 @@ const GuildSidebarSection = ({
 
       {sortedChannels.map((channel) => {
         // Calculate state variables
-        const isUnread = isChannelUnread(channel.channel_id);
+        const isUnread = isChannelUnread(channel);
         const isActive = channel.channel_id == activeChannelId;
 
         return (
@@ -355,7 +362,7 @@ const GuildSidebarSection = ({
             <ContextMenuContent className="w-52">
               {/* Mark as Read */}
               <ContextMenuItem
-                disabled={isChannelUnread(channel.channel_id) === false}
+                disabled={isChannelUnread(channel) === false}
                 onSelect={async () => {
                   UnreadsService.setLastReadMessageId(channel.channel_id, channel.last_message_id || null);
                   toast.success('Channel marked as read.');
@@ -420,9 +427,14 @@ const GuildSidebar = ({
   const store = useStore();
   const [isCreateChannelDialogOpen, setIsCreateChannelDialogOpen] = useState(false);
   const [categoryId, setCategoryId] = useState(null);
+  const { channels } = useChannelsStore();
+
+  const guildChannels = useMemo(() => {
+    return (channels || []).filter((c) => String(c.guild_id) === String(guild?.id));
+  }, [channels, guild?.id]);
 
   // Go through all categories (channels with type 3) and render their channels inside them
-  const categories = (guild?.channels || []).filter((c) => c.type === 3);
+  const categories = (guildChannels || []).filter((c) => c.type === 3);
 
   const onCreateChannel = useCallback(() => {
     setCategoryId(null);
@@ -448,7 +460,7 @@ const GuildSidebar = ({
               <hr className="m-0 w-full border border-gray-900 bg-gray-900 p-0" />
               <GuildSidebarSection
                 category={null}
-                channels={guild?.channels || []}
+                channels={guildChannels || []}
                 activeChannelId={channelId}
                 openCreateChannelDialog={() => { setIsCreateChannelDialogOpen(true); setCategoryId(null); }}
                 guild={guild}
@@ -460,7 +472,7 @@ const GuildSidebar = ({
                 <GuildSidebarSection
                   key={category.channel_id || category.id}
                   category={category}
-                  channels={guild?.channels || []}
+                  channels={guildChannels || []}
                   activeChannelId={channelId}
                   openCreateChannelDialog={() => {
                     setIsCreateChannelDialogOpen(true);
@@ -509,6 +521,7 @@ const GuildLayout = ({ children, guild }) => {
     guild?.owner_id != null &&
     store.user?.id != null &&
     String(guild.owner_id) === String(store.user.id);
+  const { channels } = useChannelsStore();
 
   const openServerSettings = useCallback(
     ({ tab = 'info', channelId = null } = {}) => {
@@ -574,7 +587,7 @@ const GuildLayout = ({ children, guild }) => {
         setIsOpen={setIsEditChannelModalOpen}
         guild={guild}
         onClose={() => setIsEditChannelModalOpen(false)}
-        channel={guild?.channels?.find((c) => String(c.channel_id || c.id) === String(editChannelId))}
+        channel={channels.find((c) => String(c.channel_id) === String(editChannelId))}
       />
     </BaseAuthLayout>
   );

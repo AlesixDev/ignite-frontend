@@ -1,20 +1,28 @@
 import { toast } from 'sonner';
 import { useChannelsStore } from '../stores/channels.store';
+import { useGuildsStore } from '../stores/guilds.store';
 import api from '../api.js';
 import axios from 'axios';
 import useStore from '../hooks/useStore';
 
 export const ChannelsService = {
     /**
-     * Load DM/Group channels for the current user and update the local store.
+     * Load DM/Group channels for the current user, Initialize guild channels from guilds store, and update the local store. 
      * 
      * @returns void
      */
     async loadChannels() {
         const { setChannels } = useChannelsStore.getState();
+        const { guilds } = useGuildsStore.getState();
+
         try {
             const { data } = await api.get('/@me/channels');
-            setChannels(data);
+            const mergedChannels = [
+                ...data,
+                ...guilds.flatMap((g) => g.channels || [])
+            ];
+    
+            setChannels(mergedChannels);
         } catch {
             toast.error('Unable to load channels.');
         }
@@ -35,8 +43,8 @@ export const ChannelsService = {
             setChannels([...channels, data]);
 
             return data;
-        } catch { 
-            toast.error('Failed to create DM'); 
+        } catch {
+            toast.error('Failed to create DM');
         }
     },
 

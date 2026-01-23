@@ -98,72 +98,9 @@ const AuthRoute = ({ children }) => {
     }
   }, [initialized]);
 
-  // Subscribe to all guild channels via Echo
+  // Subscribe to all channels via Echo
   useEffect(() => {
     if (!initialized || !store.user) return;
-
-    // guilds.forEach((guild) => {
-    //   guild.channels?.forEach((channel) => {
-    //     const channelId = channel.channel_id;
-
-    //     // Only subscribe if we haven't already
-    //     if (!activeSubscriptions.current.has(channelId)) {
-    //       console.log(`Subscribing to new channel: ${channelId}`);
-
-    //       window.Echo.private(`channel.${channelId}`)
-    //         .listen('.message.created', (event) => {
-    //           const { channels, setChannels, channelMessages, channelPendingMessages, setChannelMessages, setChannelPendingMessages } = useChannelsStore.getState();
-
-    //           if (channelPendingMessages[channelId]?.some((m) => m.nonce === event.message.nonce)) {
-    //             setChannelPendingMessages(channelId, channelPendingMessages[channelId].filter((m) => m.nonce !== event.message.nonce));
-    //           }
-
-    //           if (channelMessages[channelId] && !channelMessages[channelId]?.some((m) => m.id === event.message.id)) {
-    //             setChannelMessages(channelId, [...(channelMessages[channelId] || []), event.message]);
-
-    //             // Update last_message_id for the channel
-    //             const newChannels = channels.map((c) =>
-    //               c.id === channelId ? { ...c, last_message_id: event.message.id } : c
-    //             );
-    //             setChannels(newChannels);
-    //           }
-
-    //           if (event.message.author.id !== store.user.id) {
-    //             new Audio(notificationSound).play().catch(() => { });
-    //           }
-    //         })
-    //         .listen('.message.updated', (event) => {
-    //           const { channelMessages, setChannelMessages } = useChannelsStore.getState();
-    //           if (channelMessages[channelId]?.some((m) => m.id === event.message.id)) {
-    //             setChannelMessages(channelId, channelMessages[channelId].map((m) =>
-    //               m.id === event.message.id ? { ...m, content: event.message.content, updated_at: event.message.updated_at } : m
-    //             ));
-    //           }
-    //         })
-    //         .listen('.message.deleted', (event) => {
-    //           const { channels, setChannels, channelMessages, setChannelMessages } = useChannelsStore.getState();
-
-    //           if (channelMessages[channelId]) {
-    //             // const filtered = channelMessages[channelId].filter((m) => m.id !== event.message.id);
-    //             // setChannelMessages(channelId, filtered);
-    //             // const latest = [...filtered].sort((a, b) => b.id - a.id)[0];
-    //             // editGuildChannel(guild.id, channelId, { last_message_id: latest?.id });
-
-    //             const latest = [...filtered].sort((a, b) => b.id - a.id)[0];
-
-    //             // Update last_message_id for the channel
-    //             const newChannels = channels.map((c) =>
-    //               c.id === channelId ? { ...c, last_message_id: latest?.id || null } : c
-    //             );
-    //             setChannels(newChannels);
-    //           }
-    //         });
-
-    //       // Mark as subscribed
-    //       activeSubscriptions.current.add(channelId);
-    //     }
-    //   });
-    // });
 
     channels.forEach((channel) => {
       const channelId = channel.channel_id;
@@ -175,6 +112,8 @@ const AuthRoute = ({ children }) => {
         window.Echo.private(`channel.${channelId}`)
           .listen('.message.created', (event) => {
             const { channels, setChannels, channelMessages, channelPendingMessages, setChannelMessages, setChannelPendingMessages } = useChannelsStore.getState();
+
+            console.log('New message event received on channel', channelId, event);
 
             if (channelPendingMessages[channelId]?.some((m) => m.nonce === event.message.nonce)) {
               setChannelPendingMessages(channelId, channelPendingMessages[channelId].filter((m) => m.nonce !== event.message.nonce));
@@ -235,7 +174,7 @@ const AuthRoute = ({ children }) => {
     return () => {
       // Logic to leave Echo channels if needed
     };
-  }, [channels, initialized, store.user]);
+  }, [guilds, channels, initialized, store.user]);
 
   if (!initialized) {
     return (
@@ -313,6 +252,15 @@ function App() {
     <Route element={<AuthRoute />}>
       <Route
         path="/channels/@me"
+        element={
+          <>
+            <PageTitle title="Direct Messages" />
+            <DirectMessagesPage />
+          </>
+        }
+      />
+      <Route
+        path="/channels/@me/:channelId"
         element={
           <>
             <PageTitle title="Direct Messages" />
