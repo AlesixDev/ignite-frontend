@@ -15,7 +15,7 @@ export const RolesService = {
         const { guilds } = useGuildsStore.getState();
 
         for (const guild of guilds) {
-            if (guild.roles && Object.keys(guild.roles).length > 0) {
+            if (guild.roles) {
                 // Use existing roles from guild object
                 setGuildRoles(guild.id, guild.roles);
 

@@ -8,8 +8,8 @@ import { Input } from "../components/ui/input";
 import { RadioGroup, RadioGroupItem } from "../components/ui/radio-group";
 import { Button } from "../components/ui/button";
 
-import { GuildsService } from '../services/guilds.service';
 import Dialog from './Dialog';
+import { ChannelsService } from '../services/channels.service';
 
 const CreateGuildChannelDialog = ({ isOpen, setIsOpen, guild, categoryId }) => {
   const {
@@ -33,7 +33,7 @@ const CreateGuildChannelDialog = ({ isOpen, setIsOpen, guild, categoryId }) => {
       // Clean name: lowercase and replace spaces with hyphens
       const cleanName = data.name.trim().toLowerCase().replace(/\s+/g, '-');
       
-      await GuildsService.createGuildChannel(guild.id, {
+      await ChannelsService.createGuildChannel(guild.id, {
         name: cleanName,
         type: parseInt(data.type),
         parent_id: categoryId,

@@ -75,7 +75,7 @@ const DirectMessagesPage = () => {
     if (existingChannel) {
       navigateTo(existingChannel.channel_id);
     } else {
-      ChannelsService.createChannel([userId])
+      ChannelsService.createPrivateChannel([userId])
         .then(channel => {
           navigateTo(channel.channel_id);
         })

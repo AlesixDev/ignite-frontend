@@ -4,19 +4,154 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { Hash, Plus, CaretDown, CaretRight, NotePencil, Trash } from '@phosphor-icons/react';
 import { toast } from 'sonner'
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors
+} from '@dnd-kit/core';
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  verticalListSortingStrategy,
+  useSortable
+} from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
+
 import BaseAuthLayout from './BaseAuthLayout';
 import CreateGuildChannelDialog from '../components/CreateGuildChannelDialog';
 import ServerSettings from '../components/Settings/ServerSettings';
-import UserSettings from '../components/Settings/UserSettings';
 import api from '../api';
 import useStore from '../hooks/useStore';
 import { GuildsService } from '../services/guilds.service';
-import { ContextMenu, ContextMenuShortcut, ContextMenuContent, ContextMenuItem, ContextMenuSeparator, ContextMenuSub, ContextMenuSubContent, ContextMenuSubTrigger, ContextMenuTrigger } from '../components/ui/context-menu';
+import { ContextMenu, ContextMenuContent, ContextMenuItem, ContextMenuSeparator, ContextMenuTrigger } from '../components/ui/context-menu';
 import EditGuildChannelModal from '../components/Modals/EditGuildChannelModal';
 import { useUnreadsStore } from '../stores/unreads.store';
 import { UnreadsService } from '../services/unreads.service';
 import { ChannelsService } from '../services/channels.service';
 import { useChannelsStore } from '../stores/channels.store';
+import CreateGuildCategoryDialog from '../components/CreateGuildCategoryDialog';
+
+// --- Helper Component: Sortable Channel Item ---
+const SortableChannel = ({
+  channel,
+  isActive,
+  isUnread,
+  expanded,
+  canManageChannels,
+  onEditChannel,
+  handleDeleteChannel,
+  navigate
+}) => {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging
+  } = useSortable({ id: channel.channel_id, disabled: !canManageChannels });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+    touchAction: 'none', // Prevent scrolling while dragging
+    zIndex: isDragging ? 50 : 'auto',
+    position: 'relative'
+  };
+
+  return (
+    <div ref={setNodeRef} style={style} {...attributes} {...listeners}>
+      <ContextMenu>
+        <ContextMenuTrigger>
+          <Link
+            to={`/channels/${channel.guild_id}/${channel.channel_id}`}
+            className={`${!expanded && !isActive ? 'hidden' : ''} group relative block`}
+            // 1. Explicitly tell the browser NOT to use native link dragging
+            draggable="false"
+            // 2. Prevent the native drag start event
+            onDragStart={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+            }}
+          >
+            {isUnread && (
+              <div className="absolute left-0 top-1/2 h-2 w-1 -translate-y-1/2 rounded-r-full bg-white transition-all" />
+            )}
+
+            <div
+              className={`relative mx-2 my-0.5 flex cursor-pointer items-center rounded px-2 py-1 pr-16 transition-colors ${isActive
+                ? 'bg-gray-600 text-gray-100'
+                : isUnread
+                  ? 'text-gray-100 hover:bg-gray-700'
+                  : 'text-gray-500 hover:bg-gray-700 hover:text-gray-400'
+                }`}
+            >
+              <Hash className={`size-6 shrink-0 transition-colors ${isActive || isUnread ? 'text-gray-200' : 'text-gray-500 group-hover:text-gray-400'}`} />
+              <p className={`ml-1 truncate text-base transition-all select-none ${isActive || isUnread ? 'font-semibold text-white' : 'font-medium'}`}>
+                {channel.name}
+              </p>
+            </div>
+          </Link>
+        </ContextMenuTrigger>
+        <ContextMenuContent className="w-52">
+          {/* Mark as Read */}
+          <ContextMenuItem
+            disabled={!isUnread}
+            onSelect={async () => {
+              UnreadsService.setLastReadMessageId(channel.channel_id, channel.last_message_id || null);
+              toast.success('Channel marked as read.');
+              ChannelsService.acknowledgeChannelMessage(channel.channel_id, channel.last_message_id || null);
+            }}>
+            Mark as Read
+          </ContextMenuItem>
+          <ContextMenuSeparator />
+          {/* Go to Channel */}
+          <ContextMenuItem onSelect={() => navigate(`/channels/${channel.guild_id}/${channel.channel_id}`)}>
+            Go to Channel
+          </ContextMenuItem>
+          {/* Copy Link */}
+          <ContextMenuItem onSelect={async () => {
+            const channelLink = `${window.location.origin}/channels/${channel.guild_id}/${channel.channel_id}`;
+            try {
+              await navigator.clipboard.writeText(channelLink);
+              toast.success('Channel link copied to clipboard.');
+            } catch {
+              toast.error('Could not copy channel link to clipboard.');
+            }
+          }}>
+            Copy Link
+          </ContextMenuItem>
+
+
+          <ContextMenuSeparator />
+          <ContextMenuItem disabled={!canManageChannels} onSelect={() => onEditChannel?.(channel)}>
+            Edit Channel
+          </ContextMenuItem>
+          <ContextMenuItem disabled={!canManageChannels} onSelect={() => handleDeleteChannel(channel)} className="text-red-500 hover:bg-red-600/20">
+            Delete Channel
+          </ContextMenuItem>
+          <ContextMenuSeparator />
+          {/* Copy Channel ID */}
+          <ContextMenuItem onSelect={async () => {
+            try {
+              await navigator.clipboard.writeText(String(channel.channel_id));
+              toast.success('Channel ID copied to clipboard.');
+            } catch {
+              toast.error('Could not copy channel ID to clipboard.');
+            }
+          }}>
+            Copy Channel ID
+          </ContextMenuItem>
+        </ContextMenuContent>
+      </ContextMenu>
+    </div>
+  );
+};
 
 const GuildSidebarHeader = ({ guildName = '', guild, onOpenServerSettings, canOpenServerSettings }) => {
   const navigate = useNavigate();
@@ -196,7 +331,7 @@ const GuildSidebarHeader = ({ guildName = '', guild, onOpenServerSettings, canOp
   );
 };
 
-const GuildSidebarSection = ({
+const GuildSidebarCategory = ({
   category,
   channels,
   activeChannelId,
@@ -210,211 +345,171 @@ const GuildSidebarSection = ({
   const sectionName = category?.name;
   const { channelUnreads, channelUnreadsLoaded } = useUnreadsStore();
 
+  // Local state for optimistic sorting updates
+  const [sortedChannels, setSortedChannels] = useState([]);
+
+  // Filter and sort initially based on props
+  useEffect(() => {
+    const filtered = [...(channels || [])]
+      .filter((c) => c.type === 0)
+      .filter((c) => c.parent_id == category?.channel_id)
+      .sort((a, b) => {
+        const aPos = Number(a.position ?? 0);
+        const bPos = Number(b.position ?? 0);
+        if (aPos === bPos) {
+          return String(a.name || a.channel_name || '').localeCompare(String(b.name || b.channel_name || ''));
+        }
+        return aPos - bPos;
+      });
+    setSortedChannels(filtered);
+  }, [channels, category?.channel_id]);
+
   const isChannelUnread = (channel) => {
     if (!channel || !channelUnreadsLoaded || !channel.last_message_id) return false;
 
-    // Find the channel unread with channel_id == channel.channelId
     const channelUnread = channelUnreads.find((cu) => String(cu.channel_id) === String(channel.channel_id));
     if (!channelUnread) return true;
 
-    //console.log('channelUnread:', channelUnread, 'channel:', channel);
-
-    if (channel.channel_id == "1361304246670065664") {
-      //console.log('Debugging channelUnread:', channelUnread.last_read_message_id, 'channel:', channel.last_message_id);
-    }
-    // Get timestamp of both message IDs (Snowflake)
     const channelLastMessageTimestamp = BigInt(channel.last_message_id) >> 22n;
     const channelUnreadLastReadTimestamp = BigInt(channelUnread.last_read_message_id) >> 22n;
 
-    // If the timestamp of channel.last_message_id is greater than channelUnread.last_read_message_id
-    if (channelLastMessageTimestamp > channelUnreadLastReadTimestamp) {
-      return true;
+    return channelLastMessageTimestamp > channelUnreadLastReadTimestamp;
+  };
+
+  const handleDeleteChannel = useCallback(async (channel) => {
+    if (!canManageChannels) {
+      toast.error('Only the server owner can manage channels.');
+      return;
     }
-
-    return false;
-  }
-
-  const handleDeleteChannel = useCallback(
-    async (channel, event) => {
-      event.preventDefault();
-      event.stopPropagation();
-      if (!canManageChannels) {
-        toast.error('Only the server owner can manage channels.');
+    if (!guild?.id || !channel) return;
+    // If this is a category, make sure that we don't allow deletion if it has child channels
+    if (channel.type === 3) {
+      const childChannels = channels.filter(c => c.parent_id === channel.channel_id);
+      if (childChannels.length > 0) {
+        toast.error('Cannot delete category with existing channels. Please delete its channels first.');
         return;
       }
-      if (!guild?.id || !channel) return;
+    }
+    const confirmDelete = window.confirm('Delete this channel?');
+    if (!confirmDelete) return;
+    // GuildsService.deleteGuildChannel(guild.id, channel.channel_id)
+    ChannelsService.deleteGuildChannel(guild.id, channel.channel_id);
+  }, [canManageChannels, guild?.id]);
 
-      const confirmDelete = window.confirm('Delete this channel?');
-      if (!confirmDelete) return;
-
-      // try {
-      //   await api.delete(`/guilds/${guild.id}/channels/${channel.channel_id || channel.id}`);
-      //   const nextChannels = channels.filter(
-      //     (item) => (item.channel_id || item.id) !== (channel.channel_id || channel.id)
-      //   );
-      //   GuildsService.editGuild(guild.id, { channels: nextChannels });
-      //   if (String(channel.channel_id) === String(activeChannelId)) {
-      //     navigate(`/channels/${guild.id}`);
-      //   }
-      //   toast.success('Channel deleted.');
-      // } catch (err) {
-      //   const msg = err.response?.data?.message || err.message || 'Could not delete channel.';
-      //   toast.error(msg);
-      // }
-
-      GuildsService.deleteGuildChannel(guild.id, channel.channel_id)
-    },
-    [activeChannelId, canManageChannels, channels, guild?.id, navigate]
+  // DnD Sensors
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: {
+        distance: 8, // Requires 8px movement before drag starts (prevents blocking clicks)
+      },
+    }),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
   );
 
-  const sortedChannels = [...(channels || [])]
-    .filter((c) => c.type === 0)
-    .filter((c) => c.parent_id == category?.channel_id)
-    .sort((a, b) => {
-      const aPos = Number(a.position ?? 0);
-      const bPos = Number(b.position ?? 0);
-      if (aPos === bPos) {
-        return String(a.name || a.channel_name || '').localeCompare(String(b.name || b.channel_name || ''));
-      }
-      return aPos - bPos;
+  const handleDragEnd = async (event) => {
+    const { active, over } = event;
+
+    if (!over || active.id === over.id || !canManageChannels) {
+      return;
+    }
+
+    setSortedChannels((items) => {
+      const oldIndex = items.findIndex((c) => c.channel_id === active.id);
+      const newIndex = items.findIndex((c) => c.channel_id === over.id);
+
+      const newItems = arrayMove(items, oldIndex, newIndex);
+
+      // Trigger API Update
+      // Map the new order to an array of updates: { id, position }
+      // This is optimistic UI: we update state immediately, then call API.
+      const updates = newItems.map((item, index) => ({
+        id: item.channel_id,
+        position: index,
+        parent_id: category?.channel_id
+      }));
+
+      // NOTE: You will need to implement a batch update endpoint or loop through single updates.
+      // Assuming a batch update exists or using single updates for now:
+      api.patch(`/guilds/${guild.id}/channels`, updates)
+        .catch(err => {
+          console.error("Failed to reorder channels", err);
+          toast.error("Failed to save channel order");
+          // Revert logic could go here
+        });
+
+      return newItems;
     });
+  };
 
   return (
     <div className="flex w-full flex-col">
       {category && (
-        <div className="mb-1 flex items-center pt-4 text-gray-400 hover:text-gray-100">
-          <button
-            type="button"
-            className="flex flex-auto items-center"
-            onClick={() => setExpanded(!expanded)}
-            aria-expanded={expanded}
-          >
-            <div className="flex w-6 items-center justify-center">
-              {expanded ? <CaretDown className="size-2" /> : <CaretRight className="size-2" />}
-            </div>
-            <span className="text-xs font-bold uppercase">{sectionName}</span>
-          </button>
+        <ContextMenu>
+          <ContextMenuTrigger>
+            <div className="mb-1 flex items-center pt-4 text-gray-400 hover:text-gray-100">
+              <button
+                type="button"
+                className="flex flex-auto items-center"
+                onClick={() => setExpanded(!expanded)}
+                aria-expanded={expanded}
+              >
+                <div className="flex w-6 items-center justify-center">
+                  {expanded ? <CaretDown className="size-2" /> : <CaretRight className="size-2" />}
+                </div>
+                <span className="text-xs font-bold uppercase">{sectionName}</span>
+              </button>
 
-          {canManageChannels && (
-            <button type="button" onClick={openCreateChannelDialog} aria-label="Create channel">
-              <Plus className="mr-2 size-3 text-gray-400" />
-            </button>
-          )}
-        </div>
+              {canManageChannels && (
+                <button type="button" onClick={openCreateChannelDialog} aria-label="Create channel">
+                  <Plus className="mr-2 size-3 text-gray-400" />
+                </button>
+              )}
+            </div>
+          </ContextMenuTrigger>
+          <ContextMenuContent className="w-52">
+            <ContextMenuItem onSelect={() => handleDeleteChannel(category)} className="text-red-500 hover:bg-red-600/20">
+              Delete Category
+            </ContextMenuItem>
+          </ContextMenuContent>
+        </ContextMenu>
       )}
 
-      {sortedChannels.map((channel) => {
-        // Calculate state variables
-        const isUnread = isChannelUnread(channel);
-        const isActive = channel.channel_id == activeChannelId;
+      <DndContext
+        sensors={sensors}
+        collisionDetection={closestCenter}
+        onDragEnd={handleDragEnd}
+      >
+        <SortableContext
+          items={sortedChannels.map(c => c.channel_id)}
+          strategy={verticalListSortingStrategy}
+        >
+          {sortedChannels.map((channel) => {
+            const isUnread = isChannelUnread(channel);
+            const isActive = channel.channel_id == activeChannelId;
 
-        return (
-          <ContextMenu key={channel.channel_id}>
-            <ContextMenuTrigger>
-              <Link
-                to={`/channels/${channel.guild_id}/${channel.channel_id}`}
-                className={`${!expanded && !isActive ? 'hidden' : ''} group relative block`}
-              >
-                {isUnread && (
-                  <div className="absolute left-0 top-1/2 h-2 w-1 -translate-y-1/2 rounded-r-full bg-white transition-all" />
-                )}
-
-                <div
-                  className={`relative mx-2 my-0.5 flex cursor-pointer items-center rounded px-2 py-1 pr-16 transition-colors ${isActive
-                    ? 'bg-gray-600 text-gray-100'
-                    : isUnread
-                      ? 'text-gray-100 hover:bg-gray-700'
-                      : 'text-gray-500 hover:bg-gray-700 hover:text-gray-400'
-                    }`}
-                >
-                  <Hash className={`size-6 shrink-0 transition-colors ${isActive || isUnread ? 'text-gray-200' : 'text-gray-500 group-hover:text-gray-400'}`} />
-                  <p className={`ml-1 truncate text-base transition-all ${isActive || isUnread ? 'font-semibold text-white' : 'font-medium'}`}>
-                    {channel.name}
-                  </p>
-                  {/* 
-                  {canManageChannels && (
-                    <div className="absolute right-2 hidden items-center gap-1 rounded bg-gray-800/90 px-1 py-0.5 shadow-sm group-hover:flex">
-                      <button
-                        type="button"
-                        aria-label={`Edit ${channel.name}`}
-                        className="rounded p-1 text-sm text-gray-300 hover:bg-gray-700 hover:text-white"
-                        onClick={(event) => {
-                          event.preventDefault();
-                          event.stopPropagation();
-                          onEditChannel?.(channel);
-                        }}
-                      >
-                        <NotePencil className="size-3.5" />
-                      </button>
-                      <button
-                        type="button"
-                        aria-label={`Delete ${channel.name}`}
-                        className="rounded p-1 text-sm text-gray-300 hover:bg-red-500/20 hover:text-red-400"
-                        onClick={(event) => handleDeleteChannel(channel, event)}
-                      >
-                        <Trash className="size-3.5" />
-                      </button>
-                    </div>
-                  )} */}
-                </div>
-              </Link>
-            </ContextMenuTrigger>
-            <ContextMenuContent className="w-52">
-              {/* Mark as Read */}
-              <ContextMenuItem
-                disabled={isChannelUnread(channel) === false}
-                onSelect={async () => {
-                  UnreadsService.setLastReadMessageId(channel.channel_id, channel.last_message_id || null);
-                  toast.success('Channel marked as read.');
-                  ChannelsService.acknowledgeChannelMessage(channel.channel_id, channel.last_message_id || null);
-                }}>
-                Mark as Read
-              </ContextMenuItem>
-              <ContextMenuSeparator />
-              {/* Go to Channel */}
-              <ContextMenuItem onSelect={() => navigate(`/channels/${channel.guild_id}/${channel.channel_id}`)}>
-                Go to Channel
-              </ContextMenuItem>
-              {/* Copy Link */}
-              <ContextMenuItem onSelect={async () => {
-                const channelLink = `${window.location.origin}/channels/${channel.guild_id}/${channel.channel_id}`;
-                try {
-                  await navigator.clipboard.writeText(channelLink);
-                  toast.success('Channel link copied to clipboard.');
-                } catch {
-                  toast.error('Could not copy channel link to clipboard.');
-                }
-              }}>
-                Copy Link
-              </ContextMenuItem>
-
-
-              <ContextMenuSeparator />
-              <ContextMenuItem onSelect={() => onEditChannel?.(channel)}>
-                Edit Channel
-              </ContextMenuItem>
-              <ContextMenuItem onSelect={(e) => handleDeleteChannel(channel, e)} className="text-red-500 hover:bg-red-600/20">
-                Delete Channel
-              </ContextMenuItem>
-              <ContextMenuSeparator />
-              {/* Copy Channel ID */}
-              <ContextMenuItem onSelect={async () => {
-                try {
-                  await navigator.clipboard.writeText(String(channel.channel_id));
-                  toast.success('Channel ID copied to clipboard.');
-                } catch {
-                  toast.error('Could not copy channel ID to clipboard.');
-                }
-              }}>
-                Copy Channel ID
-              </ContextMenuItem>
-            </ContextMenuContent>
-          </ContextMenu>
-        );
-      })}
+            return (
+              <SortableChannel
+                key={channel.channel_id}
+                channel={channel}
+                isActive={isActive}
+                isUnread={isUnread}
+                expanded={expanded}
+                canManageChannels={canManageChannels}
+                onEditChannel={onEditChannel}
+                handleDeleteChannel={handleDeleteChannel}
+                navigate={navigate}
+              />
+            );
+          })}
+        </SortableContext>
+      </DndContext>
     </div>
   );
 };
+
+// ... [GuildSidebar and GuildLayout remain largely the same, but imports are updated at top] ...
 
 const GuildSidebar = ({
   guild,
@@ -426,6 +521,7 @@ const GuildSidebar = ({
   const { channelId } = useParams();
   const store = useStore();
   const [isCreateChannelDialogOpen, setIsCreateChannelDialogOpen] = useState(false);
+  const [isCreateCategoryDialogOpen, setIsCreateCategoryDialogOpen] = useState(false);
   const [categoryId, setCategoryId] = useState(null);
   const { channels } = useChannelsStore();
 
@@ -436,6 +532,9 @@ const GuildSidebar = ({
   // Go through all categories (channels with type 3) and render their channels inside them
   const categories = (guildChannels || []).filter((c) => c.type === 3);
 
+  // Also find channels with NO category (root level) to pass to first section
+  const rootChannels = (guildChannels || []).filter(c => !c.parent_id && c.type !== 3);
+
   const onCreateChannel = useCallback(() => {
     setCategoryId(null);
     setIsCreateChannelDialogOpen(true);
@@ -443,6 +542,7 @@ const GuildSidebar = ({
 
   const onCreateCategory = useCallback(() => {
     toast.info('Create Category clicked.');
+    setIsCreateCategoryDialogOpen(true);
   }, []);
 
   return (
@@ -458,9 +558,11 @@ const GuildSidebar = ({
                 canOpenServerSettings={canOpenServerSettings}
               />
               <hr className="m-0 w-full border border-gray-900 bg-gray-900 p-0" />
-              <GuildSidebarSection
+
+              {/* Root Channels (No Category) */}
+              <GuildSidebarCategory
                 category={null}
-                channels={guildChannels || []}
+                channels={guildChannels} // Passing all, section filters
                 activeChannelId={channelId}
                 openCreateChannelDialog={() => { setIsCreateChannelDialogOpen(true); setCategoryId(null); }}
                 guild={guild}
@@ -469,10 +571,10 @@ const GuildSidebar = ({
               />
 
               {categories.map((category) => (
-                <GuildSidebarSection
+                <GuildSidebarCategory
                   key={category.channel_id || category.id}
                   category={category}
-                  channels={guildChannels || []}
+                  channels={guildChannels}
                   activeChannelId={channelId}
                   openCreateChannelDialog={() => {
                     setIsCreateChannelDialogOpen(true);
@@ -499,14 +601,17 @@ const GuildSidebar = ({
           )}
         </ContextMenuContent>
       </ContextMenu>
-      {canManageChannels && (
-        <CreateGuildChannelDialog
-          isOpen={isCreateChannelDialogOpen}
-          setIsOpen={setIsCreateChannelDialogOpen}
-          guild={guild}
-          categoryId={categoryId}
-        />
-      )}
+      <CreateGuildChannelDialog
+        isOpen={isCreateChannelDialogOpen}
+        setIsOpen={setIsCreateChannelDialogOpen}
+        guild={guild}
+        categoryId={categoryId}
+      />
+      <CreateGuildCategoryDialog
+        isOpen={isCreateCategoryDialogOpen}
+        setIsOpen={setIsCreateCategoryDialogOpen}
+        guild={guild}
+      />
     </>
   );
 };
@@ -547,12 +652,6 @@ const GuildLayout = ({ children, guild }) => {
     },
     [isGuildOwner]
   );
-
-  const canManageChannel = useMemo(() => {
-
-
-    return isGuildOwner;
-  }, [isGuildOwner]);
 
   return (
     <BaseAuthLayout>

@@ -3,6 +3,7 @@ import { useGuildsStore } from '../stores/guilds.store';
 import api from '../api.js';
 import useStore from '../hooks/useStore';
 import axios from 'axios';
+import { ChannelsService } from './channels.service';
 
 export const GuildsService = {
   async loadGuilds() {
@@ -93,6 +94,7 @@ export const GuildsService = {
     try {
       const { data } = await api.post('/guilds', guildData);
       addGuild(data);
+      ChannelsService.initializeGuildChannels(data.id);
       toast.success('Server created successfully.');
     } catch (error) {
       console.error(error);
