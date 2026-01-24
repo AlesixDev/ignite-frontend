@@ -541,7 +541,6 @@ const GuildSidebar = ({
   }, []);
 
   const onCreateCategory = useCallback(() => {
-    toast.info('Create Category clicked.');
     setIsCreateCategoryDialogOpen(true);
   }, []);
 

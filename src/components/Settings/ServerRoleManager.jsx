@@ -23,13 +23,121 @@ import { RolesService } from '../../services/roles.service';
 import { useRolesStore } from '../../stores/roles.store';
 import { toast } from 'sonner';
 
-const PERMISSIONS_LIST = {
-  2: "Manage Guild",
-  4: "Manage Channels",
-  8: "Manage Messages",
-  16: "Kick Members",
-  32: "Ban Members"
-};
+const PERMISSIONS_LIST = Object.freeze({
+  [1n << 0n]: "Create Instant Invite",
+  [1n << 1n]: "Kick Members",
+  [1n << 2n]: "Ban Members",
+  [1n << 3n]: "Administrator",
+  [1n << 4n]: "Manage Channels",
+  [1n << 5n]: "Manage Guild",
+  [1n << 6n]: "Add Reactions",
+  [1n << 7n]: "View Audit Log",
+  [1n << 8n]: "Priority Speaker",
+  [1n << 9n]: "Stream",
+  [1n << 10n]: "View Channel",
+  [1n << 11n]: "Send Messages",
+  [1n << 12n]: "Send TTS Messages",
+  [1n << 13n]: "Manage Messages",
+  [1n << 14n]: "Embed Links",
+  [1n << 15n]: "Attach Files",
+  [1n << 16n]: "Read Message History",
+  [1n << 17n]: "Mention Everyone",
+  [1n << 18n]: "Use External Emojis",
+  [1n << 19n]: "View Guild Insights",
+  [1n << 20n]: "Connect",
+  [1n << 21n]: "Speak",
+  [1n << 22n]: "Mute Members",
+  [1n << 23n]: "Deafen Members",
+  [1n << 24n]: "Move Members",
+  [1n << 25n]: "Use Voice Activity",
+  [1n << 26n]: "Change Nickname",
+  [1n << 27n]: "Manage Nicknames",
+  [1n << 28n]: "Manage Roles",
+  [1n << 29n]: "Manage Webhooks",
+  [1n << 30n]: "Manage Guild Expressions",
+  [1n << 31n]: "Use Application Commands",
+  [1n << 32n]: "Request To Speak",
+  [1n << 33n]: "Manage Events",
+  [1n << 34n]: "Manage Threads",
+  [1n << 35n]: "Create Public Threads",
+  [1n << 36n]: "Create Private Threads",
+  [1n << 37n]: "Use External Stickers",
+  [1n << 38n]: "Send Messages In Threads",
+  [1n << 39n]: "Use Embedded Activities",
+  [1n << 40n]: "Moderate Members",
+  [1n << 41n]: "View Monetization Analytics",
+  [1n << 42n]: "Use Soundboard",
+  [1n << 43n]: "Create Guild Expressions",
+  [1n << 44n]: "Create Events",
+  [1n << 45n]: "Use External Sounds",
+  [1n << 46n]: "Send Voice Messages",
+  [1n << 49n]: "Send Polls",
+  [1n << 50n]: "Use External Apps",
+  [1n << 51n]: "Pin Messages",
+  [1n << 52n]: "Bypass Slowmode",
+});
+
+const PERMISSION_GROUPS = [
+  {
+    name: "General Server Permissions",
+    permissions: [
+      1n << 3n, // Administrator
+      1n << 5n, // Manage Guild
+      1n << 28n, // Manage Roles
+      1n << 4n, // Manage Channels
+      1n << 7n, // View Audit Log
+      1n << 19n, // View Guild Insights
+    ]
+  },
+  {
+    name: "Membership Permissions",
+    permissions: [
+      1n << 1n, // Kick Members
+      1n << 2n, // Ban Members
+      1n << 40n, // Moderate Members
+      1n << 0n, // Create Invite
+      1n << 26n, // Change Nickname
+      1n << 27n, // Manage Nicknames
+    ]
+  },
+  {
+    name: "Text Channel Permissions",
+    permissions: [
+      1n << 11n, // Send Messages
+      1n << 13n, // Manage Messages
+      1n << 38n, // Send in Threads
+      1n << 34n, // Manage Threads
+      1n << 14n, // Embed Links
+      1n << 15n, // Attach Files
+      1n << 6n, // Add Reactions
+      1n << 18n, // External Emojis
+      1n << 37n, // External Stickers
+      1n << 17n, // Mention Everyone
+    ]
+  },
+  {
+    name: "Voice Channel Permissions",
+    permissions: [
+      1n << 20n, // Connect
+      1n << 21n, // Speak
+      1n << 9n, // Stream
+      1n << 42n, // Soundboard
+      1n << 22n, // Mute Members
+      1n << 23n, // Deafen Members
+      1n << 24n, // Move Members
+      1n << 25n, // VAD
+      1n << 8n, // Priority Speaker
+    ]
+  },
+  {
+    name: "Advanced / Events",
+    permissions: [
+      1n << 29n, // Manage Webhooks
+      1n << 33n, // Manage Events
+      1n << 31n, // App Commands
+    ]
+  }
+];
 
 const ServerRoleManager = ({ guild }) => {
   const [localRoles, setLocalRoles] = useState(guild?.roles ?? []);
@@ -133,7 +241,7 @@ const ServerRoleManager = ({ guild }) => {
 
       <div className="grid gap-4 lg:grid-cols-[minmax(0,0.8fr)_minmax(0,1.2fr)]">
         {/* Left Column: Role List */}
-        <div className="rounded-lg border border-border bg-card/60 p-5 h-fit">
+        <div className="rounded-lg border border-border p-5 h-fit">
           <div className="flex items-center justify-between mb-4">
             <div className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
               Roles
@@ -168,7 +276,7 @@ const ServerRoleManager = ({ guild }) => {
         </div>
 
         {/* Right Column: Tabs Interface */}
-        <div className="rounded-lg border border-border bg-card/60 flex flex-col min-h-[520px] relative">
+        <div className="rounded-lg border border-border flex flex-col min-h-[520px] relative">
           <Tabs defaultValue="permissions" className="flex flex-col h-full">
             <div className="px-5 pt-5">
               <div className="mb-4 text-sm font-bold truncate">
@@ -243,7 +351,7 @@ const ServerRoleManager = ({ guild }) => {
               <TabsContent value="permissions" className="mt-0">
                 <ScrollArea className="h-[320px] pr-2">
                   <div className="grid gap-3">
-                    {Object.entries(PERMISSIONS_LIST).map(([bit, label]) => (
+                    {/* {Object.entries(PERMISSIONS_LIST).map(([bit, label]) => (
                       <div
                         key={bit}
                         className="flex items-center justify-between rounded-md border border-border bg-background/40 px-4 py-3"
@@ -253,6 +361,34 @@ const ServerRoleManager = ({ guild }) => {
                           checked={(activePermissions & Number(bit)) !== 0}
                           onCheckedChange={() => handleToggle(bit)}
                         />
+                      </div>
+                    ))} */}
+
+                    {PERMISSION_GROUPS.map((group, groupIdx) => (
+                      <div key={groupIdx} className="space-y-3">
+                        <h4 className="text-xs font-bold uppercase text-muted-foreground sticky top-0 bg-background/95 backdrop-blur py-2 z-10 border-b">
+                          {group.name}
+                        </h4>
+                        <div className="space-y-2">
+                          {group.permissions.map((permBit) => {
+                            const isEnabled = (activePermissions & Number(permBit)) !== 0;
+                            return (
+                              <div key={permBit.toString()} className="flex items-center justify-between p-3 rounded-lg border border-transparent hover:border-border hover:bg-accent/30 transition-all">
+                                <div className="space-y-0.5">
+                                  <p className="text-sm font-medium">{PERMISSIONS_LIST[permBit]}</p>
+                                  <p className="text-xs text-muted-foreground">
+                                    {/* You could add descriptions map here later */}
+                                    Allow members to {PERMISSIONS_LIST[permBit].toLowerCase()}.
+                                  </p>
+                                </div>
+                                <Switch
+                                  checked={isEnabled}
+                                  onCheckedChange={() => handleToggle(permBit)}
+                                />
+                              </div>
+                            );
+                          })}
+                        </div>
                       </div>
                     ))}
                   </div>
