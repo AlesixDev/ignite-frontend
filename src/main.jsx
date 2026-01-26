@@ -1,6 +1,6 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
-import { BrowserRouter, HashRouter } from 'react-router-dom';
+import { BrowserRouter } from 'react-router-dom';
 // eslint-disable-next-line no-unused-vars
 import Pusher from 'pusher-js';
 import Echo from 'laravel-echo';
@@ -26,6 +26,42 @@ function RouteLogger() {
   }, [location, navigationType]);
 
   return null;
+}
+
+function WindowBar() {
+  if (!window.IgniteNative) return null;
+
+  return (
+    <div style={{
+      WebkitAppRegion: 'drag',
+      display: 'flex',
+      alignItems: 'center',
+      height: 32,
+      background: '#18181b',
+      borderBottom: '1px solid #27272a',
+      userSelect: 'none',
+      zIndex: 100,
+    }}>
+      <div style={{ flex: 1 }} />
+      <div style={{ display: 'flex', WebkitAppRegion: 'no-drag' }}>
+        <button
+          aria-label="Minimize"
+          onClick={() => window.IgniteNative.minimize()}
+          style={{ width: 40, height: 32, background: 'none', border: 'none', color: '#fff', fontSize: 18 }}
+        >—</button>
+        <button
+          aria-label="Maximize"
+          onClick={() => window.IgniteNative.maximize()}
+          style={{ width: 40, height: 32, background: 'none', border: 'none', color: '#fff', fontSize: 18 }}
+        >☐</button>
+        <button
+          aria-label="Close"
+          onClick={() => window.IgniteNative.close()}
+          style={{ width: 40, height: 32, background: 'none', border: 'none', color: '#f87171', fontSize: 18 }}
+        >×</button>
+      </div>
+    </div>
+  );
 }
 
 window.Echo = new Echo({
@@ -54,15 +90,13 @@ window.Echo = new Echo({
   },
 });
 
-const isElectron = import.meta.env.VITE_ELECTRON === 'true';
-const Router = isElectron ? HashRouter : BrowserRouter;
-
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
-    <Router>
+    <WindowBar />
+    <BrowserRouter>
       <App />
       <Toaster />
       <RouteLogger />
-    </Router>
+    </BrowserRouter>
   </React.StrictMode>,
 );

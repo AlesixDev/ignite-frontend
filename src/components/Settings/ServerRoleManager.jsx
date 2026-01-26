@@ -1,6 +1,6 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState, useRef } from 'react';
 import { CircleNotch, FloppyDisk } from '@phosphor-icons/react';
-import { Plus, Shield, Users, Monitor, Trash2 } from 'lucide-react';
+import { Plus, Shield, Users, Monitor, Trash2, Check, GripVertical } from 'lucide-react';
 import api from '../../api';
 import { Button } from '../ui/button';
 import { ScrollArea } from '../ui/scroll-area';
@@ -18,7 +18,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
   AlertDialogTrigger
-} from '../ui/alert-dialog'; // Assuming shadcn alert-dialog is installed
+} from '../ui/alert-dialog'; 
 import { RolesService } from '../../services/roles.service';
 import { useRolesStore } from '../../stores/roles.store';
 import { toast } from 'sonner';
@@ -139,6 +139,29 @@ const PERMISSION_GROUPS = [
   }
 ];
 
+const COLORS = [
+  { name: 'Default', value: '#99aab5' },
+  { name: 'Red', value: '#ef4444' },
+  { name: 'Blue', value: '#3b82f6' },
+  { name: 'Green', value: '#22c55e' },
+  { name: 'Yellow', value: '#eab308' },
+  { name: 'Purple', value: '#a855f7' },
+  { name: 'Orange', value: '#f97316' },
+  { name: 'Pink', value: '#ec4899' },
+  { name: 'Teal', value: '#14b8a6' },
+  { name: 'Brown', value: '#a0522d' },
+  { name: 'Black', value: '#000000' },
+  { name: 'White', value: '#ffffff' },
+  { name: 'Gray', value: '#6b7280' },
+  { name: 'Cyan', value: '#06b6d4' },
+  { name: 'Lime', value: '#84cc16' },
+  { name: 'Indigo', value: '#6366f1' },
+  { name: 'Violet', value: '#8b5cf6' },
+  { name: 'Rose', value: '#f43f5e' },
+  { name: 'Amber', value: '#f59e0b' },
+  { name: 'Emerald', value: '#10b981' },
+];
+
 const ServerRoleManager = ({ guild }) => {
   const [localRoles, setLocalRoles] = useState(guild?.roles ?? []);
   const [selectedRoleId, setSelectedRoleId] = useState(null);
@@ -147,14 +170,26 @@ const ServerRoleManager = ({ guild }) => {
   const [originalPermissions, setOriginalPermissions] = useState(0);
   const [roleName, setRoleName] = useState('');
   const [originalName, setOriginalName] = useState('');
+  const [roleColor, setRoleColor] = useState('#99aab5');
+  const [originalColor, setOriginalColor] = useState('#99aab5');
+
+  // New state for detecting order changes
+  const [originalRoleOrder, setOriginalRoleOrder] = useState([]);
 
   const [isSaving, setIsSaving] = useState(false);
   const [isCreating, setIsCreating] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const { guildRoles } = useRolesStore();
 
+  // Refs for Drag and Drop
+  const dragItem = useRef(null);
+  const dragOverItem = useRef(null);
+
   useEffect(() => {
-    setLocalRoles(guildRoles[guild.id] || []);
+    const roles = guildRoles[guild.id] || [];
+    setLocalRoles(roles);
+    // Store array of IDs to compare order later
+    setOriginalRoleOrder(roles.map(r => r.id));
   }, [guildRoles, guild.id]);
 
   useEffect(() => {
@@ -163,13 +198,39 @@ const ServerRoleManager = ({ guild }) => {
       : localRoles[0];
 
     if (roleToSelect) {
-      setSelectedRoleId(roleToSelect.id);
-      setActivePermissions(Number(roleToSelect.permissions || 0));
-      setOriginalPermissions(Number(roleToSelect.permissions || 0));
-      setRoleName(roleToSelect.name || '');
-      setOriginalName(roleToSelect.name || '');
+      // Don't overwrite localRoles here, only the active editor state
+      if (!selectedRoleId) setSelectedRoleId(roleToSelect.id);
+      
+      // Update editor fields if we switched roles
+      if (selectedRoleId !== roleToSelect.id) {
+          setActivePermissions(Number(roleToSelect.permissions || 0));
+          setOriginalPermissions(Number(roleToSelect.permissions || 0));
+          setRoleName(roleToSelect.name || '');
+          setOriginalName(roleToSelect.name || '');
+          setRoleColor(roleToSelect.color || '#99aab5');
+          setOriginalColor(roleToSelect.color || '#99aab5');
+      }
     }
   }, [localRoles, selectedRoleId]);
+
+  // Handle Drag Sorting
+  const handleSort = () => {
+    // Create a copy
+    let _roles = [...localRoles];
+    
+    // Remove the dragged item
+    const draggedItemContent = _roles.splice(dragItem.current, 1)[0];
+    
+    // Insert it at new position
+    _roles.splice(dragOverItem.current, 0, draggedItemContent);
+    
+    // Reset refs
+    dragItem.current = null;
+    dragOverItem.current = null;
+    
+    // Update state
+    setLocalRoles(_roles);
+  };
 
   const handleCreateRole = async () => {
     if (isCreating) return;
@@ -191,14 +252,48 @@ const ServerRoleManager = ({ guild }) => {
     if (isSaving) return;
     setIsSaving(true);
     try {
-      await RolesService.updateGuildRole(guild.id, selectedRoleId, {
-        name: roleName,
-        permissions: activePermissions,
-      });
-      toast.success("Role updated");
-    }
-    catch (error) {
-      toast.error("Failed to save role");
+      const promises = [];
+
+      // 1. Check if specific role details changed
+      if (roleName !== originalName || activePermissions !== originalPermissions || roleColor !== originalColor) {
+        promises.push(
+          RolesService.updateGuildRole(guild.id, selectedRoleId, {
+            name: roleName,
+            permissions: activePermissions,
+            color: roleColor,
+          })
+        );
+      }
+
+      // 2. Check if order changed
+      const currentOrderIds = localRoles.map(r => r.id);
+      const hasOrderChanged = JSON.stringify(currentOrderIds) !== JSON.stringify(originalRoleOrder);
+
+      if (hasOrderChanged) {
+        // Map roles to { id, position }
+        // Assuming index 0 is top (highest position)
+        const positions = localRoles.map((role, index) => ({
+          id: role.id,
+          position: localRoles.length - index - 1 // Reverse index if API expects higher number = higher role
+        }));
+        
+        // This hits the Bulk Update route
+        promises.push(RolesService.updateRolePositions(guild.id, positions));
+      }
+
+      await Promise.all(promises);
+      
+      toast.success("Changes saved successfully");
+      
+      // Sync local original states after save
+      setOriginalPermissions(activePermissions);
+      setOriginalName(roleName);
+      setOriginalColor(roleColor);
+      setOriginalRoleOrder(currentOrderIds);
+
+    } catch (error) {
+      console.error(error);
+      toast.error("Failed to save changes");
     } finally {
       setIsSaving(false);
     }
@@ -210,7 +305,7 @@ const ServerRoleManager = ({ guild }) => {
     try {
       await RolesService.deleteGuildRole(guild.id, selectedRoleId);
       toast.success("Role deleted");
-      setSelectedRoleId(null); // Reset selection to first role in next render
+      setSelectedRoleId(null); 
     } catch (error) {
       toast.error("Failed to delete role");
     } finally {
@@ -223,10 +318,17 @@ const ServerRoleManager = ({ guild }) => {
     setActivePermissions((prev) => (prev & bitNum ? prev & ~bitNum : prev | bitNum));
   };
 
-  const hasChanged = useMemo(
-    () => activePermissions !== originalPermissions || roleName !== originalName,
-    [activePermissions, originalPermissions, roleName, originalName]
-  );
+  // Check if anything changed (Details OR Order)
+  const hasChanged = useMemo(() => {
+    const detailsChanged = activePermissions !== originalPermissions || 
+                           roleName !== originalName || 
+                           roleColor !== originalColor;
+    
+    const currentOrderIds = localRoles.map(r => r.id);
+    const orderChanged = JSON.stringify(currentOrderIds) !== JSON.stringify(originalRoleOrder);
+
+    return detailsChanged || orderChanged;
+  }, [activePermissions, originalPermissions, roleName, originalName, roleColor, originalColor, localRoles, originalRoleOrder]);
 
   const activeRole = localRoles.find((role) => role.id === selectedRoleId);
 
@@ -244,7 +346,7 @@ const ServerRoleManager = ({ guild }) => {
         <div className="rounded-lg border border-border p-5 h-fit">
           <div className="flex items-center justify-between mb-4">
             <div className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-              Roles
+              Roles &mdash; <span className="text-[10px] normal-case opacity-70">Drag to reorder</span>
             </div>
             <Button
               type="button"
@@ -260,16 +362,43 @@ const ServerRoleManager = ({ guild }) => {
           </div>
           <ScrollArea className="h-[400px] pr-2">
             <div className="space-y-1">
-              {localRoles.map((role) => (
-                <Button
+              {localRoles.map((role, index) => (
+                <div
                   key={role.id}
-                  variant="ghost"
-                  onClick={() => setSelectedRoleId(role.id)}
-                  className={`w-full justify-start ${selectedRoleId === role.id ? 'bg-primary/10 text-primary' : ''
-                    }`}
+                  draggable
+                  onDragStart={() => (dragItem.current = index)}
+                  onDragEnter={() => (dragOverItem.current = index)}
+                  onDragEnd={handleSort}
+                  onDragOver={(e) => e.preventDefault()}
+                  className="flex items-center gap-1 group"
                 >
-                  {role.id === selectedRoleId ? roleName : role.name}
-                </Button>
+                  <div className="cursor-grab active:cursor-grabbing text-muted-foreground/50 hover:text-foreground p-1 rounded transition-colors opacity-0 group-hover:opacity-100">
+                    <GripVertical size={14} />
+                  </div>
+                  
+                  <Button
+                    variant="ghost"
+                    onClick={() => {
+                        setSelectedRoleId(role.id);
+                        // Manually trigger updates for editor because we aren't relying solely on useEffect for these updates to prevent loops during drag
+                        setActivePermissions(Number(role.permissions || 0));
+                        setOriginalPermissions(Number(role.permissions || 0));
+                        setRoleName(role.name || '');
+                        setOriginalName(role.name || '');
+                        setRoleColor(role.color || '#99aab5');
+                        setOriginalColor(role.color || '#99aab5');
+                    }}
+                    className={`flex-1 justify-start gap-3 ${selectedRoleId === role.id ? 'bg-primary/10 text-primary' : ''}`}
+                  >
+                    <div 
+                      className="h-3 w-3 rounded-full flex-shrink-0" 
+                      style={{ backgroundColor: role.id === selectedRoleId ? roleColor : (role.color || '#99aab5') }}
+                    />
+                    <span className="truncate">
+                      {role.id === selectedRoleId ? roleName : role.name}
+                    </span>
+                  </Button>
+                </div>
               ))}
             </div>
           </ScrollArea>
@@ -277,10 +406,10 @@ const ServerRoleManager = ({ guild }) => {
 
         {/* Right Column: Tabs Interface */}
         <div className="rounded-lg border border-border flex flex-col min-h-[520px] relative">
-          <Tabs defaultValue="permissions" className="flex flex-col h-full">
+          <Tabs value={selectedRoleId ? undefined : "permissions"} defaultValue="permissions" className="flex flex-col h-full">
             <div className="px-5 pt-5">
               <div className="mb-4 text-sm font-bold truncate">
-                Editing Role: <span className="text-primary">{activeRole?.name}</span>
+                Editing Role: <span className="text-primary">{activeRole?.name || 'Select a role'}</span>
               </div>
               <TabsList className="grid w-full grid-cols-2">
                 <TabsTrigger value="display" className="gap-2">
@@ -306,6 +435,25 @@ const ServerRoleManager = ({ guild }) => {
                   />
                 </div>
 
+                <div className="space-y-3">
+                  <label className="text-xs font-medium uppercase text-muted-foreground">Role Color</label>
+                  <div className="flex flex-wrap gap-3">
+                    {COLORS.map((color) => (
+                      <button
+                        key={color.value}
+                        onClick={() => setRoleColor(color.value)}
+                        className={`group relative h-10 w-10 rounded-md border-2 transition-all ${roleColor === color.value ? 'border-primary' : 'border-transparent hover:scale-105'}`}
+                        style={{ backgroundColor: color.value }}
+                        title={color.name}
+                      >
+                        {roleColor === color.value && (
+                          <Check className="mx-auto text-white drop-shadow-md" size={18} />
+                        )}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
                 <Separator />
 
                 {/* DANGER ZONE */}
@@ -314,7 +462,7 @@ const ServerRoleManager = ({ guild }) => {
                   <div className="rounded-md border border-destructive/20 bg-destructive/5 p-4 flex items-center justify-between">
                     <div className="space-y-1">
                       <p className="text-sm font-medium">Delete Role</p>
-                      <p className="text-xs text-muted-foreground">This action cannot be undone. Members will lose this role.</p>
+                      <p className="text-xs text-muted-foreground">This action cannot be undone.</p>
                     </div>
 
                     <AlertDialog>
@@ -329,7 +477,6 @@ const ServerRoleManager = ({ guild }) => {
                           <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
                           <AlertDialogDescription>
                             This will permanently delete the <span className="font-bold text-foreground">"{activeRole?.name}"</span> role.
-                            All members assigned to this role will lose its associated permissions.
                           </AlertDialogDescription>
                         </AlertDialogHeader>
                         <AlertDialogFooter>
@@ -351,19 +498,6 @@ const ServerRoleManager = ({ guild }) => {
               <TabsContent value="permissions" className="mt-0">
                 <ScrollArea className="h-[320px] pr-2">
                   <div className="grid gap-3">
-                    {/* {Object.entries(PERMISSIONS_LIST).map(([bit, label]) => (
-                      <div
-                        key={bit}
-                        className="flex items-center justify-between rounded-md border border-border bg-background/40 px-4 py-3"
-                      >
-                        <span className="text-sm font-medium">{label}</span>
-                        <Switch
-                          checked={(activePermissions & Number(bit)) !== 0}
-                          onCheckedChange={() => handleToggle(bit)}
-                        />
-                      </div>
-                    ))} */}
-
                     {PERMISSION_GROUPS.map((group, groupIdx) => (
                       <div key={groupIdx} className="space-y-3">
                         <h4 className="text-xs font-bold uppercase text-muted-foreground sticky top-0 bg-background/95 backdrop-blur py-2 z-10 border-b">
@@ -377,7 +511,6 @@ const ServerRoleManager = ({ guild }) => {
                                 <div className="space-y-0.5">
                                   <p className="text-sm font-medium">{PERMISSIONS_LIST[permBit]}</p>
                                   <p className="text-xs text-muted-foreground">
-                                    {/* You could add descriptions map here later */}
                                     Allow members to {PERMISSIONS_LIST[permBit].toLowerCase()}.
                                   </p>
                                 </div>
@@ -398,7 +531,7 @@ const ServerRoleManager = ({ guild }) => {
 
             {/* Floating Save Bar */}
             {hasChanged && (
-              <div className="absolute bottom-4 left-4 right-4 flex items-center justify-between gap-2 rounded-md border border-primary/20 bg-primary/5 backdrop-blur-md px-4 py-3 animate-in fade-in slide-in-from-bottom-2">
+              <div className="absolute bottom-4 left-4 right-4 flex items-center justify-between gap-2 rounded-md border border-primary/20 bg-primary/5 backdrop-blur-md px-4 py-3 animate-in fade-in slide-in-from-bottom-2 z-50">
                 <span className="text-xs font-medium text-primary">Careful — you have unsaved changes!</span>
                 <div className="flex gap-2">
                   <Button
@@ -407,6 +540,12 @@ const ServerRoleManager = ({ guild }) => {
                     onClick={() => {
                       setActivePermissions(originalPermissions);
                       setRoleName(originalName);
+                      setRoleColor(originalColor);
+                      // Reset order
+                      const originalRoles = originalRoleOrder
+                        .map(id => localRoles.find(r => r.id === id) || guild?.roles?.find(r => r.id === id))
+                        .filter(Boolean);
+                      setLocalRoles(originalRoles);
                     }}
                   >
                     Reset

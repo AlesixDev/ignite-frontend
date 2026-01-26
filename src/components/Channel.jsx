@@ -21,6 +21,7 @@ import { useChannelsStore } from '../stores/channels.store';
 import { ChannelsService } from '../services/channels.service';
 import { UnreadsService } from '../services/unreads.service';
 import Avatar from './Avatar.jsx';
+import { useRolesStore } from '../stores/roles.store';
 
 const UnreadDivider = () => (
   <div className="flex items-center justify-center mt-6 mb-2 relative group w-full animate-in fade-in duration-300">
@@ -498,9 +499,98 @@ const ChannelInput = ({ channel }) => {
   );
 };
 
+const MemberList = ({ guildId, activeGuildMembers }) => {
+  const { memberListOpen, setInputMessage, inputRef } = useChannelContext();
+  const [membersByRole, setMembersByRole] = useState({});
+  const [membersWithoutRoles, setMembersWithoutRoles] = useState([]);
+
+  const onMention = useCallback((user) => {
+    setInputMessage((prev) => `${prev} @${user.username} `);
+    inputRef.current.focus();
+  }, [inputRef, setInputMessage]);
+
+  const roles = useRolesStore().guildRoles[guildId] || [];
+
+  useEffect(() => {
+    const tempMembersByRole = {};
+    const tempMembersWithoutRoles = [];
+    const assignedMemberIds = new Set();
+
+    activeGuildMembers?.forEach((member) => {
+      if (member.roles && member.roles.length > 0) {
+        // Map member's role ids to role objects, filter out missing, sort by position
+        const firstRole = member.roles.sort((a, b) => b.position - a.position)[0];
+        if (firstRole && !assignedMemberIds.has(member.user.id)) {
+          if (!tempMembersByRole[firstRole.id]) tempMembersByRole[firstRole.id] = [];
+          tempMembersByRole[firstRole.id].push(member);
+          assignedMemberIds.add(member.user.id);
+        }
+      } else {
+        tempMembersWithoutRoles.push(member);
+      }
+    });
+
+    setMembersByRole(tempMembersByRole);
+    setMembersWithoutRoles(tempMembersWithoutRoles);
+  }, [activeGuildMembers, roles]);
+
+  const renderMember = (member) => (
+    <div key={member.user.id}>
+      <Popover>
+        <ContextMenu>
+          <PopoverTrigger className="w-full">
+            <ContextMenuTrigger>
+              <div className="flex items-center gap-3 rounded-md p-2 transition hover:bg-gray-700/50">
+                <Avatar user={member.user} className="size-8" />
+                <div>
+                  <p className="text-sm font-medium text-gray-100">{member.user.name ?? member.user.username}</p>
+                  <p className="text-xs text-gray-400">{member.user.status}</p>
+                </div>
+              </div>
+            </ContextMenuTrigger>
+          </PopoverTrigger>
+          <ContextMenuContent>
+            <GuildMemberContextMenu user={member.user} onMention={onMention} />
+          </ContextMenuContent>
+        </ContextMenu>
+        <PopoverContent className="w-auto p-2" align="start" alignOffset={0}>
+          <GuildMemberPopoverContent user={member.user} guild={null} />
+        </PopoverContent>
+      </Popover>
+    </div>
+  );
+
+  return (
+    <div className={`relative z-0 transition-all duration-300 ${memberListOpen ? 'w-60 md:w-72' : 'w-0'}`}>
+      {memberListOpen && (
+        <div className="flex h-full flex-col border-l border-gray-800 bg-gray-800">
+          <div className="flex h-12 items-center border-b border-gray-700 px-4 text-sm font-semibold text-gray-300">
+            Members
+          </div>
+          <div className="flex flex-1 flex-col gap-2 p-2 text-gray-400 overflow-y-auto">
+            {roles.map((role) =>
+              membersByRole[role.id] && membersByRole[role.id].length > 0 ? (
+                <div key={role.id}>
+                  <div className="px-2 py-1 text-xs font-bold text-gray-400">{role.name} &mdash; {membersByRole[role.id].length}</div>
+                  {membersByRole[role.id].map(renderMember)}
+                </div>
+              ) : null
+            )}
+            {membersWithoutRoles.length > 0 && (
+              <div>
+                <div className="px-2 py-1 text-xs font-bold text-gray-400">Members &mdash; {membersWithoutRoles.length}</div>
+                {membersWithoutRoles.map(renderMember)}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
 const Channel = ({ channel }) => {
   const { guildId } = useGuildContext();
-  const { memberListOpen, setInputMessage, inputRef } = useChannelContext();
   const [forceScrollDown, setForceScrollDown] = useState(false);
   const [highlightId, setHighlightId] = useState(null);
   const [loadingMore, setLoadingMore] = useState(false);
@@ -572,12 +662,6 @@ const Channel = ({ channel }) => {
     }
   }, [channelPendingMessages, messages, forceScrollDown]);
 
-  // TODO: This is duplicated
-  const onMention = useCallback((user) => {
-    setInputMessage((prev) => `${prev} @${user.username} `);
-    inputRef.current.focus();
-  }, [inputRef, setInputMessage]);
-
   const { guildMembers } = useGuildsStore();
 
   const activeGuildMembers = guildMembers[guildId] || [];
@@ -620,42 +704,7 @@ const Channel = ({ channel }) => {
         </div>
 
         {channel?.type !== 1 && (
-          <div className={`relative z-0 transition-all duration-300 ${memberListOpen ? 'w-60 md:w-72' : 'w-0'}`}>
-            {memberListOpen && (
-              <div className="flex h-full flex-col border-l border-gray-800 bg-gray-800">
-                <div className="flex h-12 items-center border-b border-gray-700 px-4 text-sm font-semibold text-gray-300">
-                  Members
-                </div>
-                <div className="flex flex-1 flex-col gap-1 p-2 text-gray-400">
-                  {activeGuildMembers?.map((member) => (
-                    <div key={member.user.id}>
-                      <Popover>
-                        <ContextMenu>
-                          <PopoverTrigger className="w-full">
-                            <ContextMenuTrigger>
-                              <div key={member.user.id} className="flex items-center gap-3 rounded-md p-2 transition hover:bg-gray-700/50">
-                                <Avatar user={member.user} className="size-8" />
-                                <div>
-                                  <p className="text-sm font-medium text-gray-100">{member.user.name ?? member.user.username}</p>
-                                  <p className="text-xs text-gray-400">{member.user.status}</p>
-                                </div>
-                              </div>
-                            </ContextMenuTrigger>
-                          </PopoverTrigger>
-                          <ContextMenuContent>
-                            <GuildMemberContextMenu user={member.user} onMention={onMention} />
-                          </ContextMenuContent>
-                        </ContextMenu>
-                        <PopoverContent className="w-auto p-2" align="start" alignOffset={0}>
-                          <GuildMemberPopoverContent user={member.user} guild={null} />
-                        </PopoverContent>
-                      </Popover>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-          </div>
+          <MemberList guildId={guildId} activeGuildMembers={activeGuildMembers} />
         )}
       </div>
     </div>
