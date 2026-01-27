@@ -61,20 +61,15 @@ export const RolesService = {
      * @returns void
      */
     async updateGuildRole(guildId: string, roleId: string, updates: any) {
-        try {
-            await api.patch(`/guilds/${guildId}/roles/${roleId}`, updates);
+        await api.patch(`/guilds/${guildId}/roles/${roleId}`, updates);
 
-            // Update role in local store
-            const { guildRoles, setGuildRoles } = useRolesStore.getState();
-            const roles = guildRoles[guildId] || [];
-            const updatedRoles = roles.map(role =>
-                role.id === roleId ? { ...role, ...updates } : role
-            );
-            setGuildRoles(guildId, updatedRoles);
-        }
-        catch (error) {
-            console.error('Failed to save role changes:', error);
-        }
+        // Update role in local store
+        const { guildRoles, setGuildRoles } = useRolesStore.getState();
+        const roles = guildRoles[guildId] || [];
+        const updatedRoles = roles.map(role =>
+            role.id === roleId ? { ...role, ...updates } : role
+        );
+        setGuildRoles(guildId, updatedRoles);
     },
 
     /**

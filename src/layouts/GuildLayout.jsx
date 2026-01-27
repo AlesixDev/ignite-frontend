@@ -35,11 +35,11 @@ import { ChannelsService } from '../services/channels.service';
 import { useChannelsStore } from '../stores/channels.store';
 import CreateGuildCategoryDialog from '../components/CreateGuildCategoryDialog';
 
-// --- Helper Component: Sortable Channel Item ---
 const SortableChannel = ({
   channel,
   isActive,
   isUnread,
+  mentionsCount,
   expanded,
   canManageChannels,
   onEditChannel,
@@ -71,9 +71,7 @@ const SortableChannel = ({
           <Link
             to={`/channels/${channel.guild_id}/${channel.channel_id}`}
             className={`${!expanded && !isActive ? 'hidden' : ''} group relative block`}
-            // 1. Explicitly tell the browser NOT to use native link dragging
             draggable="false"
-            // 2. Prevent the native drag start event
             onDragStart={(e) => {
               e.preventDefault();
               e.stopPropagation();
@@ -84,17 +82,24 @@ const SortableChannel = ({
             )}
 
             <div
-              className={`relative mx-2 my-0.5 flex cursor-pointer items-center rounded px-2 py-1 pr-16 transition-colors ${isActive
+              className={`relative mx-2 my-0.5 flex cursor-pointer items-center rounded px-2 py-1 transition-colors ${isActive
                 ? 'bg-gray-600 text-gray-100'
                 : isUnread
                   ? 'text-gray-100 hover:bg-gray-700'
                   : 'text-gray-500 hover:bg-gray-700 hover:text-gray-400'
                 }`}
             >
-              <Hash className={`size-6 shrink-0 transition-colors ${isActive || isUnread ? 'text-gray-200' : 'text-gray-500 group-hover:text-gray-400'}`} />
+              <Hash className={`size-5 shrink-0 transition-colors ${isActive || isUnread ? 'text-gray-200' : 'text-gray-500 group-hover:text-gray-400'}`} />
+
               <p className={`ml-1 truncate text-base transition-all select-none ${isActive || isUnread ? 'font-semibold text-white' : 'font-medium'}`}>
                 {channel.name}
               </p>
+
+              {mentionsCount > 0 && (
+                <div className="ml-auto flex h-4 min-w-[16px] items-center justify-center rounded-full bg-red-500 px-1 text-[11px] font-bold text-white">
+                  {mentionsCount}
+                </div>
+              )}
             </div>
           </Link>
         </ContextMenuTrigger>
@@ -376,6 +381,15 @@ const GuildSidebarCategory = ({
     return channelLastMessageTimestamp > channelUnreadLastReadTimestamp;
   };
 
+  // Function to get the amount of mentions in a channel
+  const getMentionsCount = useCallback((channel) => {
+    const channelUnread = channelUnreads.find((cu) => String(cu.channel_id) === String(channel.channel_id));
+    if (!channelUnread) return 0;
+
+    const mentionedMessageIds = channelUnread.mentioned_message_ids || [];
+    return mentionedMessageIds.length;
+  }, [channelUnreads]);
+
   const handleDeleteChannel = useCallback(async (channel) => {
     if (!canManageChannels) {
       toast.error('Only the server owner can manage channels.');
@@ -488,6 +502,7 @@ const GuildSidebarCategory = ({
           {sortedChannels.map((channel) => {
             const isUnread = isChannelUnread(channel);
             const isActive = channel.channel_id == activeChannelId;
+            const mentionsCount = getMentionsCount(channel);
 
             return (
               <SortableChannel
@@ -495,6 +510,7 @@ const GuildSidebarCategory = ({
                 channel={channel}
                 isActive={isActive}
                 isUnread={isUnread}
+                mentionsCount={mentionsCount}
                 expanded={expanded}
                 canManageChannels={canManageChannels}
                 onEditChannel={onEditChannel}
@@ -508,8 +524,6 @@ const GuildSidebarCategory = ({
     </div>
   );
 };
-
-// ... [GuildSidebar and GuildLayout remain largely the same, but imports are updated at top] ...
 
 const GuildSidebar = ({
   guild,

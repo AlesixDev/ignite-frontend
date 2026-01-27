@@ -1,7 +1,7 @@
 import { useCallback, useState } from 'react';
 import api from '../api';
 import useStore from '../hooks/useStore';
-import { DialogContent } from './ui/dialog';
+import { DialogContent, DialogTitle } from './ui/dialog';
 import { SidebarProvider, Sidebar, SidebarGroup, SidebarHeader, SidebarGroupLabel, SidebarGroupContent, SidebarMenuItem, SidebarMenuButton, SidebarMenu } from './ui/sidebar';
 import Avatar from './Avatar';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from './ui/card';
@@ -12,6 +12,7 @@ import { Controller, FormProvider, useForm } from 'react-hook-form';
 import { Textarea } from './ui/textarea';
 import { Field, FieldError, FieldGroup, FieldLabel } from './ui/field';
 import { toast } from 'sonner';
+import { SheetDescription } from './ui/sheet';
 
 const TabAccount = () => {
   const store = useStore();
@@ -195,56 +196,54 @@ const TabAccount = () => {
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <form>
-                  <div className="flex flex-col gap-6">
-                    <div className="grid gap-3">
-                      <Label htmlFor="email">
-                        E-mail Address
-                      </Label>
-                      <Controller
-                        name="email"
-                        rules={{
-                          required: 'E-mail address is required.',
-                          pattern: {
-                            value: /^[^\s@]+@[^\s@]+\.[^\s@]+$/,
-                            message: 'Please enter a valid e-mail address.',
-                          },
-                        }}
-                        render={({ field }) => (
-                          <>
-                            <Input
-                              id="email"
-                              placeholder="Your e-mail address"
-                              {...field}
-                            />
-                            <FieldError>{userEmailForm.formState.errors.email?.message}</FieldError>
-                          </>
-                        )}
-                      />
-                    </div>
-                    <div className="grid gap-3">
-                      <Label htmlFor="currentPassword">
-                        Current Password
-                      </Label>
-                      <Controller
-                        name="currentPassword"
-                        rules={{
-                          required: 'Current password is required.',
-                        }}
-                        render={({ field }) => (
-                          <>
-                            <Input
-                              id="currentPassword"
-                              placeholder="Your current password"
-                              {...field}
-                            />
-                            <FieldError>{userEmailForm.formState.errors.currentPassword?.message}</FieldError>
-                          </>
-                        )}
-                      />
-                    </div>
+                <div className="flex flex-col gap-6">
+                  <div className="grid gap-3">
+                    <Label htmlFor="email">
+                      E-mail Address
+                    </Label>
+                    <Controller
+                      name="email"
+                      rules={{
+                        required: 'E-mail address is required.',
+                        pattern: {
+                          value: /^[^\s@]+@[^\s@]+\.[^\s@]+$/,
+                          message: 'Please enter a valid e-mail address.',
+                        },
+                      }}
+                      render={({ field }) => (
+                        <>
+                          <Input
+                            id="email"
+                            placeholder="Your e-mail address"
+                            {...field}
+                          />
+                          <FieldError>{userEmailForm.formState.errors.email?.message}</FieldError>
+                        </>
+                      )}
+                    />
                   </div>
-                </form>
+                  <div className="grid gap-3">
+                    <Label htmlFor="currentPassword">
+                      Current Password
+                    </Label>
+                    <Controller
+                      name="currentPassword"
+                      rules={{
+                        required: 'Current password is required.',
+                      }}
+                      render={({ field }) => (
+                        <>
+                          <Input
+                            id="currentPassword"
+                            placeholder="Your current password"
+                            {...field}
+                          />
+                          <FieldError>{userEmailForm.formState.errors.currentPassword?.message}</FieldError>
+                        </>
+                      )}
+                    />
+                  </div>
+                </div>
               </CardContent>
               <CardFooter className="flex-col gap-2">
                 <Button
@@ -275,91 +274,89 @@ const TabAccount = () => {
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <form>
-                  <div className="flex flex-col gap-6">
-                    <div className="grid gap-3">
-                      <Label htmlFor="currentPassword">
-                        Current Password
-                      </Label>
-                      <Controller
-                        name="currentPassword"
-                        rules={{
-                          required: 'Current password is required.',
-                        }}
-                        render={({ field }) => (
-                          <>
-                            <Input
-                              id="currentPassword"
-                              placeholder="Your current password"
-                              {...field}
-                            />
-                            <FieldError>{userPasswordForm.formState.errors.currentPassword?.message}</FieldError>
-                          </>
-                        )}
-                      />
-                    </div>
-                    <div className="grid gap-3">
-                      <Label htmlFor="newPassword">
-                        New Password
-                      </Label>
-                      <Controller
-                        name="newPassword"
-                        rules={{
-                          required: 'New password is required',
-                          minLength: {
-                            value: 8,
-                            message: 'Password must be at least 8 characters long',
-                          },
-                          maxLength: {
-                            value: 64,
-                            message: 'Password must be at most 64 characters long',
-                          },
-                        }}
-                        render={({ field }) => (
-                          <>
-                            <Input
-                              id="newPassword"
-                              placeholder="Your new password"
-                              {...field}
-                            />
-                            <FieldError>{userPasswordForm.formState.errors.newPassword?.message}</FieldError>
-                          </>
-                        )}
-                      />
-                    </div>
-                    <div className="grid gap-3">
-                      <Label htmlFor="confirmNewPassword">
-                        Confirm New Password
-                      </Label>
-                      <Controller
-                        name="confirmNewPassword"
-                        rules={{
-                          required: 'Please confirm your new password',
-                          minLength: {
-                            value: 8,
-                            message: 'Password must be at least 8 characters long',
-                          },
-                          maxLength: {
-                            value: 64,
-                            message: 'Password must be at most 64 characters long',
-                          },
-                          validate: value =>
-                            value === newPasswordValue || 'Passwords do not match',
-                        }}
-                        render={({ field }) => (
-                          <>
-                            <Input
-                              id="confirmNewPassword"
-                              placeholder="Confirm your new password"
-                              {...field}
-                            />
-                            <FieldError>{userPasswordForm.formState.errors.confirmNewPassword?.message}</FieldError>
-                          </>
-                        )}
-                      />
-                    </div>
+                <div className="flex flex-col gap-6">
+                  <div className="grid gap-3">
+                    <Label htmlFor="currentPassword">
+                      Current Password
+                    </Label>
+                    <Controller
+                      name="currentPassword"
+                      rules={{
+                        required: 'Current password is required.',
+                      }}
+                      render={({ field }) => (
+                        <>
+                          <Input
+                            id="currentPassword"
+                            placeholder="Your current password"
+                            {...field}
+                          />
+                          <FieldError>{userPasswordForm.formState.errors.currentPassword?.message}</FieldError>
+                        </>
+                      )}
+                    />
                   </div>
-                </form>
+                  <div className="grid gap-3">
+                    <Label htmlFor="newPassword">
+                      New Password
+                    </Label>
+                    <Controller
+                      name="newPassword"
+                      rules={{
+                        required: 'New password is required',
+                        minLength: {
+                          value: 8,
+                          message: 'Password must be at least 8 characters long',
+                        },
+                        maxLength: {
+                          value: 64,
+                          message: 'Password must be at most 64 characters long',
+                        },
+                      }}
+                      render={({ field }) => (
+                        <>
+                          <Input
+                            id="newPassword"
+                            placeholder="Your new password"
+                            {...field}
+                          />
+                          <FieldError>{userPasswordForm.formState.errors.newPassword?.message}</FieldError>
+                        </>
+                      )}
+                    />
+                  </div>
+                  <div className="grid gap-3">
+                    <Label htmlFor="confirmNewPassword">
+                      Confirm New Password
+                    </Label>
+                    <Controller
+                      name="confirmNewPassword"
+                      rules={{
+                        required: 'Please confirm your new password',
+                        minLength: {
+                          value: 8,
+                          message: 'Password must be at least 8 characters long',
+                        },
+                        maxLength: {
+                          value: 64,
+                          message: 'Password must be at most 64 characters long',
+                        },
+                        validate: value =>
+                          value === newPasswordValue || 'Passwords do not match',
+                      }}
+                      render={({ field }) => (
+                        <>
+                          <Input
+                            id="confirmNewPassword"
+                            placeholder="Confirm your new password"
+                            {...field}
+                          />
+                          <FieldError>{userPasswordForm.formState.errors.confirmNewPassword?.message}</FieldError>
+                        </>
+                      )}
+                    />
+                  </div>
+                </div>
               </CardContent>
               <CardFooter className="flex-col gap-2">
                 <Button
@@ -407,6 +404,10 @@ const UserSettingsDialogContent = () => {
 
   return (
     <DialogContent className="!inset-0 m-auto flex size-full !max-h-[90vh] !max-w-[90vw] !translate-x-0 !translate-y-0 flex-row p-0">
+      <DialogTitle className="sr-only">User Settings</DialogTitle>
+      <SheetDescription className="sr-only">
+        Manage your user settings and preferences.
+      </SheetDescription>
       <SidebarProvider className="h-full !min-h-0 w-auto">
         <Sidebar collapsible="none" className="h-full rounded-lg p-4">
           <SidebarHeader className="flex-row gap-4">

@@ -15,8 +15,42 @@ export const UnreadsService = {
         }
     },
 
+    async updateUnread(channelId, updates) {
+        const { channelUnreads, setChannelUnreads } = useUnreadsStore.getState();
+
+        const exists = channelUnreads.some((unread) => unread.channel_id === channelId);
+
+        if (exists) {
+            const updatedUnreads = channelUnreads.map((unread) => {
+                if (unread.channel_id === channelId) {
+                    return {
+                        ...unread,
+                        ...updates,
+                    };
+                }
+                return unread;
+            });
+
+            setChannelUnreads(updatedUnreads);
+        } else {
+            const updatedUnreads = [
+                ...channelUnreads,
+                {
+                    channel_id: channelId,
+                    ...updates,
+                },
+            ];
+
+            setChannelUnreads(updatedUnreads);
+        }
+    },
+
     async setLastReadMessageId(channelId: string, messageId: string) {
         const { channelUnreads, setChannelUnreads } = useUnreadsStore.getState();
+
+        const getTimestamp = (id: string) => BigInt(id) >> 22n;
+
+        const messageTimestamp = getTimestamp(messageId);
 
         // Find or create the channel unread with channel_id = channelId and set the last_read_message_id to messageId
         const exists = channelUnreads.some((unread) => unread.channel_id === channelId);
@@ -24,7 +58,14 @@ export const UnreadsService = {
         if (exists) {
             updatedUnreads = channelUnreads.map((unread) => {
                 if (unread.channel_id === channelId) {
-                    return { ...unread, last_read_message_id: messageId };
+                    const filteredMentioned = (unread.mentioned_message_ids || []).filter(
+                        (mid: string) => getTimestamp(mid) > messageTimestamp
+                    );
+                    return {
+                        ...unread,
+                        last_read_message_id: messageId,
+                        mentioned_message_ids: filteredMentioned,
+                    };
                 }
                 return unread;
             });

@@ -81,6 +81,10 @@ const AuthRoute = ({ children }) => {
                 console.log('Friend request accepted event:', event);
                 FriendsService.loadFriends();
                 FriendsService.loadRequests();
+              })
+              .listen('.unread.updated', (event) => {
+                console.log('Unread updated event:', event);
+                UnreadsService.updateUnread(event.unread.channel_id, event.unread);
               });
           } else {
             localStorage.removeItem('token');

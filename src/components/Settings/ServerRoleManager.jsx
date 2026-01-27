@@ -18,7 +18,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
   AlertDialogTrigger
-} from '../ui/alert-dialog'; 
+} from '../ui/alert-dialog';
 import { RolesService } from '../../services/roles.service';
 import { useRolesStore } from '../../stores/roles.store';
 import { toast } from 'sonner';
@@ -162,16 +162,25 @@ const COLORS = [
   { name: 'Emerald', value: '#10b981' },
 ];
 
+const hexToInt = (hex) => {
+  if (!hex) return 0;
+  return parseInt(hex.replace('#', ''), 16);
+};
+
+const intToHex = (intColor) => {
+  return `#${intColor.toString(16).padStart(6, '0')}`;
+};
+
 const ServerRoleManager = ({ guild }) => {
-  const [localRoles, setLocalRoles] = useState(guild?.roles ?? []);
+  const [localRoles, setLocalRoles] = useState([]);
   const [selectedRoleId, setSelectedRoleId] = useState(null);
 
   const [activePermissions, setActivePermissions] = useState(0);
   const [originalPermissions, setOriginalPermissions] = useState(0);
   const [roleName, setRoleName] = useState('');
   const [originalName, setOriginalName] = useState('');
-  const [roleColor, setRoleColor] = useState('#99aab5');
-  const [originalColor, setOriginalColor] = useState('#99aab5');
+  const [roleColor, setRoleColor] = useState('');
+  const [originalColor, setOriginalColor] = useState('');
 
   // New state for detecting order changes
   const [originalRoleOrder, setOriginalRoleOrder] = useState([]);
@@ -200,15 +209,24 @@ const ServerRoleManager = ({ guild }) => {
     if (roleToSelect) {
       // Don't overwrite localRoles here, only the active editor state
       if (!selectedRoleId) setSelectedRoleId(roleToSelect.id);
-      
+
       // Update editor fields if we switched roles
       if (selectedRoleId !== roleToSelect.id) {
-          setActivePermissions(Number(roleToSelect.permissions || 0));
-          setOriginalPermissions(Number(roleToSelect.permissions || 0));
-          setRoleName(roleToSelect.name || '');
-          setOriginalName(roleToSelect.name || '');
-          setRoleColor(roleToSelect.color || '#99aab5');
-          setOriginalColor(roleToSelect.color || '#99aab5');
+        const selectedRoleColor = intToHex(roleToSelect.color);
+
+        setActivePermissions(Number(roleToSelect.permissions || 0));
+        setOriginalPermissions(Number(roleToSelect.permissions || 0));
+        setRoleName(roleToSelect.name || '');
+        setOriginalName(roleToSelect.name || '');
+        setRoleColor(selectedRoleColor);
+        setOriginalColor(selectedRoleColor);
+
+        console.log('Switched selected role, updating editor fields.', {
+          roleId: roleToSelect.id,
+          permissions: roleToSelect.permissions,
+          color: selectedRoleColor,
+          name: roleToSelect.name,
+        });
       }
     }
   }, [localRoles, selectedRoleId]);
@@ -217,17 +235,17 @@ const ServerRoleManager = ({ guild }) => {
   const handleSort = () => {
     // Create a copy
     let _roles = [...localRoles];
-    
+
     // Remove the dragged item
     const draggedItemContent = _roles.splice(dragItem.current, 1)[0];
-    
+
     // Insert it at new position
     _roles.splice(dragOverItem.current, 0, draggedItemContent);
-    
+
     // Reset refs
     dragItem.current = null;
     dragOverItem.current = null;
-    
+
     // Update state
     setLocalRoles(_roles);
   };
@@ -260,7 +278,7 @@ const ServerRoleManager = ({ guild }) => {
           RolesService.updateGuildRole(guild.id, selectedRoleId, {
             name: roleName,
             permissions: activePermissions,
-            color: roleColor,
+            color: hexToInt(roleColor),
           })
         );
       }
@@ -276,15 +294,15 @@ const ServerRoleManager = ({ guild }) => {
           id: role.id,
           position: localRoles.length - index - 1 // Reverse index if API expects higher number = higher role
         }));
-        
+
         // This hits the Bulk Update route
         promises.push(RolesService.updateRolePositions(guild.id, positions));
       }
 
       await Promise.all(promises);
-      
+
       toast.success("Changes saved successfully");
-      
+
       // Sync local original states after save
       setOriginalPermissions(activePermissions);
       setOriginalName(roleName);
@@ -305,7 +323,7 @@ const ServerRoleManager = ({ guild }) => {
     try {
       await RolesService.deleteGuildRole(guild.id, selectedRoleId);
       toast.success("Role deleted");
-      setSelectedRoleId(null); 
+      setSelectedRoleId(null);
     } catch (error) {
       toast.error("Failed to delete role");
     } finally {
@@ -320,10 +338,10 @@ const ServerRoleManager = ({ guild }) => {
 
   // Check if anything changed (Details OR Order)
   const hasChanged = useMemo(() => {
-    const detailsChanged = activePermissions !== originalPermissions || 
-                           roleName !== originalName || 
-                           roleColor !== originalColor;
-    
+    const detailsChanged = activePermissions !== originalPermissions ||
+      roleName !== originalName ||
+      roleColor !== originalColor;
+
     const currentOrderIds = localRoles.map(r => r.id);
     const orderChanged = JSON.stringify(currentOrderIds) !== JSON.stringify(originalRoleOrder);
 
@@ -375,24 +393,26 @@ const ServerRoleManager = ({ guild }) => {
                   <div className="cursor-grab active:cursor-grabbing text-muted-foreground/50 hover:text-foreground p-1 rounded transition-colors opacity-0 group-hover:opacity-100">
                     <GripVertical size={14} />
                   </div>
-                  
+
                   <Button
                     variant="ghost"
                     onClick={() => {
-                        setSelectedRoleId(role.id);
-                        // Manually trigger updates for editor because we aren't relying solely on useEffect for these updates to prevent loops during drag
-                        setActivePermissions(Number(role.permissions || 0));
-                        setOriginalPermissions(Number(role.permissions || 0));
-                        setRoleName(role.name || '');
-                        setOriginalName(role.name || '');
-                        setRoleColor(role.color || '#99aab5');
-                        setOriginalColor(role.color || '#99aab5');
+                      const selectedRoleColor = intToHex(role.color);
+
+                      setSelectedRoleId(role.id);
+                      // Manually trigger updates for editor because we aren't relying solely on useEffect for these updates to prevent loops during drag
+                      setActivePermissions(Number(role.permissions || 0));
+                      setOriginalPermissions(Number(role.permissions || 0));
+                      setRoleName(role.name || '');
+                      setOriginalName(role.name || '');
+                      setRoleColor(selectedRoleColor);
+                      setOriginalColor(selectedRoleColor);
                     }}
                     className={`flex-1 justify-start gap-3 ${selectedRoleId === role.id ? 'bg-primary/10 text-primary' : ''}`}
                   >
-                    <div 
-                      className="h-3 w-3 rounded-full flex-shrink-0" 
-                      style={{ backgroundColor: role.id === selectedRoleId ? roleColor : (role.color || '#99aab5') }}
+                    <div
+                      className="h-3 w-3 rounded-full flex-shrink-0"
+                      style={{ backgroundColor: role.id === selectedRoleId ? roleColor : intToHex(role.color) }}
                     />
                     <span className="truncate">
                       {role.id === selectedRoleId ? roleName : role.name}
@@ -406,7 +426,7 @@ const ServerRoleManager = ({ guild }) => {
 
         {/* Right Column: Tabs Interface */}
         <div className="rounded-lg border border-border flex flex-col min-h-[520px] relative">
-          <Tabs value={selectedRoleId ? undefined : "permissions"} defaultValue="permissions" className="flex flex-col h-full">
+          <Tabs value={selectedRoleId ? undefined : "display"} defaultValue="display" className="flex flex-col h-full">
             <div className="px-5 pt-5">
               <div className="mb-4 text-sm font-bold truncate">
                 Editing Role: <span className="text-primary">{activeRole?.name || 'Select a role'}</span>
@@ -446,7 +466,7 @@ const ServerRoleManager = ({ guild }) => {
                         style={{ backgroundColor: color.value }}
                         title={color.name}
                       >
-                        {roleColor === color.value && (
+                        {roleColor == color.value && (
                           <Check className="mx-auto text-white drop-shadow-md" size={18} />
                         )}
                       </button>
@@ -543,7 +563,7 @@ const ServerRoleManager = ({ guild }) => {
                       setRoleColor(originalColor);
                       // Reset order
                       const originalRoles = originalRoleOrder
-                        .map(id => localRoles.find(r => r.id === id) || guild?.roles?.find(r => r.id === id))
+                        .map(id => localRoles.find(r => r.id === id))
                         .filter(Boolean);
                       setLocalRoles(originalRoles);
                     }}
