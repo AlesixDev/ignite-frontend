@@ -12,13 +12,23 @@ import Avatar from '../components/Avatar';
 const SidebarIcon = ({ icon = '', iconUrl = '', isActive = false, isServerIcon = false, text = 'tooltip', isUnread = false }) => (
   <div className="group relative mb-2 min-w-min px-3">
     {/* Unread Pill: Only show if not active */}
-    {!isActive && isUnread && (
-      <span className="absolute -left-1 top-1/2 -translate-y-1/2 w-2 h-2 rounded-full bg-white z-10 border-4 border-gray-900 box-content"></span>
-    )}
-    
+    {/* {!isActive && isUnread && (
+      <span className="absolute -left-1 top-1 w-2 h-2 scale-0 rounded-full bg-white transition-all scale-100 z-10 border-4 border-gray-900 box-content group-hover:hidden"></span>
+    )} */}
+
     {/* Active/Hover Pill */}
-    <div className={`absolute -left-1 top-1 h-10 w-2 scale-0 rounded-lg bg-white transition-all ${!isActive ? 'group-hover:scale-x-100 group-hover:scale-y-50' : 'scale-100'}`}></div>
-    
+    {/* <div className={`absolute -left-1 top-1 h-10 w-2 scale-0 rounded-lg bg-white transition-all ${!isActive ? 'group-hover:scale-x-100 group-hover:scale-y-50' : 'scale-100'}`}></div> */}
+
+    <div
+      className={`
+        absolute -left-1 top-1/2 block w-2 -translate-y-1/2 rounded-lg bg-white transition-all duration-200 
+        ${isActive
+          ? 'h-10' // Active: Full height (40px)
+          : `group-hover:h-5 ${isUnread ? 'h-2' : 'h-0'}` // Inactive: Hover = Medium (20px), Base = Small (8px) if unread, else hidden
+        }
+      `}
+    ></div>
+
     <div className={`relative mx-auto flex size-12 cursor-pointer items-center justify-center overflow-hidden transition-all duration-300 ease-out hover:rounded-xl hover:bg-gray-600/60 hover:text-white ${isActive ? 'rounded-xl bg-gray-600/60 text-white' : 'rounded-3xl bg-gray-700 text-gray-100'} ${!isServerIcon ? 'text-green-500 hover:bg-green-500 hover:text-white' : ''}`}>
       {icon ? (
         icon
@@ -27,7 +37,7 @@ const SidebarIcon = ({ icon = '', iconUrl = '', isActive = false, isServerIcon =
       ) : (
         <span className="text-xl leading-none text-gray-400">{text.slice(0, 2)}</span>
       )}
-      
+
       {/* Tooltip */}
       <span className="pointer-events-none absolute left-14 m-2 w-auto min-w-max origin-left scale-0 rounded-md bg-gray-900 p-2 text-sm font-bold text-white shadow-lg transition-all duration-100 group-hover:scale-100 z-50">
         {text}
@@ -69,7 +79,7 @@ const Sidebar = () => {
   // Get a list of actual DM Channel Objects that are unread
   const unreadDmChannels = useMemo(() => {
     if (!channelUnreadsLoaded || !user) return [];
-    
+
     return channels
       .filter((c) => c.type === 1 && isChannelUnread(c))
       .map(channel => {
@@ -82,7 +92,7 @@ const Sidebar = () => {
   return (
     <>
       <div className="relative left-0 top-0 m-0 flex h-screen min-w-min flex-col items-center bg-gray-900 pt-3 text-white shadow scrollbar-none overflow-y-auto">
-        
+
         {/* Main Home / Friends Button */}
         <Link to="/channels/@me">
           <SidebarIcon
@@ -108,7 +118,7 @@ const Sidebar = () => {
         ))}
 
         <hr className="mx-auto mb-2 mt-2 w-8 rounded-full border-2 border-gray-800 bg-gray-800" />
-        
+
         {/* Guilds List */}
         {guilds.map((guild) => (
           <Link key={guild.id} to={`/channels/${guild.id}`}>
@@ -121,7 +131,7 @@ const Sidebar = () => {
             />
           </Link>
         ))}
-        
+
         {/* Discord Imported Guilds */}
         {discordGuilds.map((discordGuild) => (
           <Link key={discordGuild.id} to={`/channels_discord/${discordGuild.id}`}>
@@ -133,7 +143,7 @@ const Sidebar = () => {
             />
           </Link>
         ))}
-        
+
         <button type="button" onClick={() => setIsGuildDialogOpen(true)}>
           <SidebarIcon icon={<Plus className="size-6" />} text="Add a Server" />
         </button>

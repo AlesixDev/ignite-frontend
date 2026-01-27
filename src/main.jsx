@@ -92,7 +92,7 @@ window.Echo = new Echo({
 
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
-    <WindowBar />
+    {/* <WindowBar /> */}
     <BrowserRouter>
       <App />
       <Toaster />
