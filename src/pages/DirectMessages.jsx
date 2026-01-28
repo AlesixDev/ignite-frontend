@@ -147,7 +147,21 @@ const DirectMessagesPage = () => {
     return false;
   }
 
-  const dmChannels = useMemo(() => channels.filter(c => c.type === 1).map(normalizeThread), [channels]);
+  const dmChannels = useMemo(
+    () =>
+      channels
+        .filter(c => c.type === 1)
+        .sort((a, b) => {
+          if (!a.last_message_id) return 1;
+          if (!b.last_message_id) return -1;
+          const aId = BigInt(a.last_message_id);
+          const bId = BigInt(b.last_message_id);
+          if (aId === bId) return 0;
+          return aId < bId ? 1 : -1;
+        })
+        .map(normalizeThread),
+    [channels]
+  );
 
   const activeChannel = useMemo(() =>
     activeThreadId === 'friends' ? null : dmChannels.find(t => t.channel_id === activeThreadId),
@@ -172,9 +186,8 @@ const DirectMessagesPage = () => {
                 <span className="font-medium">Friends</span>
               </Button>
 
-              <div className="mt-4 flex items-center justify-between px-2 text-[10px] font-semibold tracking-wider text-gray-500 uppercase group-hover:text-gray-300">
+              <div className="mt-4 flex items-center px-2 text-[10px] font-semibold tracking-wider text-gray-500 uppercase group-hover:text-gray-300">
                 Direct Messages
-                <span className="text-xl leading-none cursor-pointer hover:text-gray-200">+</span>
               </div>
 
               <div className="mt-2 space-y-0.5">

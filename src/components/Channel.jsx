@@ -9,12 +9,10 @@ import { useGuildContext } from '../contexts/GuildContext';
 import { useChannelContext } from '../contexts/ChannelContext.jsx';
 import { ContextMenu, ContextMenuContent, ContextMenuItem, ContextMenuSeparator, ContextMenuTrigger } from './ui/context-menu';
 import { Popover, PopoverContent, PopoverTrigger } from './ui/popover';
-import { InputGroup, InputGroupAddon, InputGroupButton, InputGroupInput } from './ui/input-group';
 import { Badge } from './ui/badge';
 import ChannelBar from './ChannelBar.jsx';
 import GuildMemberContextMenu from './GuildMemberContextMenu';
 import GuildMemberPopoverContent from './GuildMemberPopoverContent';
-import { EmojiPicker, EmojiPickerContent, EmojiPickerFooter, EmojiPickerSearch } from './ui/emoji-picker';
 import { Button } from './ui/button';
 import { Smile } from 'lucide-react';
 import { useChannelsStore } from '../stores/channels.store';
@@ -22,6 +20,7 @@ import { ChannelsService } from '../services/channels.service';
 import { UnreadsService } from '../services/unreads.service';
 import Avatar from './Avatar.jsx';
 import { useRolesStore } from '../stores/roles.store';
+import ChannelInput from './ChannelInput';
 
 const UnreadDivider = () => (
   <div className="flex items-center justify-center mt-6 mb-2 relative group w-full animate-in fade-in duration-300">
@@ -399,117 +398,6 @@ const ChannelMessages = ({ channelId, messagesRef, highlightId, onLoadMore, load
           <ChannelMessage key={message.nonce} message={message} prevMessage={prevMessage} pending={true} />
         );
       })}
-    </div>
-  );
-};
-const MAX_MESSAGE_LENGTH = 2000;
-
-const ChannelInput = ({ channel }) => {
-  const { messages, setMessages, replyingId, setReplyingId, inputMessage, setInputMessage, inputRef } = useChannelContext();
-
-  const replyMessage = useMemo(() => replyingId ? messages.find((m) => m.id == replyingId) : null, [messages, replyingId]);
-
-  const sendMessage = useCallback(async (event) => {
-    event.preventDefault();
-
-    if (!channel?.channel_id || !inputMessage) {
-      return;
-    }
-
-    // try {
-    //   const generatedNonce = Date.now().toString() + Math.floor(Math.random() * 1000).toString();
-
-    //   setPendingMessages([...pendingMessages, {
-    //     nonce: generatedNonce,
-    //     content: inputMessage,
-    //     author: {
-    //       id: useStore.getState().user.id,
-    //       name: useStore.getState().user.name ?? useStore.getState().user.username,
-    //       username: useStore.getState().user.username,
-    //     },
-    //     created_at: new Date().toISOString(),
-    //   }]);
-
-    //   api.post(`/channels/${channel.channel_id}/messages`, {
-    //     content: inputMessage,
-    //     nonce: generatedNonce,
-    //     reply_to: replyingId
-    //   });
-
-    //   setInputMessage('');
-    //   setReplyingId(null);
-    // } catch (error) {
-    //   console.error(error);
-    //   toast.error(error.response?.data?.message || 'Could not send message.');
-    // }
-    ChannelsService.sendChannelMessage(channel.channel_id, inputMessage);
-
-    setInputMessage('');
-    setReplyingId(null);
-  }, [channel?.channel_id, inputMessage, replyingId, setInputMessage, setMessages, setReplyingId]);
-
-  useEffect(() => {
-    // if (replyingId) {
-    //   inputRef.current.focus();
-    // }
-    if (inputRef.current) {
-      inputRef.current.select();
-    }
-  }, [inputRef, channel?.channel_id]);
-
-  const [isEmojiPickerOpen, setIsEmojiPickerOpen] = useState(false);
-
-  return (
-    <div className="sticky bottom-0 z-10 bg-gray-700/95 p-4 backdrop-blur md:static md:mt-[22px] md:bg-transparent md:pb-0">
-      {replyingId && (
-        <div className="flex items-center justify-between gap-2 rounded-t-md border-b border-b-white/5 bg-gray-800 px-4 py-2 text-sm text-gray-300">
-          <p>Replying to <span className="text-primary">{replyMessage?.author.username}</span></p>
-          <button type="button" onClick={() => setReplyingId(null)} className="text-gray-400 hover:text-gray-200">
-            <XCircle weight="fill" className="size-5" />
-          </button>
-        </div>
-      )}
-      <form onSubmit={(e) => sendMessage(e)} className="w-full">
-        <InputGroup className={`h-12 bg-gray-800 ${replyingId ? 'rounded-t-none' : ''}`}>
-          <InputGroupInput
-            placeholder={`Message #${channel?.name}`}
-            value={inputMessage}
-            onChange={(e) => {
-              if (e.target.value.length <= MAX_MESSAGE_LENGTH) {
-                setInputMessage(e.target.value);
-              }
-            }}
-            ref={inputRef}
-            maxLength={MAX_MESSAGE_LENGTH}
-          />
-          <Popover onOpenChange={setIsEmojiPickerOpen} open={isEmojiPickerOpen}>
-            <PopoverTrigger asChild>
-              <Button
-                type="button"
-                data-size="xs"
-                variant="ghost"
-                className="mr-2 flex h-6 items-center gap-1 rounded-[calc(var(--radius)-5px)] px-2 text-sm shadow-none has-[>svg]:px-2 [&>svg:not([class*='size-'])]:size-3.5"
-              >
-                <Smile className="size-5" />
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent className="w-fit p-0">
-              <EmojiPicker
-                className="h-[342px]"
-                onEmojiSelect={({ emoji }) => {
-                  setIsEmojiPickerOpen(false);
-                  setInputMessage((prev) => prev + emoji);
-                  inputRef.current.focus();
-                }}
-              >
-                <EmojiPickerSearch />
-                <EmojiPickerContent />
-                <EmojiPickerFooter />
-              </EmojiPicker>
-            </PopoverContent>
-          </Popover>
-        </InputGroup>
-      </form>
     </div>
   );
 };
