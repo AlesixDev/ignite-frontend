@@ -67,9 +67,6 @@ const CreateGuildDialog = ({ isOpen, setIsOpen }) => {
             </div>
 
             <FormError name="name" />
-            <div className="text-xs text-muted-foreground">
-              Tip: keep it short—you can change it later.
-            </div>
           </div>
 
           <div className="flex flex-col-reverse gap-3 sm:flex-row sm:items-center sm:justify-between">

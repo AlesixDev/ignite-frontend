@@ -5,7 +5,7 @@ import { useGuildsStore } from '../stores/guilds.store';
 import DiscordGuildLayout from '../layouts/DiscordGuildLayout';
 import DiscordChannel from '../components/DiscordChannel';
 import { ChannelContextProvider } from '../contexts/ChannelContext';
-import ChannelDialog from '../components/ChannelDialog';
+import ChannelDialog from '../components/Channel/ChannelDialog';
 import { GuildContextProvider } from '../contexts/GuildContext';
 
 const DiscordGuildChannelPage = () => {

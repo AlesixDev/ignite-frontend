@@ -198,7 +198,10 @@ const AuthRoute = ({ children }) => {
           })
           .listen('.message.created', ChannelsService.handleMessageCreated)
           .listen('.message.updated', ChannelsService.handleMessageUpdated)
-          .listen('.message.deleted', ChannelsService.handleMessageDeleted);
+          .listen('.message.deleted', ChannelsService.handleMessageDeleted)
+          .listen('.role.created', RolesService.handleRoleCreated)
+          .listen('.role.updated', RolesService.handleRoleUpdated)
+          .listen('.role.deleted', RolesService.handleRoleDeleted);
 
         // Mark as subscribed
         activeSubscriptions.current.add(guildId);

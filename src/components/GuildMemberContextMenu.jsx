@@ -30,15 +30,12 @@ const GuildMemberContextMenu = ({ user, onMention = undefined }) => {
   const { guildId } = useGuildContext();
   const { guildMembers } = useGuildsStore();
 
-  // Mock roles - In a real app, fetch these from your guild/server store
   const availableRoles = useMemo(() => {
     return guildRoles[guildId] || [];
   }, [guildRoles, store.currentGuild]);
 
-  // Find the member in the guild
   const member = guildMembers[guildId]?.find((m) => m.user_id === user.id);
 
-  // Logic to check if user has a role (Replace with real data logic)
   const userRoles = member?.roles || [];
 
   const memberHasRole = (roleId) => {
@@ -46,15 +43,6 @@ const GuildMemberContextMenu = ({ user, onMention = undefined }) => {
   }
 
   const toggleRole = (roleId) => {
-    // API call logic would go here
-    // toast.promise(api.patch(`/guilds/member/${user.id}/roles`, { roleId }), {
-    //   loading: 'Updating roles...',
-    //   success: 'Roles updated successfully',
-    //   error: 'Failed to update roles',
-    // });
-
-    // RolesService.removeRoleFromMember(guildId, user.id, roleId);
-
     if (memberHasRole(roleId)) {
       RolesService.removeRoleFromMember(guildId, user.id, roleId)
         .then(() => toast.success('Role removed successfully'))

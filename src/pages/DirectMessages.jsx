@@ -4,7 +4,7 @@ import { UserPlus, MessageSquare, UserCheck, UserMinus, Users } from 'lucide-rea
 import BaseAuthLayout from '../layouts/BaseAuthLayout';
 import useStore from '../hooks/useStore';
 import api from '../api';
-import Channel from '../components/Channel';
+import Channel from '../components/Channel/Channel';
 import { ChannelContextProvider } from '../contexts/ChannelContext';
 import UserSettings from '../components/Settings/UserSettings';
 import { GuildContextProvider } from '../contexts/GuildContext';

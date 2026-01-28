@@ -206,5 +206,19 @@ export const RolesService = {
 
         const currentRoleIds = (member.roles || []).map(r => r.id);
         return currentRoleIds.includes(roleId);
+    },
+
+    /**
+     * Handle role-related events from the WebSocket and update the local store accordingly.
+     * 
+     * @param event The role event received from the WebSocket.
+     * @returns void
+     */
+    handleRoleCreated(event: any) {
+        const { role } = event;
+        const guildId = role.guild_id;
+        const { guildRoles, setGuildRoles } = useRolesStore.getState();
+        const roles = guildRoles[guildId] || [];
+        setGuildRoles(guildId, [...roles, role]);
     }
 };

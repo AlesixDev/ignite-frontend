@@ -11,7 +11,7 @@ import { ContextMenu, ContextMenuContent, ContextMenuItem, ContextMenuSeparator,
 import { Popover, PopoverContent, PopoverTrigger } from './ui/popover';
 import { InputGroup, InputGroupAddon, InputGroupButton, InputGroupInput } from './ui/input-group';
 import { Badge } from './ui/badge';
-import ChannelBar from './ChannelBar.jsx';
+import ChannelBar from './Channel/ChannelBar.jsx';
 import GuildMemberContextMenu from './GuildMemberContextMenu';
 import GuildMemberPopoverContent from './GuildMemberPopoverContent';
 import { EmojiPicker, EmojiPickerContent, EmojiPickerFooter, EmojiPickerSearch } from './ui/emoji-picker';

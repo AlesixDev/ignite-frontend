@@ -1,15 +1,15 @@
-import { InputGroup } from './ui/input-group';
-import { Textarea } from './ui/textarea'; // Import shadcn Textarea
-import { EmojiPicker, EmojiPickerContent, EmojiPickerFooter, EmojiPickerSearch } from './ui/emoji-picker';
-import { useChannelContext } from '../contexts/ChannelContext.jsx';
+import { InputGroup } from '../ui/input-group';
+import { Textarea } from '../ui/textarea'; // Import shadcn Textarea
+import { EmojiPicker, EmojiPickerContent, EmojiPickerFooter, EmojiPickerSearch } from '../ui/emoji-picker';
+import { useChannelContext } from '../../contexts/ChannelContext.jsx';
 import { useState, useCallback, useEffect, useMemo } from 'react';
 import { XCircle } from '@phosphor-icons/react';
-import { Popover, PopoverContent, PopoverTrigger } from './ui/popover';
-import { Button } from './ui/button';
+import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover';
+import { Button } from '../ui/button';
 import { Smile } from 'lucide-react';
-import { ChannelsService } from '../services/channels.service';
-import { ChannelType } from '../enums/ChannelType';
-import useStore from '../hooks/useStore';
+import { ChannelsService } from '../../services/channels.service';
+import { ChannelType } from '../../enums/ChannelType';
+import useStore from '../../hooks/useStore';
 
 const MAX_MESSAGE_LENGTH = 2000;
 

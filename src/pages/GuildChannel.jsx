@@ -3,9 +3,9 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { GuildsService } from '../services/guilds.service';
 import { useGuildsStore } from '../stores/guilds.store';
 import GuildLayout from '../layouts/GuildLayout';
-import Channel from '../components/Channel';
+import Channel from '../components/Channel/Channel';
 import { ChannelContextProvider } from '../contexts/ChannelContext';
-import ChannelDialog from '../components/ChannelDialog';
+import ChannelDialog from '../components/Channel/ChannelDialog';
 import { GuildContextProvider } from '../contexts/GuildContext';
 
 const GuildChannelPage = () => {

@@ -136,6 +136,8 @@ export const GuildsService = {
   async addGuildMemberToStore(guildId: string, member: any) {
     const { guildMembers, setGuildMembers } = useGuildsStore.getState();
     const members = guildMembers[guildId] || [];
+    if (members.length === 0) return;
+    
     setGuildMembers(guildId, [...members, member]);
   },
 
@@ -149,12 +151,11 @@ export const GuildsService = {
   async updateGuildMemberInStore(guildId: string, memberId: string, updates: any) {
     const { guildMembers, setGuildMembers } = useGuildsStore.getState();
     const members = guildMembers[guildId] || [];
+    if (members.length === 0) return;
 
-    console.log("Members", members);
     const updatedMembers = members.map(member =>
       member.user_id === memberId ? { ...member, ...updates } : member
     );
-    console.log("Updated Members", updatedMembers)
     setGuildMembers(guildId, updatedMembers);
   },
 
@@ -167,6 +168,8 @@ export const GuildsService = {
   async deleteGuildMemberFromStore(guildId: string, memberId: string) {
     const { guildMembers, setGuildMembers } = useGuildsStore.getState();
     const members = guildMembers[guildId] || [];
+    if (members.length === 0) return;
+
     const updatedMembers = members.filter(member => member.user_id !== memberId);
     setGuildMembers(guildId, updatedMembers);
   }

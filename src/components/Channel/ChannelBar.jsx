@@ -1,8 +1,8 @@
 import { Bell, Chats, Hash, MagnifyingGlass, PushPin, Question, Tray, Users } from '@phosphor-icons/react';
 import { useState } from 'react';
-import SearchModal from './Modals/SearchModal';
-import { useGuildContext } from '../contexts/GuildContext';
-import { useChannelContext } from '../contexts/ChannelContext';
+import SearchModal from '../Modals/SearchModal';
+import { useGuildContext } from '../../contexts/GuildContext';
+import { useChannelContext } from '../../contexts/ChannelContext';
 
 const Tooltip = ({ text = 'Hello' }) => {
   return (
