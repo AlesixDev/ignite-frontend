@@ -5,30 +5,72 @@ import useStore from '../hooks/useStore';
 import api from '../api';
 import { FriendsService } from '../services/friends.service';
 import { useFriendsStore } from '../stores/friends.store';
-import { ContextMenuItem, ContextMenuSeparator } from './ui/context-menu';
+import {
+  ContextMenuItem,
+  ContextMenuSeparator,
+  ContextMenuSub,
+  ContextMenuSubTrigger,
+  ContextMenuSubContent,
+  ContextMenuCheckboxItem // Using CheckboxItem is standard for toggling roles
+} from './ui/context-menu';
+import { useGuildsStore } from '../stores/guilds.store';
+import { useRolesStore } from '../stores/roles.store';
+import { useGuildContext } from '../contexts/GuildContext';
+import { RolesService } from '../services/roles.service';
+
+const intToHex = (intColor) => {
+  return `#${intColor.toString(16).padStart(6, '0')}`;
+};
 
 const GuildMemberContextMenu = ({ user, onMention = undefined }) => {
   const store = useStore();
   const navigate = useNavigate();
-
   const { friends, requests } = useFriendsStore();
+  const { guildRoles } = useRolesStore();
+  const { guildId } = useGuildContext();
+  const { guildMembers } = useGuildsStore();
 
-  // TODO: Put in some helper file or in friends store
+  // Mock roles - In a real app, fetch these from your guild/server store
+  const availableRoles = useMemo(() => {
+    return guildRoles[guildId] || [];
+  }, [guildRoles, store.currentGuild]);
 
-  const isFriend = useMemo(() => {
-    return friends.some((friend) => friend.id === user.id);
-  }, [friends, user.id]);
+  // Find the member in the guild
+  const member = guildMembers[guildId]?.find((m) => m.user_id === user.id);
 
-  const hasSentRequest = useMemo(() => {
-    return requests.some((request) => request.receiver_id === user.id);
-  }, [requests, user.id]);
+  // Logic to check if user has a role (Replace with real data logic)
+  const userRoles = member?.roles || [];
 
-  const hasReceivedRequest = useMemo(() => {
-    return requests.some((request) => request.sender_id === user.id);
-  }, [requests, user.id]);
+  const memberHasRole = (roleId) => {
+    return userRoles.some((r) => r.id === roleId);
+  }
 
+  const toggleRole = (roleId) => {
+    // API call logic would go here
+    // toast.promise(api.patch(`/guilds/member/${user.id}/roles`, { roleId }), {
+    //   loading: 'Updating roles...',
+    //   success: 'Roles updated successfully',
+    //   error: 'Failed to update roles',
+    // });
+
+    // RolesService.removeRoleFromMember(guildId, user.id, roleId);
+
+    if (memberHasRole(roleId)) {
+      RolesService.removeRoleFromMember(guildId, user.id, roleId)
+        .then(() => toast.success('Role removed successfully'))
+        .catch(() => toast.error('Failed to remove role'));
+    } else {
+      RolesService.assignRoleToMember(guildId, user.id, roleId)
+        .then(() => toast.success('Role added successfully'))
+        .catch(() => toast.error('Failed to add role'));
+    }
+  };
+
+  const isFriend = useMemo(() => friends.some((f) => f.id === user.id), [friends, user.id]);
+  const hasSentRequest = useMemo(() => requests.some((r) => r.receiver_id === user.id), [requests, user.id]);
+  const hasReceivedRequest = useMemo(() => requests.some((r) => r.sender_id === user.id), [requests, user.id]);
   const friendRequestId = useMemo(() => {
-    const request = requests.find((request) => request.sender_id === user.id || request.receiver_id === user.id);
+    const request = requests.find((r) => r.sender_id === user.id || r.receiver_id === user.id);
     return request ? request.id : null;
   }, [requests, user.id]);
 
@@ -37,103 +79,99 @@ const GuildMemberContextMenu = ({ user, onMention = undefined }) => {
       toast.info('You cannot DM yourself.');
       return;
     }
-
     try {
       await api.post('@me/channels', { recipients: [author.id] });
       navigate('/channels/@me');
     } catch (error) {
-      console.error(error);
       toast.error(error.response?.data?.message || 'Could not create direct message.');
     }
   }, [navigate, store.user.id]);
 
-  const sendFriendRequest = () => {
-    FriendsService.sendRequest(user.username).then(() => {
-      toast.success(`Friend request sent to ${user.username}`);
-    }).catch(() => {
-      toast.error(`Failed to send friend request to ${user.username}`);
-    });
-  };
-
-  const removeFriend = () => {
-    FriendsService.removeFriend(friendRequestId).then(() => {
-      toast.success(`Removed ${user.username} from friends`);
-    }).catch(() => {
-      toast.error(`Failed to remove ${user.username} from friends`);
-    });
-  };
-
-  const cancelFriendRequest = () => {
-    FriendsService.cancelRequest(friendRequestId).then(() => {
-      toast.success(`Friend request to ${user.username} cancelled`);
-    }).catch(() => {
-      toast.error(`Failed to cancel friend request to ${user.username}`);
-    });
-  };
-
-  const acceptFriendRequest = () => {
-    FriendsService.acceptRequest(friendRequestId).then(() => {
-      toast.success(`Friend request from ${user.username} accepted`);
-    }).catch(() => {
-      toast.error(`Failed to accept friend request from ${user.username}`);
-    });
+  // Handler shortcuts
+  const handleFriendsAction = (action, username) => {
+    action(friendRequestId || username)
+      .then(() => toast.success(`Action successful for ${username}`))
+      .catch(() => toast.error(`Failed action for ${username}`));
   };
 
   return (
     <>
-      <ContextMenuItem onSelect={() => {
-        toast.info('Profile feature is not available yet.');
-      }}>
+      <ContextMenuItem onSelect={() => toast.info('Profile feature coming soon.')}>
         View Profile
       </ContextMenuItem>
+
       {onMention !== undefined && (
         <ContextMenuItem onSelect={() => onMention(user)}>
           Mention
         </ContextMenuItem>
       )}
+
+      {user.id !== store.user.id && (
+        <ContextMenuItem onSelect={() => onSendMessage(user)}>
+          Send Message
+        </ContextMenuItem>
+      )}
+
       {user.id !== store.user.id && (
         <>
-          <ContextMenuItem onSelect={() => onSendMessage(user)}>
-            Send Message
-          </ContextMenuItem>
           <ContextMenuSeparator />
-          <ContextMenuItem onSelect={() => {
-            toast.info('Change Nickname feature is not available yet.');
-          }}>
+
+          <ContextMenuItem onSelect={() => toast.info('Change Nickname coming soon.')}>
             Change Nickname
           </ContextMenuItem>
+
           {!isFriend && !hasSentRequest && !hasReceivedRequest && (
-            <ContextMenuItem onSelect={sendFriendRequest}>
+            <ContextMenuItem onSelect={() => handleFriendsAction(FriendsService.sendRequest, user.username)}>
               Add Friend
             </ContextMenuItem>
           )}
           {isFriend && (
-            <ContextMenuItem onSelect={removeFriend}>
+            <ContextMenuItem onSelect={() => handleFriendsAction(FriendsService.removeFriend)}>
               Remove Friend
             </ContextMenuItem>
           )}
           {hasSentRequest && (
-            <ContextMenuItem onSelect={cancelFriendRequest}>
+            <ContextMenuItem onSelect={() => handleFriendsAction(FriendsService.cancelRequest)}>
               Cancel Friend Request
             </ContextMenuItem>
           )}
           {hasReceivedRequest && (
-            <ContextMenuItem onSelect={acceptFriendRequest}>
+            <ContextMenuItem onSelect={() => handleFriendsAction(FriendsService.acceptRequest)}>
               Accept Friend Request
             </ContextMenuItem>
           )}
-          <ContextMenuItem onSelect={() => {
-            toast.info('Ignore feature is not available yet.');
-          }}>
-            Ignore
-          </ContextMenuItem>
-          <ContextMenuItem onSelect={() => {
-            toast.info('Block feature is not available yet.');
-          }}>
+
+          <ContextMenuItem className="text-red-500" onSelect={() => toast.info('Block feature coming soon.')}>
             Block
           </ContextMenuItem>
         </>
       )}
+
+      <ContextMenuSeparator />
+
+      <ContextMenuSub>
+        <ContextMenuSubTrigger>Roles</ContextMenuSubTrigger>
+        <ContextMenuSubContent className="w-48">
+          {availableRoles.map((role) => (
+            <ContextMenuCheckboxItem
+              key={role.id}
+              checked={memberHasRole(role.id)}
+              onSelect={(e) => {
+                e.preventDefault();
+                toggleRole(role.id);
+              }}
+            >
+              <div className="flex items-center gap-2">
+                <div
+                  className="w-3 h-3 rounded-full"
+                  style={{ backgroundColor: intToHex(role.color) }}
+                />
+                {role.name}
+              </div>
+            </ContextMenuCheckboxItem>
+          ))}
+        </ContextMenuSubContent>
+      </ContextMenuSub>
     </>
   );
 };

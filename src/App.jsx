@@ -175,6 +175,30 @@ const AuthRoute = ({ children }) => {
       }
     });
 
+    // Subscribe to all guilds via Echo
+    guilds.forEach((guild) => {
+      const guildId = guild.id;
+
+      // Only subscribe if we haven't already
+      if (!activeSubscriptions.current.has(guildId)) {
+        console.log(`Subscribing to new guild: ${guildId}`);
+
+        window.Echo.private(`guild.${guildId}`)
+          .listen('.member.joined', (event) => {
+            GuildsService.addGuildMemberToStore(guildId, event.member);
+          })
+          .listen('.member.updated', (event) => {
+            GuildsService.updateGuildMemberInStore(guildId, event.member.user_id, event.member);
+          })
+          .listen('.member.left', (event) => {
+            GuildsService.deleteGuildMemberFromStore(guildId, event.member.user_id);
+          });
+
+        // Mark as subscribed
+        activeSubscriptions.current.add(guildId);
+      }
+    });
+
     return () => {
       // Logic to leave Echo channels if needed
     };

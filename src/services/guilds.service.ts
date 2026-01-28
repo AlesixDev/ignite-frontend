@@ -16,7 +16,6 @@ export const GuildsService = {
     }
 
     const store = useStore.getState();
-    console.log(store.discordToken);
     if (store.discordToken && useGuildsStore.getState().discordGuilds.length === 0) {
       console.log("Loading Discord guilds...");
       try {
@@ -126,5 +125,49 @@ export const GuildsService = {
       console.error(error);
       toast.error(error.response?.data?.message || 'An error occurred.');
     }
+  },
+
+  /**
+   * Add a guild member to the local store
+   * 
+   * @param guildId The ID of the guild where the member will be added.
+   * @param member The member to be added.
+   */
+  async addGuildMemberToStore(guildId: string, member: any) {
+    const { guildMembers, setGuildMembers } = useGuildsStore.getState();
+    const members = guildMembers[guildId] || [];
+    setGuildMembers(guildId, [...members, member]);
+  },
+
+  /**
+   * Update a guild member in the local store
+   * 
+   * @param guildId The ID of the guild where the member exists.
+   * @param memberId The ID of the member to be updated.
+   * @param updates The updates to be applied to the member.
+   */
+  async updateGuildMemberInStore(guildId: string, memberId: string, updates: any) {
+    const { guildMembers, setGuildMembers } = useGuildsStore.getState();
+    const members = guildMembers[guildId] || [];
+
+    console.log("Members", members);
+    const updatedMembers = members.map(member =>
+      member.user_id === memberId ? { ...member, ...updates } : member
+    );
+    console.log("Updated Members", updatedMembers)
+    setGuildMembers(guildId, updatedMembers);
+  },
+
+  /**
+   * Delete a guild member from the local store
+   * 
+   * @param guildId The ID of the guild where the member exists.
+   * @param memberId The ID of the member to be deleted.
+   */
+  async deleteGuildMemberFromStore(guildId: string, memberId: string) {
+    const { guildMembers, setGuildMembers } = useGuildsStore.getState();
+    const members = guildMembers[guildId] || [];
+    const updatedMembers = members.filter(member => member.user_id !== memberId);
+    setGuildMembers(guildId, updatedMembers);
   }
 };

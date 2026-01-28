@@ -95,5 +95,116 @@ export const RolesService = {
             console.error('Failed to delete role:', error);
             toast.error('Failed to delete role');
         }
+    },
+
+    /**
+     * Update roles for a member in the specified guild.
+     * 
+     * @param guildId The ID of the guild where the member exists.
+     * @param memberId The ID of the member whose roles will be updated.
+     * @param roleIds The list of role IDs to assign to the member.
+     * @returns void
+     */
+    async updateMemberRoles(guildId: string, memberId: string, roleIds: string[]) {
+        try {
+            await api.patch(`/guilds/${guildId}/members/${memberId}`, {
+                roles: roleIds
+            });
+
+            toast.success('Member roles updated successfully');
+        }
+        catch (error) {
+            console.error('Failed to update member roles:', error);
+            toast.error('Failed to update member roles');
+        }
+    },
+
+    /**
+     * Assign a role to a member in the specified guild.
+     * 
+     * @param guildId The ID of the guild where the member exists.
+     * @param memberId The ID of the member to whom the role will be assigned.
+     * @param roleId The ID of the role to assign to the member.
+     * @returns void
+     */
+    async assignRoleToMember(guildId: string, memberId: string, roleId: string) {
+        const { guilds, guildMembers } = useGuildsStore.getState();
+
+        const guild = guilds.find(g => g.id === guildId);
+        if (!guild) {
+            throw new Error('Guild not found');
+        }
+
+        const member = guildMembers[guildId].find(m => m.user_id === memberId);
+        if (!member) {
+            throw new Error('Member not found');
+        }
+
+        const currentRoleIds = (member.roles || []).map(r => r.id);
+        const updatedRoles = Array.from(new Set([...currentRoleIds, roleId]));
+
+        await api.patch(`/guilds/${guildId}/members/${memberId}`, {
+            roles: updatedRoles
+        });
+    },
+
+    /**
+     * Remove a role from a member in the specified guild.
+     * 
+     * @param guildId The ID of the guild where the member exists.
+     * @param memberId The ID of the member from whom the role will be removed.
+     * @param roleId The ID of the role to remove from the member.
+     * @returns void
+     */
+    async removeRoleFromMember(guildId: string, memberId: string, roleId: string) {
+        const { guilds, guildMembers } = useGuildsStore.getState();
+
+        const guild = guilds.find(g => g.id === guildId);
+        if (!guild) {
+            toast.error('Guild not found');
+            return;
+        }
+
+        const member = guildMembers[guildId].find(m => m.user_id === memberId);
+        if (!member) {
+            toast.error('Member not found');
+            return;
+        }
+
+        const currentRoleIds = (member.roles || []).map(r => r.id);
+        const updatedRoles = currentRoleIds.filter(rid => rid !== roleId);
+
+        await api.patch(`/guilds/${guildId}/members/${memberId}`, {
+            roles: updatedRoles
+        });
+
+        toast.success('Role removed from member successfully');
+    },
+
+    /**
+     * Check if member has a specific role in the specified guild.
+     * 
+     * @param guildId The ID of the guild where the member exists.
+     * @param memberId The ID of the member to check.
+     * @param roleId The ID of the role to check for.
+     * @returns boolean
+     */
+    async memberHasRole(guildId: string, memberId: string, roleId: string): Promise<boolean> {
+        const { guilds, guildMembers } = useGuildsStore.getState();
+
+        const guild = guilds.find(g => g.id === guildId);
+        if (!guild) {
+            console.error('Guild not found');
+            return false;
+        }
+
+        const member = guildMembers[guildId].find(m => m.user_id === memberId);
+        if (!member) {
+            console.error('Member not found');
+            return false;
+        }
+
+        const currentRoleIds = (member.roles || []).map(r => r.id);
+        return currentRoleIds.includes(roleId);
     }
 };

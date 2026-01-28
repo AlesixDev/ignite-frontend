@@ -597,42 +597,6 @@ const MemberList = ({ guildId, activeGuildMembers }) => {
     setMembersWithoutRoles(tempMembersWithoutRoles);
   }, [activeGuildMembers, roles]);
 
-  const renderMember = (member) => {
-    // Calculate color based on roles
-    const topColor = useMemo(() => {
-      if (!member.roles || member.roles.length === 0) return 'inherit';
-      const sorted = [...member.roles].sort((a, b) => b.position - a.position);
-      const topRole = sorted.find(r => r.color && r.color !== 0);
-      return topRole ? `#${topRole.color.toString(16).padStart(6, '0')}` : 'inherit';
-    }, [member.roles]);
-
-    return (
-      <div key={member.user.id}>
-        <Popover>
-          <ContextMenu>
-            <PopoverTrigger className="w-full">
-              <ContextMenuTrigger>
-                <div className="flex items-center gap-3 rounded-md p-2 transition hover:bg-gray-700/50">
-                  <Avatar user={member.user} className="size-8" />
-                  <div>
-                    <p className="text-sm font-medium" style={{ color: topColor }}>{member.user.name ?? member.user.username}</p>
-                    <p className="text-xs text-gray-400">{member.user.status}</p>
-                  </div>
-                </div>
-              </ContextMenuTrigger>
-            </PopoverTrigger>
-            <ContextMenuContent>
-              <GuildMemberContextMenu user={member.user} onMention={onMention} />
-            </ContextMenuContent>
-          </ContextMenu>
-          <PopoverContent className="w-auto p-2" align="start" alignOffset={0}>
-            <GuildMemberPopoverContent user={member.user} guild={null} />
-          </PopoverContent>
-        </Popover>
-      </div>
-    )
-  };
-
   return (
     <div className={`relative z-0 transition-all duration-300 ${memberListOpen ? 'w-60 md:w-72' : 'w-0'}`}>
       {memberListOpen && (
