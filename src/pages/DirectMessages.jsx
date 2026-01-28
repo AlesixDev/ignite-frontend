@@ -160,7 +160,7 @@ const DirectMessagesPage = () => {
         <div className="flex h-screen w-screen overflow-hidden bg-gray-700 text-gray-100 select-none">
 
           {/* SIDEBAR */}
-          <aside className={`fixed inset-y-0 left-0 z-40 w-64 flex-col bg-gray-800 transition-transform md:relative md:translate-x-0 ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}>
+          <aside className={`fixed inset-y-0 left-0 w-64 flex-col bg-gray-800 transition-transform md:relative md:translate-x-0 ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}>
             <div className="flex-1 overflow-y-auto p-2">
               {/* Friends Navigation Button */}
               <Button

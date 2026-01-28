@@ -4,6 +4,7 @@ import { useGuildsStore } from '../stores/guilds.store';
 import api from '../api.js';
 import axios from 'axios';
 import useStore from '../hooks/useStore';
+import notificationSound from '../sounds/notification.wav'
 
 export const ChannelsService = {
     /**
@@ -185,6 +186,87 @@ export const ChannelsService = {
             await api.put(`/channels/${channelId}/ack/${messageId}`);
         } catch {
             toast.error('Unable to acknowledge channel messages.');
+        }
+    },
+
+    /**
+     * Callback for the .message.created event from the WebSocket to update the local store with the new message.
+     * 
+     * @param event The message created event data
+     * @return void
+     */
+    handleMessageCreated(event: any) {
+        const { user } = useStore.getState();
+        const { channels, setChannels, channelMessages, channelPendingMessages, setChannelMessages, setChannelPendingMessages } = useChannelsStore.getState();
+        const channelId = event.channel.id;
+
+        console.log('New message event received on channel', channelId);
+
+        if (channelPendingMessages[channelId]?.some((m) => m.nonce === event.message.nonce)) {
+            setChannelPendingMessages(channelId, channelPendingMessages[channelId].filter((m) => m.nonce !== event.message.nonce));
+        }
+
+        if (channelMessages[channelId] && !channelMessages[channelId]?.some((m) => m.id === event.message.id)) {
+            setChannelMessages(channelId, [...(channelMessages[channelId] || []), event.message]);
+        }
+
+        /**
+         * Update last_message_id for the channel
+         */
+        const newChannels = channels.map((c) =>
+            c.channel_id === channelId ? { ...c, last_message_id: event.message.id } : c
+        );
+        console.log('Updating channel last_message_id:', newChannels.find(c => c.channel_id === channelId));
+        setChannels(newChannels);
+
+        /**
+         * Play notification sound for incoming messages not sent by the current user
+         */
+        if (event.message.author.id !== user.id) {
+            new Audio(notificationSound).play().catch((err) => {
+                console.log('Failed to play notification sound.', err);
+            });
+        }
+    },
+
+    /**
+     * Callback for the .message.deleted event from the WebSocket to update the local store by removing the deleted message.
+     * 
+     * @param event The message deleted event data
+     * @return void
+     */
+    handleMessageDeleted(event: any) {
+        const { channels, setChannels, channelMessages, setChannelMessages } = useChannelsStore.getState();
+        const channelId = event.channel.id;
+
+        if (channelMessages[channelId]) {
+            const filtered = channelMessages[channelId].filter((m) => m.id !== event.message.id);
+            setChannelMessages(channelId, filtered);
+
+            const latest = [...filtered].sort((a, b) => b.id - a.id)[0];
+
+            // Update last_message_id for the channel
+            const newChannels = channels.map((c) =>
+                c.id === channelId ? { ...c, last_message_id: latest?.id || null } : c
+            );
+            setChannels(newChannels);
+        }
+    },
+
+    /**
+     * Callback for the .message.updated event from the WebSocket to update the local store with the updated message data.
+     * 
+     * @param event The message updated event data
+     * @return void
+     */
+    handleMessageUpdated(event: any) {
+        const { channelMessages, setChannelMessages } = useChannelsStore.getState();
+        const channelId = event.channel.id;
+
+        if (channelMessages[channelId]?.some((m) => m.id === event.message.id)) {
+            setChannelMessages(channelId, channelMessages[channelId].map((m) =>
+                m.id === event.message.id ? { ...m, content: event.message.content, updated_at: event.message.updated_at } : m
+            ));
         }
     }
 };

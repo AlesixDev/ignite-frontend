@@ -221,7 +221,6 @@ const GuildSidebarHeader = ({ guildName = '', guild, onOpenServerSettings, canOp
         setMenuOpen(false);
         setInviteInfo(null);
         navigate('/channels/@me');
-        window.location.reload();
       } catch (err) {
         const msg = err.response?.data?.message || err.message || 'Unknown error';
         setError(msg);
