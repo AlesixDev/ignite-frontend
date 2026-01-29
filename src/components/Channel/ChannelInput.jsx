@@ -1,146 +1,316 @@
+import * as Popover from '@radix-ui/react-popover';
 import { InputGroup } from '../ui/input-group';
-import { Textarea } from '../ui/textarea'; // Import shadcn Textarea
 import { EmojiPicker, EmojiPickerContent, EmojiPickerFooter, EmojiPickerSearch } from '../ui/emoji-picker';
 import { useChannelContext } from '../../contexts/ChannelContext.jsx';
-import { useState, useCallback, useEffect, useMemo } from 'react';
-import { XCircle } from '@phosphor-icons/react';
-import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover';
+import { useGuildsStore } from '../../stores/guilds.store';
+import { useGuildContext } from '../../contexts/GuildContext';
+import { useState, useCallback, useMemo, useRef } from 'react';
 import { Button } from '../ui/button';
 import { Smile } from 'lucide-react';
 import { ChannelsService } from '../../services/channels.service';
-import { ChannelType } from '../../enums/ChannelType';
-import useStore from '../../hooks/useStore';
 
 const MAX_MESSAGE_LENGTH = 2000;
+const SUGGESTIONS_LIMIT = 10;
+
+/* -------------------------------- utils -------------------------------- */
+
+const serializeFromDom = (root) => {
+  let out = '';
+
+  const walk = (node) => {
+    if (node.nodeType === Node.TEXT_NODE) {
+      out += node.nodeValue ?? '';
+      return;
+    }
+
+    if (node.nodeType !== Node.ELEMENT_NODE) return;
+
+    if (node.dataset?.mention === 'user') {
+      out += `<@${node.dataset.id}>`;
+      return;
+    }
+
+    if (node.tagName === 'BR') {
+      out += '\n';
+      return;
+    }
+
+    for (const c of node.childNodes) walk(c);
+  };
+
+  for (const c of root.childNodes) walk(c);
+  return out;
+};
+
+const insertTextAtCaret = (text) => {
+  const sel = window.getSelection();
+  if (!sel || !sel.rangeCount) return;
+
+  const range = sel.getRangeAt(0);
+  range.deleteContents();
+  const node = document.createTextNode(text);
+  range.insertNode(node);
+  range.setStartAfter(node);
+  range.collapse(true);
+  sel.removeAllRanges();
+  sel.addRange(range);
+};
+
+const getMentionQuery = (root) => {
+  const sel = window.getSelection();
+  if (!sel || !sel.rangeCount) return null;
+
+  const range = sel.getRangeAt(0);
+  if (!root.contains(range.startContainer)) return null;
+
+  const pre = range.cloneRange();
+  pre.selectNodeContents(root);
+  pre.setEnd(range.startContainer, range.startOffset);
+
+  const text = pre.toString();
+  const idx = text.lastIndexOf('@');
+
+  if (idx === -1) return null;
+  if (idx > 0 && ![' ', '\n'].includes(text[idx - 1])) return null;
+
+  const query = text.slice(idx + 1);
+  if (query.includes(' ') || query.includes('\n')) return null;
+
+  return query;
+};
+
+const replaceAtQueryWithMention = (query, user, resolveUser) => {
+  const sel = window.getSelection();
+  if (!sel || !sel.rangeCount) return;
+
+  const range = sel.getRangeAt(0);
+
+  // delete "@query"
+  const del = range.cloneRange();
+  del.setStart(range.startContainer, Math.max(0, range.startOffset - (query.length + 1)));
+  del.deleteContents();
+
+  const mention = document.createElement('span');
+  mention.contentEditable = 'false';
+  mention.dataset.mention = 'user';
+  mention.dataset.id = user.user_id;
+
+  const resolved = resolveUser(user.user_id);
+  mention.textContent = resolved.label;
+  mention.className = 'inline-flex rounded px-1.5 py-0.5 mx-[1px] select-none';
+  mention.style.background =
+    resolved.color !== 'inherit'
+      ? `${resolved.color}33`
+      : 'rgba(88,101,242,0.18)';
+  mention.style.color =
+    resolved.color !== 'inherit'
+      ? resolved.color
+      : 'rgb(88,101,242)';
+
+  range.insertNode(mention);
+  mention.after(document.createTextNode(' '));
+
+  range.setStartAfter(mention.nextSibling);
+  range.collapse(true);
+  sel.removeAllRanges();
+  sel.addRange(range);
+};
+
+const convertSerializedMentions = (root, members, resolveUser) => {
+  const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
+  let node;
+
+  while ((node = walker.nextNode())) {
+    const match = node.nodeValue.match(/<@(\d+)>/);
+    if (!match) continue;
+
+    const userId = match[1];
+    const user = members.find((m) => m.user_id === userId) ?? { user_id: userId };
+
+    const range = document.createRange();
+    range.setStart(node, match.index);
+    range.setEnd(node, match.index + match[0].length);
+    range.deleteContents();
+
+    replaceAtQueryWithMention('', user, resolveUser);
+  }
+};
+
+/* ------------------------------- component ------------------------------- */
 
 const ChannelInput = ({ channel }) => {
-    const { messages, setMessages, replyingId, setReplyingId, inputMessage, setInputMessage, inputRef } = useChannelContext();
-    const store = useStore();
+  const { inputMessage, setInputMessage } = useChannelContext();
+  const editorRef = useRef(null);
 
-    const replyMessage = useMemo(() => replyingId ? messages.find((m) => m.id == replyingId) : null, [messages, replyingId]);
+  const { guildId } = useGuildContext();
+  const guildsStore = useGuildsStore();
+  const members = guildsStore.guildMembers[guildId] || [];
 
-    const sendMessage = useCallback(async (event) => {
-        if (event) event.preventDefault();
+  const resolveUser = useCallback(
+    (id) => {
+      const m = members.find((x) => x.user_id === id);
+      if (!m) return { label: '@unknown-user', color: 'inherit' };
 
-        if (!channel?.channel_id || !inputMessage.trim()) {
-            return;
-        }
-        ChannelsService.sendChannelMessage(channel.channel_id, inputMessage);
+      const role = [...(m.roles || [])]
+        .sort((a, b) => b.position - a.position)
+        .find((r) => r.color && r.color !== 0);
 
-        setInputMessage('');
-        setReplyingId(null);
+      return {
+        label: `@${m.user.username}`,
+        color: role ? `#${role.color.toString(16).padStart(6, '0')}` : 'inherit'
+      };
+    },
+    [members]
+  );
 
-        // Reset height immediately after sending
-        if (inputRef.current) {
-            inputRef.current.style.height = 'auto';
-        }
-    }, [channel?.channel_id, inputMessage, replyingId, setInputMessage, setMessages, setReplyingId, inputRef]);
+  /* ---------------- mentions ---------------- */
 
-    const adjustHeight = useCallback(() => {
-        if (inputRef.current) {
-            inputRef.current.style.height = 'auto';
-            inputRef.current.style.height = `${inputRef.current.scrollHeight}px`;
-        }
-    }, [inputRef]);
+  const [mentionQuery, setMentionQuery] = useState(null);
+  const [mentionIndex, setMentionIndex] = useState(0);
 
-    useEffect(() => {
-        adjustHeight();
-    }, [inputMessage, adjustHeight]);
+  const filteredMembers = useMemo(() => {
+    if (!mentionQuery) return [];
+    return members
+      .filter((m) =>
+        m.user.username.toLowerCase().includes(mentionQuery.toLowerCase())
+      )
+      .slice(0, SUGGESTIONS_LIMIT);
+  }, [members, mentionQuery]);
 
-    const isMobile = () => {
-        return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)
-            || window.innerWidth <= 768;
-    };
+  /* ---------------- handlers ---------------- */
 
-    useEffect(() => {
-        if (inputRef.current && !isMobile()) {
-            inputRef.current.focus();
-        }
-    }, [inputRef, channel?.channel_id]);
+  const syncValue = useCallback(() => {
+    if (!editorRef.current) return;
+    setInputMessage(serializeFromDom(editorRef.current));
+  }, [setInputMessage]);
 
-    const handleKeyDown = (e) => {
-        if (e.key === 'Enter' && !e.shiftKey) {
-            e.preventDefault();
-            sendMessage(e);
-        }
-    };
+  const handleInput = () => {
+    syncValue();
+    setMentionQuery(getMentionQuery(editorRef.current));
+    setMentionIndex(0);
+  };
 
-    const [isEmojiPickerOpen, setIsEmojiPickerOpen] = useState(false);
+  const handleKeyDown = (e) => {
+    if (mentionQuery && filteredMembers.length) {
+      if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        setMentionIndex((i) => Math.min(i + 1, filteredMembers.length - 1));
+        return;
+      }
 
-    const channelName = useMemo(() => {
-        if (channel?.name) {
-            return channel.name;
-        }
+      if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        setMentionIndex((i) => Math.max(i - 1, 0));
+        return;
+      }
 
-        if (channel?.type == ChannelType.DM) {
-            const otherUser = channel.recipients?.find((r) => r.id !== store.user.id);
-            return otherUser.name;
-        }
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        replaceAtQueryWithMention(
+          mentionQuery,
+          filteredMembers[mentionIndex],
+          resolveUser
+        );
+        setMentionQuery(null);
+        syncValue();
+        return;
+      }
+    }
 
-        return 'unknown-channel';
-    }, [channel]);
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      sendMessage();
+    }
+  };
 
-    return (
-        <div className="absolute bottom-0 left-0 right-0 z-20 w-full bg-gray-700/95 px-4 pt-2 backdrop-blur supports-[backdrop-filter]:bg-gray-700/60 pb-4 pl-[env(safe-area-inset-left)] pr-[env(safe-area-inset-right)] pb-[calc(1rem+env(safe-area-inset-bottom))]">
-            {replyingId && (
-                <div className="flex items-center justify-between gap-2 rounded-t-md border-b border-b-white/5 bg-gray-800 px-4 py-2 text-sm text-gray-300">
-                    <p>Replying to <span className="text-primary">{replyMessage?.author.username}</span></p>
-                    <button type="button" onClick={() => setReplyingId(null)} className="text-gray-400 hover:text-gray-200">
-                        <XCircle weight="fill" className="size-5" />
-                    </button>
-                </div>
-            )}
-            <form onSubmit={(e) => sendMessage(e)} className="w-full">
-                <InputGroup className={`relative flex min-h-[48px] h-auto items-end bg-gray-800 pb-1 ${replyingId ? 'rounded-t-none' : ''}`}>
-                    <Textarea
-                        ref={inputRef}
-                        name="message"
-                        className="min-h-[44px] w-full resize-none border-0 bg-transparent py-3 text-sm shadow-none focus-visible:ring-0 focus-visible:ring-offset-0"
-                        placeholder={`Message #${channelName}`}
-                        value={inputMessage}
-                        onChange={(e) => {
-                            if (e.target.value.length <= MAX_MESSAGE_LENGTH) {
-                                setInputMessage(e.target.value);
-                            }
-                        }}
-                        onKeyDown={handleKeyDown}
-                        maxLength={MAX_MESSAGE_LENGTH}
-                        rows={1}
-                        style={{ maxHeight: '200px' }}
-                    />
+  const handlePaste = (e) => {
+    e.preventDefault();
+    insertTextAtCaret(e.clipboardData.getData('text/plain'));
+    convertSerializedMentions(editorRef.current, members, resolveUser);
+    syncValue();
+  };
 
-                    <div className="mb-1 mr-1">
-                        <Popover onOpenChange={setIsEmojiPickerOpen} open={isEmojiPickerOpen}>
-                            <PopoverTrigger asChild>
-                                <Button
-                                    type="button"
-                                    data-size="xs"
-                                    variant="ghost"
-                                    className="flex h-8 w-8 items-center justify-center rounded-full text-gray-400 hover:text-gray-100"
-                                >
-                                    <Smile className="size-5" />
-                                </Button>
-                            </PopoverTrigger>
-                            <PopoverContent className="w-fit p-0" side="top" align="end">
-                                <EmojiPicker
-                                    className="h-[342px]"
-                                    onEmojiSelect={({ emoji }) => {
-                                        setIsEmojiPickerOpen(false);
-                                        setInputMessage((prev) => prev + emoji);
-                                        setTimeout(() => inputRef.current?.focus(), 0);
-                                    }}
-                                >
-                                    <EmojiPickerSearch />
-                                    <EmojiPickerContent />
-                                    <EmojiPickerFooter />
-                                </EmojiPicker>
-                            </PopoverContent>
-                        </Popover>
-                    </div>
-                </InputGroup>
-            </form>
-        </div>
-    );
+  const sendMessage = () => {
+    if (!channel?.channel_id || !inputMessage.trim()) return;
+    if (inputMessage.length > MAX_MESSAGE_LENGTH) return;
+
+    ChannelsService.sendChannelMessage(channel.channel_id, inputMessage);
+    setInputMessage('');
+    editorRef.current.innerHTML = '';
+  };
+
+  /* ---------------- render ---------------- */
+
+  return (
+    <div className="absolute bottom-0 left-0 right-0 bg-gray-700/95 px-4 pt-2 pb-4">
+      <InputGroup className="relative flex items-end bg-gray-800">
+        <Popover.Root
+          open={!!mentionQuery && filteredMembers.length > 0}
+          modal={false}
+        >
+          <Popover.Anchor asChild>
+            <div
+              ref={editorRef}
+              contentEditable
+              suppressContentEditableWarning
+              onInput={handleInput}
+              onKeyDown={handleKeyDown}
+              onPaste={handlePaste}
+              className="min-h-[44px] w-full px-3 py-3 text-sm outline-none"
+              data-placeholder="Message"
+            />
+          </Popover.Anchor>
+
+          <Popover.Portal>
+            <Popover.Content
+              side="top"
+              align="start"
+              onOpenAutoFocus={(e) => e.preventDefault()}
+              className="z-50 w-full rounded bg-gray-800 p-2 shadow"
+            >
+              {filteredMembers.map((m, i) => (
+                <button
+                  key={m.user_id}
+                  className={`flex w-full items-center gap-2 rounded px-2 py-2 text-left ${
+                    i === mentionIndex ? 'bg-gray-700' : 'hover:bg-gray-700/60'
+                  }`}
+                  onMouseDown={(e) => {
+                    e.preventDefault();
+                    replaceAtQueryWithMention(mentionQuery, m, resolveUser);
+                    setMentionQuery(null);
+                    syncValue();
+                  }}
+                >
+                  <div className="flex-1 truncate">{m.user.name}</div>
+                  <div className="text-xs text-gray-400">@{m.user.username}</div>
+                </button>
+              ))}
+            </Popover.Content>
+          </Popover.Portal>
+        </Popover.Root>
+
+        <Popover.Root modal={false}>
+          <Popover.Trigger asChild>
+            <Button variant="ghost" className="h-8 w-8 text-gray-400">
+              <Smile className="size-5" />
+            </Button>
+          </Popover.Trigger>
+          <Popover.Content side="top" align="end" className="p-0">
+            <EmojiPicker
+              onEmojiSelect={({ emoji }) => {
+                insertTextAtCaret(emoji);
+                syncValue();
+              }}
+            >
+              <EmojiPickerSearch />
+              <EmojiPickerContent />
+              <EmojiPickerFooter />
+            </EmojiPicker>
+          </Popover.Content>
+        </Popover.Root>
+      </InputGroup>
+    </div>
+  );
 };
 
 export default ChannelInput;
