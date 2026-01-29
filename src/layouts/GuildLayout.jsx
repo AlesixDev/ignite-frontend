@@ -1,6 +1,6 @@
 // TODO: Move to GuildChannel.jsx, this isn't a layout.
 
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { toast } from 'sonner'
 import BaseAuthLayout from './BaseAuthLayout';
 import ServerSettings from '../components/Settings/ServerSettings';
@@ -46,6 +46,11 @@ const GuildLayout = ({ children, guild }) => {
     },
     [isGuildOwner]
   );
+
+  // Open sidebar when a new guild is selected
+  useEffect(() => {
+    setIsSidebarOpen(true);
+  }, [guild?.id]);
 
   return (
     <BaseAuthLayout>

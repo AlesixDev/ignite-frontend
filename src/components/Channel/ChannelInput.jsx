@@ -47,8 +47,13 @@ const ChannelInput = ({ channel }) => {
         adjustHeight();
     }, [inputMessage, adjustHeight]);
 
+    const isMobile = () => {
+        return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)
+            || window.innerWidth <= 768;
+    };
+
     useEffect(() => {
-        if (inputRef.current) {
+        if (inputRef.current && !isMobile()) {
             inputRef.current.focus();
         }
     }, [inputRef, channel?.channel_id]);
