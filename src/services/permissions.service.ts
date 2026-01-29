@@ -29,6 +29,8 @@ export const PermissionsService = {
         // Get the current user's member object in the guild
         const member = guildMembers.find(m => m.user_id === localUser.id);
 
+        if (!member) return false;
+
         // Get all role IDs assigned to the member
         const memberRoleIds = member.roles.map(role => role.id);
 

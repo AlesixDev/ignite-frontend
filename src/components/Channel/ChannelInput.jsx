@@ -19,14 +19,6 @@ const ChannelInput = ({ channel }) => {
 
     const replyMessage = useMemo(() => replyingId ? messages.find((m) => m.id == replyingId) : null, [messages, replyingId]);
 
-    // Helper to auto-resize the textarea based on content
-    const adjustHeight = useCallback(() => {
-        if (inputRef.current) {
-            inputRef.current.style.height = 'auto';
-            inputRef.current.style.height = `${inputRef.current.scrollHeight}px`;
-        }
-    }, [inputRef]);
-
     const sendMessage = useCallback(async (event) => {
         if (event) event.preventDefault();
 
@@ -44,7 +36,13 @@ const ChannelInput = ({ channel }) => {
         }
     }, [channel?.channel_id, inputMessage, replyingId, setInputMessage, setMessages, setReplyingId, inputRef]);
 
-    // Resize whenever input changes
+    const adjustHeight = useCallback(() => {
+        if (inputRef.current) {
+            inputRef.current.style.height = 'auto';
+            inputRef.current.style.height = `${inputRef.current.scrollHeight}px`;
+        }
+    }, [inputRef]);
+
     useEffect(() => {
         adjustHeight();
     }, [inputMessage, adjustHeight]);
@@ -78,7 +76,7 @@ const ChannelInput = ({ channel }) => {
     }, [channel]);
 
     return (
-        <div className="sticky bottom-0 z-10 bg-gray-700/95 p-4 backdrop-blur md:static md:mt-[22px] md:bg-transparent md:pb-0">
+        <div className="absolute bottom-0 left-0 right-0 z-20 w-full bg-gray-700/95 px-4 pb-4 pt-2 backdrop-blur supports-[backdrop-filter]:bg-gray-700/60">
             {replyingId && (
                 <div className="flex items-center justify-between gap-2 rounded-t-md border-b border-b-white/5 bg-gray-800 px-4 py-2 text-sm text-gray-300">
                     <p>Replying to <span className="text-primary">{replyMessage?.author.username}</span></p>

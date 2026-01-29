@@ -108,7 +108,7 @@ const Channel = ({ channel }) => {
       <ChannelBar channel={channel} onJumpToMessage={() => { }} />
       <hr className="m-0 w-full border border-gray-800 bg-gray-800 p-0" />
       <div className="flex min-h-0 flex-1">
-        <div className="flex w-full flex-1 flex-col">
+        <div className="relative flex h-full w-full flex-1 flex-col overflow-hidden">
           <ChannelMessages
             channelId={channel?.channel_id}
             messagesRef={messagesRef}
@@ -121,7 +121,9 @@ const Channel = ({ channel }) => {
         </div>
 
         {channel?.type !== ChannelType.DM && (
-          <MemberList guildId={guildId} activeGuildMembers={activeGuildMembers} />
+          <div className="hidden lg:flex">
+            <MemberList guildId={guildId} activeGuildMembers={activeGuildMembers} />
+          </div>
         )}
       </div>
     </div>

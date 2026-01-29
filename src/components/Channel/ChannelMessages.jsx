@@ -18,7 +18,7 @@ import { Permissions } from '@/enums/Permissions';
 
 const ChannelMessage = ({ message, prevMessage, pending }) => {
     const { guildId } = useGuildContext();
-    const channelId = channelId;
+    const channelId = message.channel_id;
     const store = useStore();
     const guildsStore = useGuildsStore();
     const authorMenuRef = useRef(null);
@@ -347,7 +347,7 @@ const ChannelMessages = ({ channelId, messagesRef, highlightId, onLoadMore, load
 
     return (
         <div
-            className={`min-h-0 flex-1 overflow-y-auto ${replyingId ? ' md:max-h-[calc(100vh-11.5rem)]' : ' md:max-h-[calc(100vh-9rem)]'}`}
+            className={`min-h-0 flex-1 overflow-y-auto ${replyingId ? ' md:max-h-[calc(100vh-9.5rem)]' : ' md:max-h-[calc(100vh-7rem)]'}`}
             ref={messagesRef}
             onScroll={onScroll}
         >
