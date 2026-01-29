@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import { toast } from 'sonner'
-import BaseAuthLayout from './BaseAuthLayout';
+import DefaultLayout from './DefaultLayout';
 import ServerSettings from '../components/Settings/ServerSettings';
 import useStore from '../hooks/useStore';
 import EditGuildChannelModal from '../components/Modals/EditGuildChannelModal';
@@ -53,7 +53,7 @@ const GuildLayout = ({ children, guild }) => {
   }, [guild?.id]);
 
   return (
-    <BaseAuthLayout>
+    <DefaultLayout>
       <div className="flex h-screen w-screen">
         {isSidebarOpen && (
           <button
@@ -104,7 +104,7 @@ const GuildLayout = ({ children, guild }) => {
         onClose={() => setIsEditChannelModalOpen(false)}
         channel={channels.find((c) => String(c.channel_id) === String(editChannelId))}
       />
-    </BaseAuthLayout>
+    </DefaultLayout>
   );
 };
 

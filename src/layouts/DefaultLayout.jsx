@@ -11,14 +11,6 @@ import Avatar from '../components/Avatar';
 
 const SidebarIcon = ({ icon = '', iconUrl = '', isActive = false, isServerIcon = false, text = 'tooltip', isUnread = false }) => (
   <div className="group relative mb-2 min-w-min px-3">
-    {/* Unread Pill: Only show if not active */}
-    {/* {!isActive && isUnread && (
-      <span className="absolute -left-1 top-1 w-2 h-2 scale-0 rounded-full bg-white transition-all scale-100 z-10 border-4 border-gray-900 box-content group-hover:hidden"></span>
-    )} */}
-
-    {/* Active/Hover Pill */}
-    {/* <div className={`absolute -left-1 top-1 h-10 w-2 scale-0 rounded-lg bg-white transition-all ${!isActive ? 'group-hover:scale-x-100 group-hover:scale-y-50' : 'scale-100'}`}></div> */}
-
     <div
       className={`
         absolute -left-1 top-1/2 block w-2 -translate-y-1/2 rounded-lg bg-white transition-all duration-200 
@@ -49,7 +41,7 @@ const SidebarIcon = ({ icon = '', iconUrl = '', isActive = false, isServerIcon =
 const Sidebar = () => {
   const { guildId, channelId } = useParams();
   const { user } = useStore();
-  const { guilds, discordGuilds } = useGuildsStore();
+  const { guilds } = useGuildsStore();
   const { channelUnreads, channelUnreadsLoaded } = useUnreadsStore();
   const { channels } = useChannelsStore();
   const [isGuildDialogOpen, setIsGuildDialogOpen] = useState(false);
@@ -132,18 +124,6 @@ const Sidebar = () => {
           </Link>
         ))}
 
-        {/* Discord Imported Guilds */}
-        {discordGuilds.map((discordGuild) => (
-          <Link key={discordGuild.id} to={`/channels_discord/${discordGuild.id}`}>
-            <SidebarIcon
-              iconUrl={''}
-              text={discordGuild.name}
-              isServerIcon={true}
-              isActive={guildId === discordGuild.id}
-            />
-          </Link>
-        ))}
-
         <button type="button" onClick={() => setIsGuildDialogOpen(true)}>
           <SidebarIcon icon={<Plus className="size-6" />} text="Add a Server" />
         </button>
@@ -155,7 +135,7 @@ const Sidebar = () => {
 
 const DefaultLayout = ({ children }) => {
   return (
-    <div className="flex w-full h-full overflow-hidden">
+    <div className="flex overflow-hidden">
       <Sidebar />
       <div className="flex-1 flex overflow-hidden">
         {children}

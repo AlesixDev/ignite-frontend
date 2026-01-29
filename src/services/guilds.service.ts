@@ -7,47 +7,12 @@ import { ChannelsService } from './channels.service';
 
 export const GuildsService = {
   async loadGuilds() {
-    const { setGuilds, setDiscordGuilds } = useGuildsStore.getState();
+    const { setGuilds } = useGuildsStore.getState();
     try {
       const { data } = await api.get('/guilds');
       setGuilds(data);
     } catch {
       toast.error('Unable to load guilds.');
-    }
-
-    const store = useStore.getState();
-    if (store.discordToken && useGuildsStore.getState().discordGuilds.length === 0) {
-      console.log("Loading Discord guilds...");
-      try {
-        const { data } = await axios.get('https://discord.com/api/v9/users/@me/guilds', {
-          headers: {
-            Authorization: `${store.discordToken}`,
-          },
-        });
-
-        setDiscordGuilds(data);
-      } catch (error: any) {
-        if (
-          error.response &&
-          error.response.status === 429 &&
-          error.response.data?.retry_after
-        ) {
-          const retryAfter = error.response.data.retry_after;
-          await new Promise((resolve) => setTimeout(resolve, retryAfter * 1000));
-          try {
-            const { data } = await axios.get('https://discord.com/api/v9/users/@me/guilds', {
-              headers: {
-                Authorization: `${store.discordToken}`,
-              },
-            });
-            setDiscordGuilds(data);
-            return;
-          } catch {
-            // fall through to error toast
-          }
-        }
-        toast.error('Unable to load Discord guilds.');
-      }
     }
   },
 
@@ -68,23 +33,6 @@ export const GuildsService = {
       editGuild(guildId, { channels: data });
     } catch {
       toast.error('Unable to load guild channels.');
-    }
-  },
-
-  async loadDiscordGuildChannels(guildId) {
-    const { editDiscordGuild } = useGuildsStore.getState();
-    const store = useStore.getState();
-    try {
-      const { data } = await axios.get(`https://discord.com/api/v9/guilds/${guildId}/channels`, {
-        headers: {
-          Authorization: `${store.discordToken}`,
-        },
-      });
-      editDiscordGuild(guildId, { channels: data });
-    } catch (error) {
-      console.error(error);
-      toast.error('Unable to load Discord guild channels.');
-      return [];
     }
   },
 

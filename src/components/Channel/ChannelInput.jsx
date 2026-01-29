@@ -81,7 +81,7 @@ const ChannelInput = ({ channel }) => {
     }, [channel]);
 
     return (
-        <div className="absolute bottom-0 left-0 right-0 z-20 w-full bg-gray-700/95 px-4 pb-4 pt-2 backdrop-blur supports-[backdrop-filter]:bg-gray-700/60">
+        <div className="absolute bottom-0 left-0 right-0 z-20 w-full bg-gray-700/95 px-4 pt-2 backdrop-blur supports-[backdrop-filter]:bg-gray-700/60 pb-4 pl-[env(safe-area-inset-left)] pr-[env(safe-area-inset-right)] pb-[calc(1rem+env(safe-area-inset-bottom))]">
             {replyingId && (
                 <div className="flex items-center justify-between gap-2 rounded-t-md border-b border-b-white/5 bg-gray-800 px-4 py-2 text-sm text-gray-300">
                     <p>Replying to <span className="text-primary">{replyMessage?.author.username}</span></p>

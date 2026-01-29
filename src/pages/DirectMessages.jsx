@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { toast } from 'sonner';
 import { UserPlus, MessageSquare, UserCheck, UserMinus, Users } from 'lucide-react';
-import BaseAuthLayout from '../layouts/BaseAuthLayout';
+import DefaultLayout from '../layouts/DefaultLayout';
 import useStore from '../hooks/useStore';
 import api from '../api';
 import Channel from '../components/Channel/Channel';
@@ -129,8 +129,6 @@ const DirectMessagesPage = () => {
 
     // If we have no record of reading it, but it exists, it might be unread. 
     // However, usually "no record" means read everything if the logic implies tracking unreads.
-    // For Discord logic: if there is no unread object, usually it means it's fully read OR we haven't fetched it.
-    // Assuming here: if no record exists, check if channel has messages.
     if (!channelUnread) return false;
 
     const channel = channels.find((c) => String(c.channel_id) == String(channelId));
@@ -170,7 +168,7 @@ const DirectMessagesPage = () => {
 
   return (
     <GuildContextProvider>
-      <BaseAuthLayout>
+      <DefaultLayout>
         <div className="flex h-screen w-screen overflow-hidden bg-gray-700 text-gray-100 select-none">
 
           {/* SIDEBAR */}
@@ -207,7 +205,6 @@ const DirectMessagesPage = () => {
                         ${!isActive && isUnread ? 'text-gray-100' : ''} 
                       `}
                     >
-                      {/* Discord-style Unread Pill */}
                       {!isActive && isUnread && (
                         <div className="absolute left-0 top-1/2 h-2 w-1 -translate-y-1/2 rounded-r-full bg-white transition-all group-hover:h-4" />
                       )}
@@ -364,7 +361,7 @@ const DirectMessagesPage = () => {
 
         </div>
         <UserSettings isOpen={isUserSettingsOpen} onClose={() => setIsUserSettingsOpen(false)} />
-      </BaseAuthLayout>
+      </DefaultLayout>
     </GuildContextProvider>
   );
 };
