@@ -2,8 +2,8 @@ import { useState, useCallback, useEffect, useMemo } from 'react';
 import { useChannelContext } from '../../contexts/ChannelContext.jsx';
 import { ContextMenu, ContextMenuContent, ContextMenuTrigger } from '../ui/context-menu';
 import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover';
-import GuildMemberContextMenu from '../GuildMemberContextMenu';
-import GuildMemberPopoverContent from '../GuildMemberPopoverContent';
+import GuildMemberContextMenu from '../GuildMember/GuildMemberContextMenu.jsx';
+import GuildMemberPopoverContent from '../GuildMember/GuildMemberPopoverContent.jsx';
 import Avatar from '../Avatar.jsx';
 import { useRolesStore } from '../../stores/roles.store';
 

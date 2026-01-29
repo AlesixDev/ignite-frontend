@@ -17,7 +17,7 @@ const Channel = ({ channel }) => {
   const [forceScrollDown, setForceScrollDown] = useState(false);
   const [highlightId, setHighlightId] = useState(null);
   const [loadingMore, setLoadingMore] = useState(false);
-  const [hasMore, setHasMore] = useState(true);
+  const [hasMore, setHasMore] = useState(false);
   const messagesRef = useRef();
   const { channelMessages, channelPendingMessages } = useChannelsStore();
 

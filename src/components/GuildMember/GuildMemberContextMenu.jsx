@@ -1,10 +1,10 @@
 import { useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner'
-import useStore from '../hooks/useStore';
-import api from '../api';
-import { FriendsService } from '../services/friends.service';
-import { useFriendsStore } from '../stores/friends.store';
+import useStore from '../../hooks/useStore';
+import api from '../../api';
+import { FriendsService } from '../../services/friends.service';
+import { useFriendsStore } from '../../stores/friends.store';
 import {
   ContextMenuItem,
   ContextMenuSeparator,
@@ -12,11 +12,13 @@ import {
   ContextMenuSubTrigger,
   ContextMenuSubContent,
   ContextMenuCheckboxItem // Using CheckboxItem is standard for toggling roles
-} from './ui/context-menu';
-import { useGuildsStore } from '../stores/guilds.store';
-import { useRolesStore } from '../stores/roles.store';
-import { useGuildContext } from '../contexts/GuildContext';
-import { RolesService } from '../services/roles.service';
+} from '../ui/context-menu';
+import { useGuildsStore } from '../../stores/guilds.store';
+import { useRolesStore } from '../../stores/roles.store';
+import { useGuildContext } from '../../contexts/GuildContext';
+import { RolesService } from '../../services/roles.service';
+import { PermissionsService } from '@/services/permissions.service';
+import { Permissions } from '@/enums/Permissions';
 
 const intToHex = (intColor) => {
   return `#${intColor.toString(16).padStart(6, '0')}`;
@@ -54,9 +56,25 @@ const GuildMemberContextMenu = ({ user, onMention = undefined }) => {
     }
   };
 
+  const canKickMember = useMemo(() => {
+    // Cannot kick yourself
+    if (user.id === store.user.id) return false;
+
+    const currentMember = guildMembers[guildId]?.find((m) => m.user_id === store.user.id);
+    if (!currentMember) return false;
+
+    if (!PermissionsService.hasPermission(guildId, null, Permissions.KICK_MEMBERS)) {
+      return false;
+    }
+
+    // TODO: Check role hierarchy here
+    return true;
+  }, [guildMembers, guildId, store.user.id, availableRoles, userRoles]);
+
   const isFriend = useMemo(() => friends.some((f) => f.id === user.id), [friends, user.id]);
   const hasSentRequest = useMemo(() => requests.some((r) => r.receiver_id === user.id), [requests, user.id]);
   const hasReceivedRequest = useMemo(() => requests.some((r) => r.sender_id === user.id), [requests, user.id]);
+
   const friendRequestId = useMemo(() => {
     const request = requests.find((r) => r.sender_id === user.id || r.receiver_id === user.id);
     return request ? request.id : null;
@@ -160,6 +178,16 @@ const GuildMemberContextMenu = ({ user, onMention = undefined }) => {
           ))}
         </ContextMenuSubContent>
       </ContextMenuSub>
+
+      {canKickMember &&
+        <ContextMenuItem className="text-red-500" onSelect={() => toast.info('Block feature coming soon.')}>
+          Kick {user.username}
+        </ContextMenuItem>
+      }
+
+      {/* <ContextMenuItem className="text-red-500" onSelect={() => toast.info('Block feature coming soon.')}>
+        Ban {user.username}
+      </ContextMenuItem> */}
     </>
   );
 };
