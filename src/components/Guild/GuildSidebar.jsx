@@ -20,7 +20,7 @@ import {
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 
-import CreateGuildChannelDialog from '@/components/CreateGuildChannelDialog';
+import CreateGuildChannelDialog from '@/components/Guild/CreateGuildChannelDialog';
 import api from '@/api';
 import { GuildsService } from '@/services/guilds.service';
 import { ContextMenu, ContextMenuContent, ContextMenuItem, ContextMenuSeparator, ContextMenuTrigger } from '@/components/ui/context-menu';
@@ -28,7 +28,7 @@ import { useUnreadsStore } from '@/stores/unreads.store';
 import { UnreadsService } from '@/services/unreads.service';
 import { ChannelsService } from '@/services/channels.service';
 import { useChannelsStore } from '@/stores/channels.store';
-import CreateGuildCategoryDialog from '@/components/CreateGuildCategoryDialog';
+import CreateGuildCategoryDialog from '@/components/Guild/CreateGuildCategoryDialog';
 
 const SortableChannel = ({
     channel,

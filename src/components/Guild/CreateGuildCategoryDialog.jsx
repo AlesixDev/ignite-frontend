@@ -3,14 +3,14 @@ import { useForm, Controller } from 'react-hook-form';
 import { ArrowRight, Hash, SpeakerHigh } from '@phosphor-icons/react';
 
 // Shadcn UI Components
-import { Label } from "./ui/label";
-import { Input } from "./ui/input";
-import { RadioGroup, RadioGroupItem } from "./ui/radio-group";
-import { Button } from "./ui/button";
+import { Label } from "../ui/label";
+import { Input } from "../ui/input";
+import { RadioGroup, RadioGroupItem } from "../ui/radio-group";
+import { Button } from "../ui/button";
 
-import { GuildsService } from '../services/guilds.service';
-import Dialog from './Dialog';
-import { ChannelsService } from '../services/channels.service';
+import { GuildsService } from '../../services/guilds.service';
+import Dialog from '../Dialog';
+import { ChannelsService } from '../../services/channels.service';
 
 const CreateGuildCategoryDialog = ({ isOpen, setIsOpen, guild, }) => {
   const {
