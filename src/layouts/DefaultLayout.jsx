@@ -83,7 +83,7 @@ const Sidebar = () => {
 
   return (
     <>
-      <div className="relative left-0 top-0 m-0 flex h-screen min-w-min flex-col items-center bg-gray-900 pt-3 text-white shadow scrollbar-none overflow-y-auto">
+      <div className="relative left-0 top-0 m-0 flex h-screen min-w-min flex-col items-center bg-gray-900 pt-3 text-white shadow scrollbar-none overflow-y-auto border-r border-gray-800">
 
         {/* Main Home / Friends Button */}
         <Link to="/channels/@me">
