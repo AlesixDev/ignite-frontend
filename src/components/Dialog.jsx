@@ -10,7 +10,7 @@ const MyDialog = ({ isOpen, setIsOpen, children, outsideChildren = '', title = '
 
   return (
     <Transition appear show={isOpen} as={Fragment}>
-      <Dialog as="div" className="relative z-10" onClose={handleOutsideClick}>
+      <Dialog as="div" className="relative z-50" onClose={handleOutsideClick}>
         <TransitionChild
           as={Fragment}
           enter="ease-out duration-300"
