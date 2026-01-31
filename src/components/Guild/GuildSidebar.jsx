@@ -54,7 +54,7 @@ const SortableChannel = ({
         transform: CSS.Transform.toString(transform),
         transition,
         opacity: isDragging ? 0.5 : 1,
-        touchAction: 'none', // Prevent scrolling while dragging
+        touchAction: 'none',
         zIndex: isDragging ? 50 : 'auto',
         position: 'relative'
     };
@@ -67,10 +67,7 @@ const SortableChannel = ({
                         to={`/channels/${channel.guild_id}/${channel.channel_id}`}
                         className={`${!expanded && !isActive ? 'hidden' : ''} group relative block`}
                         draggable="false"
-                        onDragStart={(e) => {
-                            e.preventDefault();
-                            e.stopPropagation();
-                        }}
+                        style={{ pointerEvents: isDragging ? 'none' : 'auto' }}
                     >
                         {isUnread && (
                             <div className="absolute left-0 top-1/2 h-2 w-1 -translate-y-1/2 rounded-r-full bg-white transition-all" />
@@ -99,7 +96,6 @@ const SortableChannel = ({
                     </Link>
                 </ContextMenuTrigger>
                 <ContextMenuContent className="w-52">
-                    {/* Mark as Read */}
                     <ContextMenuItem
                         disabled={!isUnread}
                         onSelect={async () => {
@@ -110,11 +106,9 @@ const SortableChannel = ({
                         Mark as Read
                     </ContextMenuItem>
                     <ContextMenuSeparator />
-                    {/* Go to Channel */}
                     <ContextMenuItem onSelect={() => navigate(`/channels/${channel.guild_id}/${channel.channel_id}`)}>
                         Go to Channel
                     </ContextMenuItem>
-                    {/* Copy Link */}
                     <ContextMenuItem onSelect={async () => {
                         const channelLink = `${window.location.origin}/channels/${channel.guild_id}/${channel.channel_id}`;
                         try {
@@ -136,7 +130,6 @@ const SortableChannel = ({
                         Delete Channel
                     </ContextMenuItem>
                     <ContextMenuSeparator />
-                    {/* Copy Channel ID */}
                     <ContextMenuItem onSelect={async () => {
                         try {
                             await navigator.clipboard.writeText(String(channel.channel_id));
