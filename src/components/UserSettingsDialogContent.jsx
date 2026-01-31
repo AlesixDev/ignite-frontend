@@ -13,6 +13,7 @@ import { Textarea } from './ui/textarea';
 import { Field, FieldError, FieldGroup, FieldLabel } from './ui/field';
 import { toast } from 'sonner';
 import { SheetDescription } from './ui/sheet';
+import { Menu } from 'lucide-react';
 
 const TabAccount = () => {
   const store = useStore();
@@ -401,6 +402,20 @@ const UserSettingsDialogContent = () => {
   const store = useStore();
 
   const [tab, setTab] = useState('account');
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+
+  const handleTabChange = (newTab) => {
+    setTab(newTab);
+    setIsMobileMenuOpen(false);
+  };
+
+  const getActiveTitle = () => {
+    for (const group of groups) {
+      const found = group.items.find(i => i.id === tab);
+      if (found) return found.title;
+    }
+    return 'Settings';
+  };
 
   return (
     <DialogContent className="!inset-0 m-auto flex size-full !max-h-[90vh] !max-w-[90vw] !translate-x-0 !translate-y-0 flex-row p-0">
@@ -408,8 +423,8 @@ const UserSettingsDialogContent = () => {
       <SheetDescription className="sr-only">
         Manage your user settings and preferences.
       </SheetDescription>
-      <SidebarProvider className="h-full !min-h-0 w-auto">
-        <Sidebar collapsible="none" className="h-full rounded-lg p-4">
+      <SidebarProvider className={`h-full !min-h-0 w-auto ${isMobileMenuOpen ? 'flex w-full' : 'hidden md:flex'}`}>
+        <Sidebar collapsible="none" className="h-full rounded-lg p-4 w-full">
           <SidebarHeader className="flex-row gap-4">
             <div>
               <Avatar user={store.user} className="size-12 text-xl" />
@@ -431,7 +446,7 @@ const UserSettingsDialogContent = () => {
                   {item.items.map((item) => (
                     <SidebarMenuItem key={item.title}>
                       <SidebarMenuButton asChild isActive={tab === item.id}>
-                        <button onClick={() => setTab(item.id)} className="w-full text-left">
+                        <button onClick={() => handleTabChange(item.id)} className="w-full text-left">
                           {item.title}
                         </button>
                       </SidebarMenuButton>
@@ -443,12 +458,22 @@ const UserSettingsDialogContent = () => {
           ))}
         </Sidebar>
       </SidebarProvider>
-      <div className="flex-1 overflow-auto p-6">
-        {groups.map((group) =>
-          group.items.map((item) =>
-            item.id === tab ? <item.component key={item.id} /> : null
-          )
-        )}
+      <div className={`flex-1 flex flex-col h-full bg-background overflow-hidden rounded-lg ${isMobileMenuOpen ? 'hidden md:flex' : 'flex'}`}>
+        <div className="flex items-center gap-2 p-4 border-b md:hidden flex-shrink-0">
+          <Button variant="ghost" size="icon" onClick={() => setIsMobileMenuOpen(true)} className="-ml-2">
+            <Menu className="h-5 w-5" />
+            <span className="sr-only">Open Menu</span>
+          </Button>
+          <span className="font-semibold text-lg">{getActiveTitle()}</span>
+        </div>
+
+        <div className="flex-1 overflow-y-auto p-4 md:p-8">
+          {groups.map((group) =>
+            group.items.map((item) =>
+              item.id === tab ? <item.component key={item.id} /> : null
+            )
+          )}
+        </div>
       </div>
     </DialogContent>
   );
