@@ -435,10 +435,12 @@ const GuildSidebarCategory = ({
             // NOTE: You will need to implement a batch update endpoint or loop through single updates.
             // Assuming a batch update exists or using single updates for now:
             api.patch(`/guilds/${guild.id}/channels`, updates)
+                .then(() => {
+                    toast.success('Channel order updated.');
+                })
                 .catch(err => {
                     console.error("Failed to reorder channels", err);
                     toast.error("Failed to save channel order");
-                    // Revert logic could go here
                 });
 
             return newItems;
