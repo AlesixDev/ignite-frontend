@@ -243,7 +243,7 @@ const ChannelInput = ({ channel }) => {
 
   return (
     <div className="absolute bottom-0 left-0 right-0 bg-gray-700/95 px-4 pt-2 pb-4">
-      <InputGroup className="relative flex items-end bg-gray-800">
+      <InputGroup className="relative flex items-end bg-gray-800 h-auto">
         <Popover.Root
           open={!!mentionQuery && filteredMembers.length > 0}
           modal={false}

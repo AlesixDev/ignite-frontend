@@ -10,6 +10,7 @@
   "scripts": {
     "dev": "vite --host",
     "build": "vite build",
+    "build:electron": "cross-env VITE_ELECTRON=true vite build",
     "lint": "eslint .",
     "preview": "vite preview",
     "electron": "electron .",
@@ -40,6 +41,7 @@
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "cors": "^2.8.5",
+    "cross-env": "^10.1.0",
     "electron-squirrel-startup": "^1.0.1",
     "express": "^4.19.2",
     "frimousse": "^0.3.0",

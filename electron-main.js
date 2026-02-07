@@ -8,6 +8,7 @@ const __dirname = dirname(__filename);
 
 const isDev = !app.isPackaged;
 const VITE_DEV_SERVER_URL = "http://localhost:5173"; // Vite default
+const APP_URL = "https://app.ignite-chat.com";
 
 function createWindow() {
   const mainWindow = new BrowserWindow({
@@ -23,8 +24,8 @@ function createWindow() {
     mainWindow.loadURL(VITE_DEV_SERVER_URL);
     mainWindow.webContents.openDevTools();
   } else {
-    // PROD: load built index.html
-    mainWindow.loadFile(join(__dirname, "dist/index.html"));
+    // PROD: load ignite app
+    mainWindow.loadURL(APP_URL);
   }
 }
 

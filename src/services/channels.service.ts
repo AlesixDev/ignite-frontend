@@ -4,7 +4,7 @@ import { useGuildsStore } from '../store/guilds.store';
 import api from '../api.js';
 import axios from 'axios';
 import useStore from '../hooks/useStore';
-import notificationSound from '../sounds/notification.wav'
+import notificationSound from '../assets/notification.wav'
 
 export const ChannelsService = {
     /**

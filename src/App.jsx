@@ -12,7 +12,7 @@ import { FriendsService } from './services/friends.service';
 import axios from 'axios';
 import { useGuildsStore } from './store/guilds.store';
 import { useChannelsStore } from './store/channels.store';
-import notificationSound from './sounds/notification.wav'
+import notificationSound from './assets/notification.wav'
 import { UnreadsService } from './services/unreads.service';
 import { RolesService } from './services/roles.service';
 import { ChannelsService } from './services/channels.service';
