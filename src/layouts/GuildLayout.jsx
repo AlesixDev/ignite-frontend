@@ -1,5 +1,3 @@
-// TODO: Move to GuildChannel.jsx, this isn't a layout.
-
 import { useCallback, useEffect, useState } from 'react';
 import { toast } from 'sonner'
 import DefaultLayout from './DefaultLayout';

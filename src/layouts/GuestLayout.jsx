@@ -1,4 +1,4 @@
-const BaseGuestLayout = ({ children }) => {
+const GuestLayout = ({ children }) => {
   return (
     <div>
       <div className="flex h-screen items-center justify-center overflow-hidden">
@@ -10,4 +10,4 @@ const BaseGuestLayout = ({ children }) => {
   );
 };
 
-export default BaseGuestLayout;
+export default GuestLayout;

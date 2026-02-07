@@ -2,10 +2,8 @@ import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import DefaultLayout from '../layouts/DefaultLayout';
 import useStore from '../hooks/useStore';
-import { GuildContextProvider } from '../contexts/GuildContext';
 import { ChannelContextProvider } from '../contexts/ChannelContext';
 import Channel from '../components/Channel/Channel';
-import UserSettings from '../components/Settings/UserSettings';
 import DMSidebar from '../components/dm/DMSidebar';
 import FriendsDashboard from '../components/friends/FriendsDashboard';
 import { useChannelsStore } from '../stores/channels.store';
@@ -13,7 +11,6 @@ import { useChannelsStore } from '../stores/channels.store';
 const DirectMessagesPage = () => {
   const { channelId } = useParams();
   const navigate = useNavigate();
-  const [isUserSettingsOpen, setIsUserSettingsOpen] = useState(false);
   const { channels } = useChannelsStore();
 
   // Determine active view
@@ -25,37 +22,30 @@ const DirectMessagesPage = () => {
     : null;
 
   return (
-    <GuildContextProvider>
-      <DefaultLayout>
-        <div className="flex h-screen w-screen overflow-hidden bg-gray-700 text-gray-100 select-none">
+    <DefaultLayout>
+      <div className="flex h-screen w-screen overflow-hidden bg-gray-700 text-gray-100 select-none">
 
-          {/* Sidebar Component */}
-          <DMSidebar
-            activeChannelId={channelId || 'friends'}
-            onNavigate={(id) => navigate(`/channels/@me/${id}`)}
-          />
-
-          {/* Main Content Area */}
-          <main className="relative flex flex-1 flex-col overflow-hidden">
-            {isFriendsView ? (
-              <FriendsDashboard />
-            ) : (
-              <ChannelContextProvider>
-                {/* normalizeThread logic should ideally happen inside Channel or a hook, 
-                     but passing activeChannel directly here works based on your existing code */}
-                <Channel channel={activeChannel} />
-              </ChannelContextProvider>
-            )}
-          </main>
-
-        </div>
-
-        <UserSettings
-          isOpen={isUserSettingsOpen}
-          onClose={() => setIsUserSettingsOpen(false)}
+        {/* Sidebar Component */}
+        <DMSidebar
+          activeChannelId={channelId || 'friends'}
+          onNavigate={(id) => navigate(`/channels/@me/${id}`)}
         />
-      </DefaultLayout>
-    </GuildContextProvider>
+
+        {/* Main Content Area */}
+        <main className="relative flex flex-1 flex-col overflow-hidden">
+          {isFriendsView ? (
+            <FriendsDashboard />
+          ) : (
+            <ChannelContextProvider>
+              {/* normalizeThread logic should ideally happen inside Channel or a hook, 
+                     but passing activeChannel directly here works based on your existing code */}
+              <Channel channel={activeChannel} />
+            </ChannelContextProvider>
+          )}
+        </main>
+
+      </div>
+    </DefaultLayout>
   );
 };
 

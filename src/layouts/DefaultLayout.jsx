@@ -8,6 +8,7 @@ import { useUnreadsStore } from '../stores/unreads.store';
 import { useChannelsStore } from '../stores/channels.store';
 import useStore from '../hooks/useStore';
 import Avatar from '../components/Avatar';
+import { GuildContextProvider } from '@/contexts/GuildContext';
 
 const SidebarIcon = ({ icon = '', iconUrl = '', isActive = false, isServerIcon = false, text = 'tooltip', isUnread = false }) => (
   <div className="group relative mb-2 min-w-min px-3">
@@ -135,13 +136,15 @@ const Sidebar = () => {
 
 const DefaultLayout = ({ children }) => {
   return (
-    <div className="flex overflow-hidden">
-      <Sidebar />
-      <div className="flex-1 flex overflow-hidden">
-        {children}
-      </div>
-      <UserBar />
-    </div>
+    <GuildContextProvider>
+      <div className="flex overflow-hidden">
+        <Sidebar />
+        <div className="flex-1 flex overflow-hidden">
+          {children}
+        </div>
+        <UserBar />
+      </div >
+    </GuildContextProvider>
   );
 };
 
