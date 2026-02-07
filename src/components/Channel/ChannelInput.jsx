@@ -242,8 +242,8 @@ const ChannelInput = ({ channel }) => {
   /* ---------------- render ---------------- */
 
   return (
-    <div className="absolute bottom-0 left-0 right-0 bg-gray-700/95 px-4 pt-2 pb-4">
-      <InputGroup className="relative flex items-end bg-gray-800 h-auto">
+    <div className="bg-gray-700/95 px-4 pt-2 pb-4">
+      <InputGroup className="relative flex items-center bg-gray-800 h-auto">
         <Popover.Root
           open={!!mentionQuery && filteredMembers.length > 0}
           modal={false}
@@ -256,7 +256,7 @@ const ChannelInput = ({ channel }) => {
               onInput={handleInput}
               onKeyDown={handleKeyDown}
               onPaste={handlePaste}
-              className="min-h-[44px] w-full px-3 py-3 text-sm outline-none"
+              className="min-h-[44px] w-full px-3 py-3 text-sm outline-none max-h-[50vh] overflow-y-auto"
               data-placeholder="Message"
             />
           </Popover.Anchor>
@@ -271,9 +271,8 @@ const ChannelInput = ({ channel }) => {
               {filteredMembers.map((m, i) => (
                 <button
                   key={m.user_id}
-                  className={`flex w-full items-center gap-2 rounded px-2 py-2 text-left ${
-                    i === mentionIndex ? 'bg-gray-700' : 'hover:bg-gray-700/60'
-                  }`}
+                  className={`flex w-full items-center gap-2 rounded px-2 py-2 text-left ${i === mentionIndex ? 'bg-gray-700' : 'hover:bg-gray-700/60'
+                    }`}
                   onMouseDown={(e) => {
                     e.preventDefault();
                     replaceAtQueryWithMention(mentionQuery, m, resolveUser);
@@ -291,7 +290,7 @@ const ChannelInput = ({ channel }) => {
 
         <Popover.Root modal={false}>
           <Popover.Trigger asChild>
-            <Button variant="ghost" className="h-8 w-8 text-gray-400">
+            <Button variant="ghost" className="h-8 w-8 text-gray-400 self-start mt-2 mr-2">
               <Smile className="size-5" />
             </Button>
           </Popover.Trigger>
