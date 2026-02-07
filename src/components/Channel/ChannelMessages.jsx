@@ -23,8 +23,6 @@ const ChannelMessage = ({ message, prevMessage, pending }) => {
     const channelId = message.channel_id;
     const store = useStore();
     const guildsStore = useGuildsStore();
-    const authorMenuRef = useRef(null);
-    const [authorMenuOpen, setAuthorMenuOpen] = useState(false);
 
     const { messages, setMessages, editingId, setEditingId, setReplyingId, setPinId, inputRef, setInputMessage } = useChannelContext();
 
@@ -68,34 +66,10 @@ const ChannelMessage = ({ message, prevMessage, pending }) => {
 
     const isEditing = useMemo(() => editingId === message.id, [editingId, message.id]);
     const canEdit = useMemo(() => message.author.id === store.user.id, [message.author.id, store.user.id]);
-    // const canDelete = useMemo(() => {
-    //     if (message.author.id === store.user.id) return true;
-
-    //     const activeGuild = guildsStore.guilds.find((g) => g.id == guildId);
-    //     if (activeGuild?.owner_id == store.user.id) return true;
-
-    //     const activeGuildMembers = guildsStore.guildMembers[guildId] || [];
-    //     const member = activeGuildMembers.find((m) => m.user_id === store.user.id);
-    //     if (!member) return false;
-
-    //     // bitwise | all permissions in roles
-    //     const allowedPermissions = member?.roles.reduce((acc, role) => {
-    //         return acc | (role ? role.permissions : 0);
-    //     }, 0);
-
-    //     if (allowedPermissions & 8) { // MANAGE_MESSAGES
-    //         return true;
-    //     }
-
-    //     return false;
-    // }, [guildId, guildsStore.guilds, message.author.id, store.user.id]);
 
     const canDelete = useMemo(() => {
         return PermissionsService.hasPermission(guildId, 0, Permissions.MANAGE_MESSAGES);
     }, [guildId]);
-
-    // console.log(store.user);
-    // console.log(guildsStore.guilds);
 
     const [editedMessage, setEditedMessage] = useState(message.content);
 
@@ -141,25 +115,6 @@ const ChannelMessage = ({ message, prevMessage, pending }) => {
         }
         toast.info('Pinning is not available yet.');
     }, [channelId, message.id, setPinId]);
-
-    useEffect(() => {
-        if (!authorMenuOpen) return;
-        const onDown = (event) => {
-            if (!authorMenuRef.current) return;
-            if (!authorMenuRef.current.contains(event.target)) {
-                setAuthorMenuOpen(false);
-            }
-        };
-        const onKey = (event) => {
-            if (event.key === 'Escape') setAuthorMenuOpen(false);
-        };
-        document.addEventListener('mousedown', onDown);
-        document.addEventListener('keydown', onKey);
-        return () => {
-            document.removeEventListener('mousedown', onDown);
-            document.removeEventListener('keydown', onKey);
-        };
-    }, [authorMenuOpen]);
 
     // TODO: This is duplicated
     const onMention = useCallback((user) => {
