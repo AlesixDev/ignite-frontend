@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import './ChannelDialog.css'; // Assuming you have a CSS file for styling
-import api from '../api';
+import api from '../../api';
 
 // Sample roles and permissions data structure
 const rolesList = [

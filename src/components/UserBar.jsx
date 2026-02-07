@@ -5,6 +5,7 @@ import { Dialog, DialogTrigger } from './ui/dialog';
 import UserSettingsDialogContent from './UserSettingsDialogContent';
 import { LogOut } from 'lucide-react';
 import Avatar from './Avatar';
+import { useLocation } from 'react-router-dom';
 
 const UserIcon = () => {
   const store = useStore();
@@ -37,13 +38,6 @@ const ActionsIcons = () => {
 
   return (
     <div className="ml-auto flex">
-      {/* <div className="flex size-8 cursor-pointer items-center justify-center rounded text-center hover:bg-gray-700">
-        <Microphone className="size-5 cursor-pointer text-gray-400 hover:text-gray-200" weight="fill" />
-      </div>
-      <div className="flex size-8 cursor-pointer items-center justify-center rounded text-center hover:bg-gray-700">
-        <Headphones className="size-5 cursor-pointer text-gray-400 hover:text-gray-200" weight="fill" />
-      </div> */}
-
       <button
         type="button"
         onClick={() => store.logout()}
@@ -68,8 +62,13 @@ const ActionsIcons = () => {
 };
 
 const UserBar = () => {
+  const location = useLocation();
+
+  // HACK: Only show UserBar in DMs (/channels/@me)
+  const isDMRoute = location.pathname.startsWith('/channels/@me');
+
   return (
-    <div className="absolute left-0 bottom-0 mb-4 ml-4 flex h-14 items-center bg-gray-900 border border-gray-700 rounded-lg z-50">
+    <div className={`absolute left-0 bottom-0 mb-4 ml-4 flex h-14 items-center bg-gray-900 border border-gray-700 rounded-lg z-50${!isDMRoute ? ' hidden md:flex' : ''}`}>
       <div className="flex flex-auto items-center p-2">
         <div className="flex cursor-pointer gap-2 rounded p-1 hover:bg-gray-700 min-w-[210px]">
           <UserIcon />

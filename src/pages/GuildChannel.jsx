@@ -1,12 +1,11 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { GuildsService } from '../services/guilds.service';
-import { useGuildsStore } from '../stores/guilds.store';
+import { useGuildsStore } from '../store/guilds.store';
 import GuildLayout from '../layouts/GuildLayout';
-import Channel from '../components/Channel';
+import Channel from '../components/Channel/Channel';
 import { ChannelContextProvider } from '../contexts/ChannelContext';
-import ChannelDialog from '../components/ChannelDialog';
-import { GuildContextProvider } from '../contexts/GuildContext';
+import ChannelDialog from '../components/Channel/ChannelDialog';
 
 const GuildChannelPage = () => {
   const navigate = useNavigate();
@@ -47,7 +46,6 @@ const GuildChannelPage = () => {
   const [isChannelDialogOpen, setIsChannelDialogOpen] = useState(false);
 
   return (
-    <GuildContextProvider>
       <GuildLayout guild={guild}>
         <ChannelContextProvider>
           <Channel channel={channel} />
@@ -55,7 +53,6 @@ const GuildChannelPage = () => {
 
         <ChannelDialog isOpen={isChannelDialogOpen} setIsOpen={setIsChannelDialogOpen} guild={guild} />
       </GuildLayout>
-    </GuildContextProvider>
   );
 };
 

@@ -4,7 +4,7 @@ import { useForm, FormProvider, Controller } from 'react-hook-form';
 import { toast } from 'sonner'
 import useStore from '../hooks/useStore';
 import api from '../api';
-import BaseGuestLayout from '../layouts/BaseGuestLayout';
+import GuestLayout from '../layouts/GuestLayout';
 import { Card, CardContent } from '../components/ui/card';
 import { Field, FieldGroup, FieldLabel, FieldDescription, FieldError } from '../components/ui/field';
 import { Input } from '../components/ui/input';
@@ -33,7 +33,7 @@ const LoginPage = () => {
   }, [navigate, store]);
 
   return (
-    <BaseGuestLayout>
+    <GuestLayout>
       <FormProvider {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)}>
           <div className="mx-auto flex max-w-4xl flex-col gap-6">
@@ -133,7 +133,7 @@ const LoginPage = () => {
           </div>
         </form>
       </FormProvider>
-    </BaseGuestLayout>
+    </GuestLayout>
   );
 };
 

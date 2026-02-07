@@ -8,6 +8,7 @@ import Dialog from './Dialog';
 import FormInput from './Form/FormInput';
 import FormError from './Form/FormError';
 import FormSubmit from './Form/FormSubmit';
+import { ChannelsService } from '../services/channels.service';
 
 const GuildDialog = ({ isOpen, setIsOpen }) => {
   const [view, setView] = useState('menu');
@@ -37,14 +38,15 @@ const GuildDialog = ({ isOpen, setIsOpen }) => {
     async (data) => {
       GuildsService.createGuild(data);
       closeAll();
-    },[closeAll]
+    }, [closeAll]
   );
 
   const onJoin = useCallback(
     async (data) => {
       try {
         await api.post(`/invites/${data.invite}`);
-        GuildsService.loadGuilds();
+        await GuildsService.loadGuilds();
+        await ChannelsService.loadChannels();
         toast.success('Joined server successfully.');
         closeAll();
       } catch (error) {
@@ -183,7 +185,7 @@ const GuildDialog = ({ isOpen, setIsOpen }) => {
                   form={joinForm}
                   label={isJoinSubmitting ? 'Joining…' : 'Join'}
                   icon={<ArrowRight className="size-4" />}
-                  className="w-full sm:w-auto"              
+                  className="w-full sm:w-auto"
                 />
               </form>
             </FormProvider>

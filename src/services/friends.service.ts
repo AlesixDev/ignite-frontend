@@ -1,5 +1,5 @@
 import { toast } from 'sonner'
-import { useFriendsStore } from '../stores/friends.store';
+import { useFriendsStore } from '../store/friends.store';
 import api from '../api.js';
 
 export const FriendsService = {

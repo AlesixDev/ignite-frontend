@@ -2,9 +2,7 @@ import { create } from 'zustand';
 
 const useStore = create((set) => ({
   user: null,
-  discordUser: null,
   token: null,
-  discordToken: null,
   
   login: (user, token) => {
     localStorage.setItem('token', token);
@@ -17,8 +15,6 @@ const useStore = create((set) => ({
   },
 
   setUser: (user) => set({ user }),
-  setDiscordUser: (discordUser) => set({ discordUser }),
-  setDiscordToken: (discordToken) => set({ discordToken }),
 
   guilds: [],
 
