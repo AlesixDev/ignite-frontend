@@ -20,7 +20,7 @@ import {
   AlertDialogTrigger
 } from '../ui/alert-dialog';
 import { RolesService } from '../../services/roles.service';
-import { useRolesStore } from '../../stores/roles.store';
+import { useRolesStore } from '../../store/roles.store';
 import { toast } from 'sonner';
 
 const PERMISSIONS_LIST = Object.freeze({

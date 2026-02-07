@@ -3,7 +3,7 @@ import { toast } from 'sonner'
 import { NotePencil, Trash, ArrowBendUpLeft, PushPin } from '@phosphor-icons/react';
 import api from '../../api';
 import useStore from '../../hooks/useStore';
-import { useGuildsStore } from '../../stores/guilds.store';
+import { useGuildsStore } from '../../store/guilds.store';
 import { useGuildContext } from '../../contexts/GuildContext';
 import { useChannelContext } from '../../contexts/ChannelContext.jsx';
 import { ContextMenu, ContextMenuContent, ContextMenuItem, ContextMenuSeparator, ContextMenuTrigger } from '../ui/context-menu';
@@ -11,7 +11,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover';
 import { Badge } from '../ui/badge';
 import GuildMemberContextMenu from '../GuildMember/GuildMemberContextMenu';
 import GuildMemberPopoverContent from '../GuildMember/GuildMemberPopoverContent';
-import { useChannelsStore } from '../../stores/channels.store';
+import { useChannelsStore } from '../../store/channels.store';
 import Avatar from '../Avatar.jsx';
 import { PermissionsService } from '@/services/permissions.service';
 import { Permissions } from '@/enums/Permissions';

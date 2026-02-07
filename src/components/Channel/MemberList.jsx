@@ -5,7 +5,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover';
 import GuildMemberContextMenu from '../GuildMember/GuildMemberContextMenu.jsx';
 import GuildMemberPopoverContent from '../GuildMember/GuildMemberPopoverContent.jsx';
 import Avatar from '../Avatar.jsx';
-import { useRolesStore } from '../../stores/roles.store';
+import { useRolesStore } from '../../store/roles.store.js';
 
 const MemberListItem = ({ member, onMention }) => {
     const topColor = useMemo(() => {

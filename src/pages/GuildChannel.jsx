@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { GuildsService } from '../services/guilds.service';
-import { useGuildsStore } from '../stores/guilds.store';
+import { useGuildsStore } from '../store/guilds.store';
 import GuildLayout from '../layouts/GuildLayout';
 import Channel from '../components/Channel/Channel';
 import { ChannelContextProvider } from '../contexts/ChannelContext';

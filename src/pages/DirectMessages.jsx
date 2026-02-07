@@ -6,7 +6,7 @@ import { ChannelContextProvider } from '../contexts/ChannelContext';
 import Channel from '../components/Channel/Channel';
 import DMSidebar from '../components/dm/DMSidebar';
 import FriendsDashboard from '../components/friends/FriendsDashboard';
-import { useChannelsStore } from '../stores/channels.store';
+import { useChannelsStore } from '../store/channels.store';
 
 const DirectMessagesPage = () => {
   const { channelId } = useParams();

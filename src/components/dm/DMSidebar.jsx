@@ -1,11 +1,11 @@
 import { useMemo, useCallback } from 'react';
 import { UserStarIcon, Users } from 'lucide-react';
 import { Button } from "@/components/ui/button";
-import { useChannelsStore } from '@/stores/channels.store';
+import { useChannelsStore } from '@/store/channels.store';
 import useStore from '@/hooks/useStore';
-import { useUnreadsStore } from '@/stores/unreads.store';
+import { useUnreadsStore } from '@/store/unreads.store';
 import DMChannelItem from './DMChannelItem';
-import { useFriendsStore } from '@/stores/friends.store';
+import { useFriendsStore } from '@/store/friends.store';
 import { Badge } from '../ui/badge';
 
 const DMSidebar = ({ activeChannelId, onNavigate }) => {

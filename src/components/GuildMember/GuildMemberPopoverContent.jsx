@@ -3,7 +3,7 @@ import useStore from '../../hooks/useStore';
 import { UserCheck, UserMinus, UserPlus, UserX } from 'lucide-react';
 import Avatar from '../Avatar';
 import { FriendsService } from '../../services/friends.service';
-import { useFriendsStore } from '../../stores/friends.store';
+import { useFriendsStore } from '../../store/friends.store';
 import { ContextMenu, ContextMenuContent, ContextMenuTrigger } from '../ui/context-menu';
 import { CircleNotch, DotsThree } from '@phosphor-icons/react';
 import GuildMemberContextMenu from './GuildMemberContextMenu';

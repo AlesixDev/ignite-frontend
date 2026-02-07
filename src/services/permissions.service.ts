@@ -1,7 +1,7 @@
 import { Permissions } from "@/enums/Permissions";
 import useStore from "@/hooks/useStore";
-import { useGuildsStore } from "@/stores/guilds.store";
-import { useRolesStore } from "@/stores/roles.store";
+import { useGuildsStore } from "@/store/guilds.store";
+import { useRolesStore } from "@/store/roles.store";
 
 export const PermissionsService = {
     /**

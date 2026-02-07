@@ -1,8 +1,8 @@
 import { toast } from 'sonner'
 import api from '../api.js';
 import useStore from '../hooks/useStore';
-import { useRolesStore } from '../stores/roles.store.js';
-import { useGuildsStore } from '../stores/guilds.store.js';
+import { useRolesStore } from '../store/roles.store.js';
+import { useGuildsStore } from '../store/guilds.store.js';
 
 export const RolesService = {
     /**

@@ -2,7 +2,7 @@ import * as Popover from '@radix-ui/react-popover';
 import { InputGroup } from '../ui/input-group';
 import { EmojiPicker, EmojiPickerContent, EmojiPickerFooter, EmojiPickerSearch } from '../ui/emoji-picker';
 import { useChannelContext } from '../../contexts/ChannelContext.jsx';
-import { useGuildsStore } from '../../stores/guilds.store';
+import { useGuildsStore } from '../../store/guilds.store';
 import { useGuildContext } from '../../contexts/GuildContext';
 import { useState, useCallback, useMemo, useRef } from 'react';
 import { Button } from '../ui/button';

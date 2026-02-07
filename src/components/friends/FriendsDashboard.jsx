@@ -3,7 +3,7 @@ import { Users } from 'lucide-react';
 import { Separator } from "@/components/ui/separator";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { useFriendsStore } from '@/stores/friends.store';
+import { useFriendsStore } from '@/store/friends.store';
 import useStore from '@/hooks/useStore';
 import AddFriendForm from './AddFriendForm';
 import FriendsList from './FriendsList';

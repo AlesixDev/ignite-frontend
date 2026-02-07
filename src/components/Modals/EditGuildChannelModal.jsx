@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { X, Info, Lock, FloppyDisk, Check } from '@phosphor-icons/react';
 import { InputGroup, InputGroupInput } from '../ui/input-group';
 import api from '../../api';
-import { useGuildsStore } from '../../stores/guilds.store';
+import { useGuildsStore } from '../../store/guilds.store';
 import { Slash } from 'lucide-react';
 
 const permissions = {

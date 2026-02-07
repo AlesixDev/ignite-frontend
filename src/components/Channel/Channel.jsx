@@ -1,9 +1,9 @@
 import { useState, useCallback, useEffect, useRef, useMemo } from 'react';
 import { GuildsService } from '../../services/guilds.service';
-import { useGuildsStore } from '../../stores/guilds.store';
+import { useGuildsStore } from '../../store/guilds.store';
 import { useGuildContext } from '../../contexts/GuildContext';
 import ChannelBar from './ChannelBar.jsx';
-import { useChannelsStore } from '../../stores/channels.store';
+import { useChannelsStore } from '../../store/channels.store';
 import { ChannelsService } from '../../services/channels.service';
 import { UnreadsService } from '../../services/unreads.service';
 import ChannelInput from './ChannelInput';

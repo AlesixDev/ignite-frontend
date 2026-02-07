@@ -1,5 +1,5 @@
 import { toast } from 'sonner'
-import { useGuildsStore } from '../stores/guilds.store';
+import { useGuildsStore } from '../store/guilds.store';
 import api from '../api.js';
 import useStore from '../hooks/useStore';
 import axios from 'axios';

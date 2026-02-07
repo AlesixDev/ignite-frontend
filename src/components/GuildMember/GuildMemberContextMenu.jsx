@@ -4,7 +4,7 @@ import { toast } from 'sonner'
 import useStore from '../../hooks/useStore';
 import api from '../../api';
 import { FriendsService } from '../../services/friends.service';
-import { useFriendsStore } from '../../stores/friends.store';
+import { useFriendsStore } from '../../store/friends.store';
 import {
   ContextMenuItem,
   ContextMenuSeparator,
@@ -13,8 +13,8 @@ import {
   ContextMenuSubContent,
   ContextMenuCheckboxItem // Using CheckboxItem is standard for toggling roles
 } from '../ui/context-menu';
-import { useGuildsStore } from '../../stores/guilds.store';
-import { useRolesStore } from '../../stores/roles.store';
+import { useGuildsStore } from '../../store/guilds.store';
+import { useRolesStore } from '../../store/roles.store';
 import { useGuildContext } from '../../contexts/GuildContext';
 import { RolesService } from '../../services/roles.service';
 import { PermissionsService } from '@/services/permissions.service';

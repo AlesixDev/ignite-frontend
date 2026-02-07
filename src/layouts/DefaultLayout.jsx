@@ -1,11 +1,11 @@
 import { useMemo, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { Fire, Plus } from '@phosphor-icons/react';
-import { useGuildsStore } from '../stores/guilds.store';
+import { useGuildsStore } from '../store/guilds.store';
 import GuildDialog from '../components/GuildDialog';
 import UserBar from '../components/UserBar';
-import { useUnreadsStore } from '../stores/unreads.store';
-import { useChannelsStore } from '../stores/channels.store';
+import { useUnreadsStore } from '../store/unreads.store';
+import { useChannelsStore } from '../store/channels.store';
 import useStore from '../hooks/useStore';
 import Avatar from '../components/Avatar';
 import { GuildContextProvider } from '@/contexts/GuildContext';

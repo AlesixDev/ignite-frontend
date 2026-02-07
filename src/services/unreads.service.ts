@@ -1,6 +1,6 @@
 import { toast } from 'sonner'
 import api from '../api.js';
-import { useUnreadsStore } from '../stores/unreads.store.js';
+import { useUnreadsStore } from '../store/unreads.store.js';
 
 export const UnreadsService = {
     async loadUnreads() {

@@ -4,7 +4,7 @@ import DefaultLayout from './DefaultLayout';
 import ServerSettings from '../components/Settings/ServerSettings';
 import useStore from '../hooks/useStore';
 import EditGuildChannelModal from '../components/Modals/EditGuildChannelModal';
-import { useChannelsStore } from '../stores/channels.store';
+import { useChannelsStore } from '../store/channels.store';
 import GuildSidebar from '@/components/Guild/GuildSidebar';
 
 const GuildLayout = ({ children, guild }) => {

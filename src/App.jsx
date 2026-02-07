@@ -10,8 +10,8 @@ import GuildChannelPage from './pages/GuildChannel';
 import { GuildsService } from './services/guilds.service';
 import { FriendsService } from './services/friends.service';
 import axios from 'axios';
-import { useGuildsStore } from './stores/guilds.store';
-import { useChannelsStore } from './stores/channels.store';
+import { useGuildsStore } from './store/guilds.store';
+import { useChannelsStore } from './store/channels.store';
 import notificationSound from './sounds/notification.wav'
 import { UnreadsService } from './services/unreads.service';
 import { RolesService } from './services/roles.service';

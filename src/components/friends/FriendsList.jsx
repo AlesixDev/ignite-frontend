@@ -4,7 +4,7 @@ import { toast } from 'sonner';
 import Avatar from '@/components/Avatar';
 import { ChannelsService } from '@/services/channels.service';
 import { FriendsService } from '@/services/friends.service';
-import { useChannelsStore } from '@/stores/channels.store';
+import { useChannelsStore } from '@/store/channels.store';
 
 const FriendsList = ({ friends, filter }) => {
     const navigate = useNavigate();
