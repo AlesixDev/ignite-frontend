@@ -22,6 +22,7 @@ const AuthRoute = ({ children }) => {
   const store = useStore();
 
   const [initialized, setInitialized] = useState(false);
+  const [failed, setFailed] = useState(false);
 
   // Get guilds from the store
   const { guilds } = useGuildsStore();
@@ -85,11 +86,13 @@ const AuthRoute = ({ children }) => {
           } else {
             localStorage.removeItem('token');
           }
+
+          console.log('Initialization complete.');
+          setInitialized(true);
         }
       } catch (error) {
-        console.error(error);
-      } finally {
-        setInitialized(true);
+        console.error('Failed to initialize', error);
+        setFailed(true);
       }
     };
 
@@ -176,16 +179,32 @@ const AuthRoute = ({ children }) => {
     };
   }, [guilds, channels, initialized, store.user]);
 
+  if (failed) {
+    // If we initialization failed, show an error message with a retry button
+    return (
+      <div className="flex h-screen flex-col items-center justify-center gap-4 bg-body">
+        <div className="text-xl font-semibold text-red-500">Server Error</div>
+        <div className="text-center text-muted-foreground">
+          The server appears to be down. Please try again later.
+        </div>
+        <button
+          className="rounded bg-primary px-4 py-2 text-white"
+          onClick={() => {
+            window.location.reload();
+          }}
+        >
+          Retry
+        </button>
+      </div>
+    );
+  }
+
   if (!initialized) {
     return (
       <div className="flex h-screen items-center justify-center bg-body">
         <div className="size-16 animate-spin rounded-full border-4 border-solid border-primary border-t-transparent"></div>
       </div>
     );
-  }
-
-  if (!store.user) {
-    return <Navigate to="/login" replace />;
   }
 
   return children ? children : <Outlet />;
