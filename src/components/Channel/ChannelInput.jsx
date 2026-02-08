@@ -204,7 +204,7 @@ const ChannelInput = ({ channel }) => {
         return;
       }
 
-      if (e.key === 'Enter') {
+      if (e.key === 'Enter' || e.key === 'Tab') {
         e.preventDefault();
         replaceAtQueryWithMention(
           mentionQuery,
