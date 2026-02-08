@@ -96,7 +96,7 @@ const ChannelMessage = ({ message, prevMessage, pending }) => {
     const onDelete = useCallback(async () => {
         try {
             await api.delete(`/channels/${channelId}/messages/${message.id}`);
-            setMessages(messages.filter((m) => m.id !== message.id));
+            //setMessages(messages.filter((m) => m.id !== message.id));
         } catch (error) {
             console.error(error);
             toast.error(error.response?.data?.message || 'Could not delete message.');
@@ -280,8 +280,8 @@ const ChannelMessages = ({ channel }) => {
 
     const messagesRef = useRef();
 
-    const messages = channelMessages[channel.channel_id] || [];
-    const pendingMessages = channelPendingMessages[channel.channel_id] || [];
+    const messages = channelMessages[channel?.channel_id] || [];
+    const pendingMessages = channelPendingMessages[channel?.channel_id] || [];
 
 
     const onLoadMore = useCallback(async () => {
@@ -289,7 +289,7 @@ const ChannelMessages = ({ channel }) => {
 
         console.log('Loading more messages before ID:', oldestMessage.id);
 
-        //ChannelsService.loadChannelMessages(channel.channel_id, oldestMessage.id);
+        //ChannelsService.loadChannelMessages(channel?.channel_id, oldestMessage.id);
     }, [channel, messages]);
 
     useEffect(() => {
@@ -324,7 +324,7 @@ const ChannelMessages = ({ channel }) => {
 
                 if (now - lastAckTime > 10000 && lastAckedMessageId !== lastMessageId) {
                     ChannelsService.acknowledgeChannelMessage(
-                        channel.channel_id,
+                        channel?.channel_id,
                         lastMessageId
                     );
 
@@ -332,7 +332,7 @@ const ChannelMessages = ({ channel }) => {
                     lastAckedMessageId = lastMessageId;
                 }
 
-                UnreadsService.setLastReadMessageId(channel.channel_id, lastMessageId);
+                UnreadsService.setLastReadMessageId(channel?.channel_id, lastMessageId);
             }
         }
 
