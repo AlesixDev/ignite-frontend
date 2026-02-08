@@ -44,12 +44,15 @@ const AuthRoute = ({ children }) => {
           if (user?.username) {
             store.login(user, localToken);
 
-            await GuildsService.loadGuilds();
+            await Promise.all([
+              GuildsService.loadGuilds(),
+              FriendsService.loadFriends(),
+              FriendsService.loadRequests(),
+              UnreadsService.loadUnreads(),
+            ]);
+
+            await ChannelsService.loadChannels()
             await RolesService.initializeGuildRoles();
-            await FriendsService.loadFriends();
-            await FriendsService.loadRequests();
-            await ChannelsService.loadChannels();
-            UnreadsService.loadUnreads();
 
             // Subsribe to the user private channel via Echo
             console.log(`Subscribing to private.user.${user.id}`);
