@@ -239,16 +239,11 @@ export const ChannelsService = {
         const { channels, setChannels, channelMessages, setChannelMessages } = useChannelsStore.getState();
         const channelId = event.channel.id;
 
-        console.log('Message deleted event received on channel', channelId, 'for message id', event.message.id);
-
         if (channelMessages[channelId]) {
             const filtered = channelMessages[channelId].filter((m) => m.id !== event.message.id);
             setChannelMessages(channelId, filtered);
 
             const latest = [...filtered].sort((a, b) => b.id - a.id)[0];
-
-            // Log latest message id
-            console.log('Latest message after deletion:', latest?.id);
 
             // Update last_message_id for the channel
             const newChannels = channels.map((c) =>
