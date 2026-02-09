@@ -1,7 +1,7 @@
 
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
-import { Hash, Plus, CaretDown, CaretRight, NotePencil, Trash } from '@phosphor-icons/react';
+import { Hash, Plus, CaretDown, CaretRight } from '@phosphor-icons/react';
 import { toast } from 'sonner'
 import {
     DndContext,
@@ -29,6 +29,7 @@ import { UnreadsService } from '@/services/unreads.service';
 import { ChannelsService } from '@/services/channels.service';
 import { useChannelsStore } from '@/store/channels.store';
 import CreateGuildCategoryDialog from '@/components/Guild/CreateGuildCategoryDialog';
+import GuildSidebarHeader from './GuildSidebarHeader';
 
 const SortableChannel = ({
     channel,
@@ -100,8 +101,8 @@ const SortableChannel = ({
                         disabled={!isUnread}
                         onSelect={async () => {
                             UnreadsService.setLastReadMessageId(channel.channel_id, channel.last_message_id || null);
-                            toast.success('Channel marked as read.');
                             ChannelsService.acknowledgeChannelMessage(channel.channel_id, channel.last_message_id || null);
+                            toast.success('Channel marked as read.');
                         }}>
                         Mark as Read
                     </ContextMenuItem>
@@ -121,15 +122,20 @@ const SortableChannel = ({
                         Copy Link
                     </ContextMenuItem>
 
+                    {canManageChannels && (
+                        <>
+                            <ContextMenuSeparator />
 
-                    <ContextMenuSeparator />
-                    <ContextMenuItem disabled={!canManageChannels} onSelect={() => onEditChannel?.(channel)}>
-                        Edit Channel
-                    </ContextMenuItem>
-                    <ContextMenuItem disabled={!canManageChannels} onSelect={() => handleDeleteChannel(channel)} className="text-red-500 hover:bg-red-600/20">
-                        Delete Channel
-                    </ContextMenuItem>
-                    <ContextMenuSeparator />
+                            <ContextMenuItem disabled={!canManageChannels} onSelect={() => onEditChannel?.(channel)}>
+                                Edit Channel
+                            </ContextMenuItem>
+                            <ContextMenuItem disabled={!canManageChannels} onSelect={() => handleDeleteChannel(channel)} className="text-red-500 hover:bg-red-600/20">
+                                Delete Channel
+                            </ContextMenuItem>
+
+                            <ContextMenuSeparator />
+                        </>
+                    )}
                     <ContextMenuItem onSelect={async () => {
                         try {
                             await navigator.clipboard.writeText(String(channel.channel_id));
@@ -142,184 +148,6 @@ const SortableChannel = ({
                     </ContextMenuItem>
                 </ContextMenuContent>
             </ContextMenu>
-        </div>
-    );
-};
-
-const GuildSidebarHeader = ({ guildName = '', guild, onOpenServerSettings, canOpenServerSettings }) => {
-    const navigate = useNavigate();
-
-    const [menuOpen, setMenuOpen] = useState(false);
-    const [inviteInfo, setInviteInfo] = useState(null);
-    const [loadingInvite, setLoadingInvite] = useState(false);
-    const [error, setError] = useState(null);
-    const [leaving, setLeaving] = useState(false);
-
-    const containerRef = useRef(null);
-
-    useEffect(() => {
-        if (!menuOpen) return;
-        const onDown = (e) => {
-            if (!containerRef.current) return;
-            if (!containerRef.current.contains(e.target)) setMenuOpen(false);
-        };
-        const onKey = (e) => {
-            if (e.key === 'Escape') setMenuOpen(false);
-        };
-        document.addEventListener('mousedown', onDown);
-        document.addEventListener('keydown', onKey);
-        return () => {
-            document.removeEventListener('mousedown', onDown);
-            document.removeEventListener('keydown', onKey);
-        };
-    }, [menuOpen]);
-
-    const handleInvite = useCallback(
-        async (e) => {
-            e.stopPropagation();
-            if (!guild?.id || loadingInvite) return;
-            setLoadingInvite(true);
-            setError(null);
-            try {
-                const res = await api.post(`guilds/${guild.id}/invites`);
-                setInviteInfo(res.data);
-                toast.success('Invite created.');
-            } catch (err) {
-                const msg = err.response?.data?.message || err.message || 'Unknown error';
-                setError(msg);
-                toast.error(msg);
-            } finally {
-                setLoadingInvite(false);
-            }
-        },
-        [guild?.id, loadingInvite]
-    );
-
-    const handleLeave = useCallback(
-        async (e) => {
-            e.stopPropagation();
-            if (!guild?.id || leaving) return;
-
-            setLeaving(true);
-            setError(null);
-
-            try {
-                await api.delete(`@me/guilds/${guild.id}/`);
-                toast.success('Left server.');
-                setMenuOpen(false);
-                setInviteInfo(null);
-                navigate('/channels/@me');
-                await GuildsService.loadGuilds();
-            } catch (err) {
-                const msg = err.response?.data?.message || err.message || 'Unknown error';
-                setError(msg);
-                toast.error(msg);
-            } finally {
-                setLeaving(false);
-            }
-        },
-        [guild?.id, leaving, navigate]
-    );
-
-    const handleCopyInvite = useCallback(async () => {
-        if (!inviteInfo?.code) return;
-        try {
-            await navigator.clipboard.writeText(inviteInfo.code);
-            toast.success('Copied invite code.');
-        } catch {
-            toast.error('Could not copy to clipboard.');
-        }
-    }, [inviteInfo?.code]);
-
-    return (
-        <div className="relative w-full" ref={containerRef}>
-            <button
-                type="button"
-                className="w-full cursor-pointer px-4 py-3 text-left transition-colors duration-100 hover:bg-gray-700"
-                onClick={() => setMenuOpen((open) => !open)}
-            >
-                <div className="flex h-6 items-center">
-                    <div className="flex-1 truncate text-base font-semibold">{guildName}</div>
-                    <CaretDown className={`size-5 transition-transform ${menuOpen ? 'rotate-180' : ''}`} />
-                </div>
-            </button>
-
-            {menuOpen && (
-                <div className="absolute inset-x-2 top-12 z-10 rounded bg-gray-700 py-2 shadow-lg">
-                    <button
-                        type="button"
-                        className="block w-full px-4 py-2 text-left text-sm text-gray-100 hover:bg-gray-600 disabled:cursor-not-allowed disabled:text-gray-400 disabled:hover:bg-gray-700"
-                        onClick={() => {
-                            setMenuOpen(false);
-                            onOpenServerSettings?.();
-                        }}
-                        disabled={!canOpenServerSettings}
-                        aria-disabled={!canOpenServerSettings}
-                        title={!canOpenServerSettings ? 'Only the server owner can open settings.' : undefined}
-                    >
-                        Server Settings
-                    </button>
-
-                    <button
-                        type="button"
-                        className="block w-full px-4 py-2 text-left text-sm text-gray-100 hover:bg-gray-600 disabled:opacity-60"
-                        onClick={handleInvite}
-                        disabled={loadingInvite}
-                    >
-                        {loadingInvite ? 'Creating Invite…' : 'Invite People'}
-                    </button>
-
-                    <button
-                        type="button"
-                        className="block w-full px-4 py-2 text-left text-sm text-red-300 hover:bg-gray-600 disabled:opacity-60"
-                        onClick={handleLeave}
-                        disabled={leaving}
-                    >
-                        {leaving ? 'Leaving…' : 'Leave Server'}
-                    </button>
-                </div>
-            )}
-
-            {inviteInfo && (
-                <div className="absolute inset-x-2 top-28 z-20 rounded border border-gray-700 bg-gray-800 p-4 shadow-lg">
-                    <div className="mb-2 text-sm font-semibold text-gray-100">Invite Created</div>
-                    <div className="mb-2 flex items-center gap-2">
-                        <span className="break-all font-mono text-xs text-gray-300">{inviteInfo.code}</span>
-                        <button
-                            type="button"
-                            className="rounded border border-gray-600 bg-gray-700 px-2 py-1 text-xs text-gray-100 hover:bg-gray-600"
-                            onClick={handleCopyInvite}
-                        >
-                            Copy
-                        </button>
-                    </div>
-                    <div className="flex justify-end">
-                        <button
-                            type="button"
-                            className="rounded bg-gray-700 px-3 py-1 text-xs text-gray-100 hover:bg-gray-600"
-                            onClick={() => setInviteInfo(null)}
-                        >
-                            Close
-                        </button>
-                    </div>
-                </div>
-            )}
-
-            {error && !inviteInfo && (
-                <div className="absolute inset-x-2 top-28 z-20 rounded border border-red-700 bg-red-800 p-4 shadow-lg">
-                    <div className="mb-2 text-sm font-semibold text-red-100">Error</div>
-                    <div className="mb-2 break-all text-xs text-red-200">{error}</div>
-                    <div className="flex justify-end">
-                        <button
-                            type="button"
-                            className="rounded bg-red-700 px-3 py-1 text-xs text-red-100 hover:bg-red-600"
-                            onClick={() => setError(null)}
-                        >
-                            Close
-                        </button>
-                    </div>
-                </div>
-            )}
         </div>
     );
 };
@@ -447,6 +275,20 @@ const GuildSidebarCategory = ({
         });
     };
 
+    const markChannelsAsRead = async () => {
+        const unreadChannels = sortedChannels.filter(isChannelUnread);
+        await Promise.all(
+            unreadChannels.map(channel => {
+                UnreadsService.setLastReadMessageId(channel.channel_id, channel.last_message_id || null);
+                ChannelsService.acknowledgeChannelMessage(channel.channel_id, channel.last_message_id || null);
+            })
+        );
+    };
+
+    const anyChannelUnread = useMemo(() => {
+        return sortedChannels.some(isChannelUnread);
+    }, [sortedChannels, channelUnreads]);
+
     return (
         <div className="flex w-full flex-col">
             {category && (
@@ -473,9 +315,17 @@ const GuildSidebarCategory = ({
                         </div>
                     </ContextMenuTrigger>
                     <ContextMenuContent className="w-52">
-                        <ContextMenuItem onSelect={() => handleDeleteChannel(category)} className="text-red-500 hover:bg-red-600/20">
-                            Delete Category
+                        <ContextMenuItem
+                            disabled={!anyChannelUnread}
+                            onSelect={markChannelsAsRead}>
+                            Mark as Read
                         </ContextMenuItem>
+
+                        {canManageChannels && (
+                            <ContextMenuItem onSelect={() => handleDeleteChannel(category)} className="text-red-500 hover:bg-red-600/20">
+                                Delete Category
+                            </ContextMenuItem>
+                        )}
                     </ContextMenuContent>
                 </ContextMenu>
             )}
