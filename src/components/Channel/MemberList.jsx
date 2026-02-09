@@ -6,6 +6,9 @@ import GuildMemberContextMenu from '../GuildMember/GuildMemberContextMenu.jsx';
 import GuildMemberPopoverContent from '../GuildMember/GuildMemberPopoverContent.jsx';
 import Avatar from '../Avatar.jsx';
 import { useRolesStore } from '../../store/roles.store.ts';
+import { useGuildsStore } from '@/store/guilds.store.ts';
+import { GuildsService } from '@/services/guilds.service.ts';
+import { CircleNotch } from '@phosphor-icons/react';
 
 const MemberListItem = ({ member, onMention }) => {
     const topColor = useMemo(() => {
@@ -55,10 +58,22 @@ const MemberListItem = ({ member, onMention }) => {
     );
 };
 
-const MemberList = ({ guildId, activeGuildMembers }) => {
+const MemberList = ({ guildId }) => {
     const { memberListOpen, setInputMessage, inputRef } = useChannelContext();
+    const { guildMembers } = useGuildsStore();
     const [membersByRole, setMembersByRole] = useState({});
     const [membersWithoutRoles, setMembersWithoutRoles] = useState([]);
+    const [isLoading, setIsLoading] = useState(false);
+
+    const activeGuildMembers = guildMembers[guildId];
+
+    useEffect(() => {
+        if (!guildId) return;
+
+        setIsLoading(true);
+
+        GuildsService.loadGuildMembers(guildId).finally(() => setIsLoading(false));
+    }, [guildId]);
 
     const onMention = useCallback((user) => {
         setInputMessage((prev) => `${prev} @${user.username} `);
@@ -98,31 +113,37 @@ const MemberList = ({ guildId, activeGuildMembers }) => {
                         Members
                     </div>
                     <div className="flex flex-1 flex-col gap-2 p-2 text-gray-400 overflow-y-auto">
-                        {roles.map((role) =>
-                            membersByRole[role.id] && membersByRole[role.id].length > 0 ? (
-                                <div key={role.id}>
-                                    <div className="px-2 py-1 text-xs font-bold text-gray-400">{role.name} &mdash; {membersByRole[role.id].length}</div>
-                                    {membersByRole[role.id].map((member) => (
-                                        <MemberListItem
-                                            key={member.user.id}
-                                            member={member}
-                                            onMention={onMention}
-                                        />
-                                    ))}
-                                </div>
-                            ) : null
-                        )}
-                        {membersWithoutRoles.length > 0 && (
-                            <div>
-                                <div className="px-2 py-1 text-xs font-bold text-gray-400">Members &mdash; {membersWithoutRoles.length}</div>
-                                {membersWithoutRoles.map((member) => (
-                                    <MemberListItem
-                                        key={member.user.id}
-                                        member={member}
-                                        onMention={onMention}
-                                    />
-                                ))}
-                            </div>
+                        {isLoading ? (
+                            <CircleNotch size={32} className="mx-auto animate-spin text-gray-500" />
+                        ) : (
+                            <>
+                                {roles.map((role) =>
+                                    membersByRole[role.id] && membersByRole[role.id].length > 0 ? (
+                                        <div key={role.id}>
+                                            <div className="px-2 py-1 text-xs font-bold text-gray-400">{role.name} &mdash; {membersByRole[role.id].length}</div>
+                                            {membersByRole[role.id].map((member) => (
+                                                <MemberListItem
+                                                    key={member.user.id}
+                                                    member={member}
+                                                    onMention={onMention}
+                                                />
+                                            ))}
+                                        </div>
+                                    ) : null
+                                )}
+                                {membersWithoutRoles.length > 0 && (
+                                    <div>
+                                        <div className="px-2 py-1 text-xs font-bold text-gray-400">Members &mdash; {membersWithoutRoles.length}</div>
+                                        {membersWithoutRoles.map((member) => (
+                                            <MemberListItem
+                                                key={member.user.id}
+                                                member={member}
+                                                onMention={onMention}
+                                            />
+                                        ))}
+                                    </div>
+                                )}
+                            </>
                         )}
                     </div>
                 </div>

@@ -10,15 +10,6 @@ import MemberList from './MemberList';
 
 const Channel = ({ channel }) => {
   const { guildId } = useGuildContext();
-  const { guildMembers } = useGuildsStore();
-
-  const activeGuildMembers = guildMembers[guildId] || [];
-
-  useEffect(() => {
-    if (!guildId) return;
-
-    GuildsService.loadGuildMembers(guildId);
-  }, [guildId]);
 
   return (
     <div className="relative flex min-h-0 w-full flex-1 flex-col bg-gray-700">
@@ -34,7 +25,7 @@ const Channel = ({ channel }) => {
 
         {channel?.type !== ChannelType.DM && (
           <div className="hidden lg:flex">
-            <MemberList guildId={guildId} activeGuildMembers={activeGuildMembers} />
+            <MemberList guildId={guildId} />
           </div>
         )}
       </div>
