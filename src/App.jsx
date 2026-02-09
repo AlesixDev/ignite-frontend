@@ -9,10 +9,8 @@ import DirectMessagesPage from './pages/DirectMessages';
 import GuildChannelPage from './pages/GuildChannel';
 import { GuildsService } from './services/guilds.service';
 import { FriendsService } from './services/friends.service';
-import axios from 'axios';
 import { useGuildsStore } from './store/guilds.store';
 import { useChannelsStore } from './store/channels.store';
-import notificationSound from './assets/notification.wav'
 import { UnreadsService } from './services/unreads.service';
 import { RolesService } from './services/roles.service';
 import { ChannelsService } from './services/channels.service';
@@ -53,31 +51,6 @@ const AuthRoute = ({ children }) => {
 
             await ChannelsService.loadChannels()
             await RolesService.initializeGuildRoles();
-
-            // Subsribe to the user private channel via Echo
-            console.log(`Subscribing to private.user.${user.id}`);
-
-            window.Echo.private(`user.${user.id}`)
-              .listen('.friendrequest.created', (event) => {
-                console.log('Received friend request event:', event);
-                FriendsService.loadRequests();
-              })
-              .listen('.friendrequest.deleted', (event) => {
-                console.log('Friend request deleted event:', event);
-                FriendsService.loadRequests();
-              })
-              .listen('.friendrequest.accepted', (event) => {
-                console.log('Friend request accepted event:', event);
-                FriendsService.loadFriends();
-                FriendsService.loadRequests();
-              })
-              .listen('.unread.updated', (event) => {
-                console.log('Unread updated event:', event);
-                UnreadsService.updateUnread(event.unread.channel_id, event.unread);
-              })
-              .listen('.message.created', ChannelsService.handleMessageCreated)
-              .listen('.message.updated', ChannelsService.handleMessageUpdated)
-              .listen('.message.deleted', ChannelsService.handleMessageDeleted);
           } else {
             localStorage.removeItem('token');
           }
@@ -95,6 +68,36 @@ const AuthRoute = ({ children }) => {
       initialize();
     }
   }, [initialized]);
+
+  // Subscribe to user private channel via Echo
+  useEffect(() => {
+    if (!initialized || !store.user) return;
+
+    // Subsribe to the user private channel via Echo
+    console.log(`Subscribing to private.user.${store.user.id}`);
+
+    window.Echo.private(`user.${store.user.id}`)
+      .listen('.friendrequest.created', (event) => {
+        console.log('Received friend request event:', event);
+        FriendsService.loadRequests();
+      })
+      .listen('.friendrequest.deleted', (event) => {
+        console.log('Friend request deleted event:', event);
+        FriendsService.loadRequests();
+      })
+      .listen('.friendrequest.accepted', (event) => {
+        console.log('Friend request accepted event:', event);
+        FriendsService.loadFriends();
+        FriendsService.loadRequests();
+      })
+      .listen('.unread.updated', (event) => {
+        console.log('Unread updated event:', event);
+        UnreadsService.updateUnread(event.unread.channel_id, event.unread);
+      })
+      .listen('.message.created', ChannelsService.handleMessageCreated)
+      .listen('.message.updated', ChannelsService.handleMessageUpdated)
+      .listen('.message.deleted', ChannelsService.handleMessageDeleted);
+  }, [store.user]);
 
   // Subscribe to all channels via Echo
   useEffect(() => {
