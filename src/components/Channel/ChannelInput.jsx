@@ -141,6 +141,7 @@ const convertSerializedMentions = (root, members, resolveUser) => {
 const ChannelInput = ({ channel }) => {
   const { inputMessage, setInputMessage } = useChannelContext();
   const editorRef = useRef(null);
+  const savedSelectionRef = useRef(null);
 
   const { guildId } = useGuildContext();
   const guildsStore = useGuildsStore();
@@ -179,15 +180,50 @@ const ChannelInput = ({ channel }) => {
 
   /* ---------------- handlers ---------------- */
 
+  const saveSelection = useCallback(() => {
+    const sel = window.getSelection();
+    if (sel && sel.rangeCount > 0 && editorRef.current?.contains(sel.anchorNode)) {
+      savedSelectionRef.current = sel.getRangeAt(0).cloneRange();
+    }
+  }, []);
+
+  const restoreSelection = useCallback(() => {
+    if (!editorRef.current) return;
+
+    // Focus the editor first
+    editorRef.current.focus();
+
+    // If we have a saved selection, restore it
+    if (savedSelectionRef.current) {
+      const sel = window.getSelection();
+      sel.removeAllRanges();
+      sel.addRange(savedSelectionRef.current);
+    } else {
+      // Otherwise, move cursor to the end
+      const range = document.createRange();
+      range.selectNodeContents(editorRef.current);
+      range.collapse(false);
+      const sel = window.getSelection();
+      sel.removeAllRanges();
+      sel.addRange(range);
+    }
+  }, []);
+
   const syncValue = useCallback(() => {
     if (!editorRef.current) return;
     setInputMessage(serializeFromDom(editorRef.current));
   }, [setInputMessage]);
 
   const handleInput = () => {
+    saveSelection();
     syncValue();
     setMentionQuery(getMentionQuery(editorRef.current));
     setMentionIndex(0);
+
+    // Clean up empty editor to show placeholder
+    if (editorRef.current && editorRef.current.textContent.trim() === '') {
+      editorRef.current.innerHTML = '';
+    }
   };
 
   const handleKeyDown = (e) => {
@@ -243,6 +279,13 @@ const ChannelInput = ({ channel }) => {
 
   return (
     <div className="bg-gray-700/95 px-2 pt-2 pb-2">
+      <style>{`
+        [contenteditable][data-placeholder]:empty:before {
+          content: attr(data-placeholder);
+          color: rgb(156, 163, 175);
+          pointer-events: none;
+        }
+      `}</style>
       <InputGroup className="relative flex items-center bg-gray-800 h-auto border border-gray-600">
         <Popover.Root
           open={!!mentionQuery && filteredMembers.length > 0}
@@ -255,9 +298,11 @@ const ChannelInput = ({ channel }) => {
               suppressContentEditableWarning
               onInput={handleInput}
               onKeyDown={handleKeyDown}
+              onKeyUp={saveSelection}
+              onClick={saveSelection}
               onPaste={handlePaste}
               className="min-h-[44px] w-full px-3 py-3 text-sm outline-none max-h-[50vh] overflow-y-auto"
-              data-placeholder="Message"
+              data-placeholder={`Message #${channel?.name || 'unknown'}`}
             />
           </Popover.Anchor>
 
@@ -294,10 +339,21 @@ const ChannelInput = ({ channel }) => {
               <Smile className="size-5" />
             </Button>
           </Popover.Trigger>
-          <Popover.Content side="top" align="end" className="p-0">
+          <Popover.Content
+            side="top"
+            align="end"
+            sideOffset={8}
+            collisionPadding={16}
+            className="p-0 w-[350px] h-[400px] flex flex-col overflow-hidden"
+          >
             <EmojiPicker
-              onEmojiSelect={({ emoji }) => {
-                insertTextAtCaret(emoji);
+              onEmojiSelect={({ label }) => {
+                // Restore focus and selection to the editor
+                restoreSelection();
+
+                // Convert label to Discord-style shortcode
+                const shortcode = `:${label.toLowerCase().replace(/\s+/g, '_')}:`;
+                insertTextAtCaret(shortcode);
                 syncValue();
               }}
             >
