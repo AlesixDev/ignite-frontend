@@ -1,9 +1,8 @@
 import { useCallback, useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, Link, useSearchParams } from 'react-router-dom';
 import { useForm, FormProvider, Controller } from 'react-hook-form';
-import { toast } from 'sonner'
 import useStore from '../hooks/useStore';
-import api from '../api';
+import { AuthService } from '../services/auth.service';
 import GuestLayout from '../layouts/GuestLayout';
 import { Card, CardContent } from '../components/ui/card';
 import { Field, FieldGroup, FieldLabel, FieldDescription, FieldError } from '../components/ui/field';
@@ -14,23 +13,20 @@ const LoginPage = () => {
   const form = useForm();
   const store = useStore();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
 
   const [submitError, setSubmitError] = useState(null);
   
   const onSubmit = useCallback(async (data) => {
     try {
-      const response = await api.post('login', data);
-
-      if (response.data.user && response.data.token) {
-        store.login(response.data.user, response.data.token);
-        navigate('/channels/@me', { replace: true });
-        toast.success('Logged in successfully.');
-      }
+      await AuthService.login(data);
+      const redirectTo = searchParams.get('redirect') || '/channels/@me';
+      navigate(redirectTo, { replace: true });
     } catch (error) {
       console.error(error);
       setSubmitError(error.response?.data?.message || 'An unknown error occurred during login.');
     }
-  }, [navigate, store]);
+  }, [navigate, searchParams]);
 
   return (
     <GuestLayout>

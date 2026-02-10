@@ -7,6 +7,7 @@ import LoginPage from './pages/Login';
 import RegisterPage from './pages/Register';
 import DirectMessagesPage from './pages/DirectMessages';
 import GuildChannelPage from './pages/GuildChannel';
+import InvitePage from './pages/InvitePage';
 import { GuildsService } from './services/guilds.service';
 import { FriendsService } from './services/friends.service';
 import { useGuildsStore } from './store/guilds.store';
@@ -177,6 +178,58 @@ const GuestRoute = ({ children }) => {
   return children ? children : <Outlet />;
 };
 
+const PublicRoute = ({ children }) => {
+  const store = useStore();
+  const [initialized, setInitialized] = useState(false);
+
+  useEffect(() => {
+    const initialize = async () => {
+      try {
+        const localToken = localStorage.getItem('token');
+        if (localToken) {
+          const { data: user } = await api.get('@me', {
+            headers: { Authorization: `Bearer ${localToken}` }
+          });
+
+          if (user?.username) {
+            store.login(user, localToken);
+
+            await Promise.all([
+              GuildsService.loadGuilds(),
+              FriendsService.loadFriends(),
+              FriendsService.loadRequests(),
+              UnreadsService.loadUnreads(),
+            ]);
+
+            await ChannelsService.loadChannels()
+            await RolesService.initializeGuildRoles();
+          } else {
+            localStorage.removeItem('token');
+          }
+        }
+      } catch (error) {
+        console.error('Failed to initialize on public route', error);
+        // Remove invalid token but don't prevent access
+        localStorage.removeItem('token');
+      }
+
+      setInitialized(true);
+    };
+
+    initialize();
+  }, []);
+
+  if (!initialized) {
+    return (
+      <div className="flex h-screen items-center justify-center bg-body">
+        <div className="size-16 animate-spin rounded-full border-4 border-solid border-primary border-t-transparent"></div>
+      </div>
+    );
+  }
+
+  return children ? children : <Outlet />;
+};
+
 function App() {
   const store = useStore();
   const { pathname } = useLocation();
@@ -207,6 +260,17 @@ function App() {
         store.user ? <Navigate to="/channels/@me" replace /> : <Navigate to="/login" replace />
       }
     />
+    <Route element={<PublicRoute />}>
+      <Route
+        path="/invite/:code"
+        element={
+          <>
+            <PageTitle title="Server Invite" />
+            <InvitePage />
+          </>
+        }
+      />
+    </Route>
     <Route element={<GuestRoute />}>
       <Route
         path="login"

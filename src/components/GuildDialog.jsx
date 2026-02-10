@@ -1,14 +1,12 @@
 import { useCallback, useMemo, useState } from 'react';
 import { FormProvider, useForm } from 'react-hook-form';
-import { toast } from 'sonner'
 import { ArrowLeft, ArrowRight } from '@phosphor-icons/react';
-import api from '../api';
 import { GuildsService } from '../services/guilds.service';
+import { InvitesService } from '../services/invites.service';
 import Dialog from './Dialog';
 import FormInput from './Form/FormInput';
 import FormError from './Form/FormError';
 import FormSubmit from './Form/FormSubmit';
-import { ChannelsService } from '../services/channels.service';
 
 const GuildDialog = ({ isOpen, setIsOpen }) => {
   const [view, setView] = useState('menu');
@@ -44,14 +42,10 @@ const GuildDialog = ({ isOpen, setIsOpen }) => {
   const onJoin = useCallback(
     async (data) => {
       try {
-        await api.post(`/invites/${data.invite}`);
-        await GuildsService.loadGuilds();
-        await ChannelsService.loadChannels();
-        toast.success('Joined server successfully.');
+        await InvitesService.acceptInvite(data.invite);
         closeAll();
       } catch (error) {
         console.error(error);
-        toast.error(error.response?.data?.message || 'An error occurred.');
       }
     }, [closeAll]
   );
