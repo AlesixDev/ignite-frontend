@@ -17,8 +17,7 @@ import { PermissionsService } from '@/services/permissions.service';
 import { Permissions } from '@/enums/Permissions';
 import { ChannelsService } from '@/services/channels.service';
 import { UnreadsService } from '@/services/unreads.service';
-import Markdown from 'react-markdown';
-import remarkGfm from 'remark-gfm'
+import Mention from '../Mention/Mention.jsx';
 
 const ChannelMessage = ({ message, prevMessage, pending }) => {
     const { guildId } = useGuildContext();
@@ -183,7 +182,7 @@ const ChannelMessage = ({ message, prevMessage, pending }) => {
                                 <div
                                     className={`text-gray-400 break-words break-all whitespace-pre-wrap ${pending ? 'opacity-50' : ''}`}
                                 >
-                                    <Markdown remarkPlugins={[[remarkGfm, { singleTilde: false }]]}>{message.content}</Markdown>
+                                    <Mention content={message.content} />
                                     {(message.updated_at && message.created_at !== message.updated_at) && (
                                         <span className="ml-1 text-[0.65rem] text-gray-500">(edited)</span>
                                     )}

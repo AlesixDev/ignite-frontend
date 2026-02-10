@@ -1,5 +1,6 @@
 import { toast } from 'sonner'
 import { useGuildsStore } from '../store/guilds.store';
+import { useUsersStore } from '../store/users.store';
 import api from '../api.js';
 import useStore from '../hooks/useStore';
 import axios from 'axios';
@@ -18,9 +19,14 @@ export const GuildsService = {
 
   async loadGuildMembers(guildId) {
     const { setGuildMembers } = useGuildsStore.getState();
+    const { setUsers } = useUsersStore.getState();
     try {
       const { data } = await api.get(`/guilds/${guildId}/members`);
       setGuildMembers(guildId, data);
+
+      // Extract and store users from members
+      const users = data.map((member: any) => member.user).filter((user: any) => user);
+      setUsers(users);
     } catch {
       toast.error('Unable to load guild members.');
     }
@@ -83,10 +89,16 @@ export const GuildsService = {
    */
   async addGuildMemberToStore(guildId: string, member: any) {
     const { guildMembers, setGuildMembers } = useGuildsStore.getState();
+    const { setUser } = useUsersStore.getState();
     const members = guildMembers[guildId] || [];
     if (members.length === 0) return;
-    
+
     setGuildMembers(guildId, [...members, member]);
+
+    // Add user to users store if exists
+    if (member.user) {
+      setUser(member.user.id, member.user);
+    }
   },
 
   /**
