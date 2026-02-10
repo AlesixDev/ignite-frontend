@@ -1,6 +1,6 @@
 import { useState, useCallback, useEffect, useRef, useMemo } from 'react';
 import { toast } from 'sonner'
-import { NotePencil, Trash, ArrowBendUpLeft, PushPin } from '@phosphor-icons/react';
+import { NotePencil, Trash, ArrowBendUpLeft, PushPin, CircleNotch } from '@phosphor-icons/react';
 import api from '../../api';
 import useStore from '../../hooks/useStore';
 import { useGuildsStore } from '../../store/guilds.store';
@@ -277,6 +277,7 @@ const ChannelMessages = ({ channel }) => {
     const [highlightId, setHighlightId] = useState(null);
     const [loadingMore, setLoadingMore] = useState(false);
     const [hasMore, setHasMore] = useState(false);
+    const [isLoading, setIsLoading] = useState(false);
 
     const messagesRef = useRef();
 
@@ -295,10 +296,11 @@ const ChannelMessages = ({ channel }) => {
     useEffect(() => {
         // If the channel id exists and we don't have messages loaded yet, load them
         if (channel?.channel_id && channelMessages[channel?.channel_id] == null) {
+            setIsLoading(true);
             ChannelsService.loadChannelMessages(channel?.channel_id).then(() => {
                 setHasMore(channelMessages[channel?.channel_id]?.length === 50);
                 setTimeout(() => setForceScrollDown(true), 0);
-            });
+            }).finally(() => setIsLoading(false));
         }
 
         if (!messagesRef.current) return;
@@ -387,39 +389,45 @@ const ChannelMessages = ({ channel }) => {
             ref={messagesRef}
             onScroll={onScroll}
         >
-            {atTop && hasMore && (
-                <div className="sticky top-0 z-10 flex justify-center bg-gray-700/80 px-4 py-2 backdrop-blur">
-                    <button
-                        type="button"
-                        onClick={onLoadMore}
-                        disabled={loadingMore}
-                        className="rounded bg-gray-800 px-3 py-1 text-xs text-gray-200 hover:bg-gray-700 disabled:opacity-60"
-                    >
-                        {loadingMore ? 'Loading…' : 'Load history'}
-                    </button>
-                </div>
-            )}
+            {isLoading ? (
+                <CircleNotch size={32} className="mx-auto animate-spin text-gray-500" />
+            ) : (
+                <>
+                    {atTop && hasMore && (
+                        <div className="sticky top-0 z-10 flex justify-center bg-gray-700/80 px-4 py-2 backdrop-blur">
+                            <button
+                                type="button"
+                                onClick={onLoadMore}
+                                disabled={loadingMore}
+                                className="rounded bg-gray-800 px-3 py-1 text-xs text-gray-200 hover:bg-gray-700 disabled:opacity-60"
+                            >
+                                {loadingMore ? 'Loading…' : 'Load history'}
+                            </button>
+                        </div>
+                    )}
 
-            {!hasMore && (
-                <div className="px-4 py-2 text-center text-xs text-gray-500">
-                    Beginning of channel
-                </div>
-            )}
+                    {!hasMore && (
+                        <div className="px-4 py-2 text-center text-xs text-gray-500">
+                            Beginning of channel
+                        </div>
+                    )}
 
-            {messages && messages.map((message, index) => {
-                const prevMessage = messages[index - 1] || null;
-                return (
-                    <div key={message.id} id={`msg-${message.id}`} className={highlightId === message.id ? 'rounded ring-2 ring-primary' : ''}>
-                        <ChannelMessage message={message} prevMessage={prevMessage} />
-                    </div>
-                );
-            })}
-            {pendingMessages && pendingMessages.map((message, index) => {
-                const prevMessage = pendingMessages[index - 1] || messages[messages.length - 1] || null;
-                return (
-                    <ChannelMessage key={message.nonce} message={message} prevMessage={prevMessage} pending={true} />
-                );
-            })}
+                    {messages && messages.map((message, index) => {
+                        const prevMessage = messages[index - 1] || null;
+                        return (
+                            <div key={message.id} id={`msg-${message.id}`} className={highlightId === message.id ? 'rounded ring-2 ring-primary' : ''}>
+                                <ChannelMessage message={message} prevMessage={prevMessage} />
+                            </div>
+                        );
+                    })}
+                    {pendingMessages && pendingMessages.map((message, index) => {
+                        const prevMessage = pendingMessages[index - 1] || messages[messages.length - 1] || null;
+                        return (
+                            <ChannelMessage key={message.nonce} message={message} prevMessage={prevMessage} pending={true} />
+                        );
+                    })}
+                </>
+            )}
         </div>
     );
 };
