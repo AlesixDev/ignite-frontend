@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { Fire, Plus } from '@phosphor-icons/react';
 import { useGuildsStore } from '../store/guilds.store';
@@ -10,11 +10,11 @@ import useStore from '../hooks/useStore';
 import Avatar from '../components/Avatar';
 import { GuildContextProvider } from '@/contexts/GuildContext';
 
-const SidebarIcon = ({ icon = '', iconUrl = '', isActive = false, isServerIcon = false, text = 'tooltip', isUnread = false }) => (
+const SidebarIcon = ({ icon = '', iconUrl = '', isActive = false, isServerIcon = false, text = 'tooltip', isUnread = false, mentionCount = 0 }) => (
   <div className="group relative mb-2 min-w-min px-3">
     <div
       className={`
-        absolute -left-1 top-1/2 block w-2 -translate-y-1/2 rounded-lg bg-white transition-all duration-200 
+        absolute -left-1 top-1/2 block w-2 -translate-y-1/2 rounded-lg bg-white transition-all duration-200
         ${isActive
           ? 'h-10' // Active: Full height (40px)
           : `group-hover:h-5 ${isUnread ? 'h-2' : 'h-0'}` // Inactive: Hover = Medium (20px), Base = Small (8px) if unread, else hidden
@@ -22,13 +22,22 @@ const SidebarIcon = ({ icon = '', iconUrl = '', isActive = false, isServerIcon =
       `}
     ></div>
 
-    <div className={`relative mx-auto flex size-12 cursor-pointer items-center justify-center overflow-hidden transition-all duration-300 ease-out hover:rounded-xl hover:bg-gray-600/60 hover:text-white ${isActive ? 'rounded-xl bg-gray-600/60 text-white' : 'rounded-3xl bg-gray-700 text-gray-100'} ${!isServerIcon ? 'text-green-500 hover:bg-green-500 hover:text-white' : ''}`}>
-      {icon ? (
-        icon
-      ) : iconUrl ? (
-        <img src={iconUrl} alt={text} className="size-full object-cover" />
-      ) : (
-        <span className="text-xl leading-none text-gray-400">{text.slice(0, 2)}</span>
+    <div className="relative mx-auto size-12">
+      <div className={`size-full cursor-pointer flex items-center justify-center overflow-hidden transition-all duration-300 ease-out hover:rounded-xl hover:bg-gray-600/60 hover:text-white ${isActive ? 'rounded-xl bg-gray-600/60 text-white' : 'rounded-3xl bg-gray-700 text-gray-100'} ${!isServerIcon ? 'text-green-500 hover:bg-green-500 hover:text-white' : ''}`}>
+        {icon ? (
+          icon
+        ) : iconUrl ? (
+          <img src={iconUrl} alt={text} className="size-full object-cover" />
+        ) : (
+          <span className="text-xl leading-none text-gray-400">{text.slice(0, 2)}</span>
+        )}
+      </div>
+
+      {/* Mention badge - Discord style, bottom-right corner */}
+      {mentionCount > 0 && (
+        <div className="absolute -bottom-1 -right-1 flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-bold leading-none text-white shadow-md border-2 border-gray-900 z-10">
+          {mentionCount}
+        </div>
       )}
 
       {/* Tooltip */}
@@ -47,7 +56,7 @@ const Sidebar = () => {
   const { channels } = useChannelsStore();
   const [isGuildDialogOpen, setIsGuildDialogOpen] = useState(false);
 
-  const isChannelUnread = (channel) => {
+  const isChannelUnread = useCallback((channel) => {
     if (!channel || !channelUnreadsLoaded || !channel.last_message_id) return false;
 
     const channelUnread = channelUnreads.find((cu) => String(cu.channel_id) === String(channel.channel_id));
@@ -57,9 +66,31 @@ const Sidebar = () => {
     const channelUnreadLastReadTimestamp = BigInt(channelUnread.last_read_message_id) >> 22n;
 
     return channelLastMessageTimestamp > channelUnreadLastReadTimestamp;
-  };
+  }, [channelUnreads, channelUnreadsLoaded]);
 
-  const isGuildUnread = (guild) => {
+  // Get mention count for a specific channel
+  const getChannelMentionCount = useCallback((channelId) => {
+    if (!channelUnreadsLoaded) return 0;
+
+    const channelUnread = channelUnreads.find((cu) => String(cu.channel_id) === String(channelId));
+    return channelUnread?.mentioned_message_ids?.length || 0;
+  }, [channelUnreads, channelUnreadsLoaded]);
+
+  // Get total mention count for a guild
+  const getGuildMentionCount = useCallback((guild) => {
+    if (!channelUnreadsLoaded) return 0;
+
+    const guildChannels = channels.filter((c) => String(c.guild_id) === String(guild.id) && c.type === 0);
+    let totalMentions = 0;
+
+    for (const channel of guildChannels) {
+      totalMentions += getChannelMentionCount(channel.channel_id);
+    }
+
+    return totalMentions;
+  }, [channels, channelUnreadsLoaded, getChannelMentionCount]);
+
+  const isGuildUnread = useCallback((guild) => {
     const guildChannels = guild.channels || [];
     for (const channel of guildChannels) {
       if (channel.type === 0 && isChannelUnread(channel)) {
@@ -67,7 +98,7 @@ const Sidebar = () => {
       }
     }
     return false;
-  };
+  }, [isChannelUnread]);
 
   // Get a list of actual DM Channel Objects that are unread
   const unreadDmChannels = useMemo(() => {
@@ -78,9 +109,10 @@ const Sidebar = () => {
       .map(channel => {
         // Resolve the "other" user for avatar/name display
         const otherUser = (channel.recipients || []).find(r => r.id !== user.id) || channel.user || { username: 'Unknown' };
-        return { ...channel, otherUser };
+        const mentionCount = getChannelMentionCount(channel.channel_id);
+        return { ...channel, otherUser, mentionCount };
       });
-  }, [channelUnreadsLoaded, channels, channelUnreads, user]);
+  }, [channelUnreadsLoaded, channels, user, isChannelUnread, getChannelMentionCount]);
 
   return (
     <>
@@ -106,6 +138,7 @@ const Sidebar = () => {
               isServerIcon={true}
               isActive={channelId === dm.channel_id}
               isUnread={true} // It's in this list because it is unread
+              mentionCount={dm.mentionCount}
             />
           </Link>
         ))}
@@ -121,6 +154,7 @@ const Sidebar = () => {
               isServerIcon={true}
               isActive={guildId === guild.id}
               isUnread={isGuildUnread(guild)}
+              mentionCount={getGuildMentionCount(guild)}
             />
           </Link>
         ))}
