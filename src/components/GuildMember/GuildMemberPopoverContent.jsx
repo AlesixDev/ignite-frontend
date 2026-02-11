@@ -128,9 +128,9 @@ const GuildMemberPopoverContent = ({ user, guild = null }) => {
             <div className="mt-14 px-4 pb-4">
               <div>
                 <h2 className="text-xl font-semibold text-gray-100">
-                  {user.username}
+                  {user.name}
                 </h2>
-                <p className="text-sm text-gray-500">{user.id}</p>
+                <p className="text-sm text-gray-500">{user.username}</p>
               </div>
               {/* bio: */}
               <div className="mt-4">
