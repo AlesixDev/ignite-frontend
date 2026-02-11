@@ -4,6 +4,7 @@ import { BrowserRouter } from 'react-router-dom';
 // eslint-disable-next-line no-unused-vars
 import Pusher from 'pusher-js';
 import Echo from 'laravel-echo';
+import { Minus, Square, X } from '@phosphor-icons/react';
 import App from './App';
 import api from './api';
 import './css/style.css';
@@ -28,37 +29,57 @@ function RouteLogger() {
   return null;
 }
 
+const WindowControlButton = ({ icon: Icon, onClick, variant = 'default', ariaLabel }) => {
+  const colorClasses = variant === 'close'
+    ? 'text-red-400 hover:text-red-200 hover:bg-red-900/40'
+    : 'text-gray-400 hover:text-gray-200 hover:bg-gray-700';
+
+  return (
+    <button
+      type="button"
+      aria-label={ariaLabel}
+      onClick={onClick}
+      className={`flex size-8 items-center justify-center transition-colors duration-100 ${colorClasses}`}
+      style={{ WebkitAppRegion: 'no-drag' }}
+    >
+      <Icon className="size-5" weight="regular" />
+    </button>
+  );
+};
+
 function WindowBar() {
   if (!window.IgniteNative) return null;
 
   return (
-    <div style={{
-      WebkitAppRegion: 'drag',
-      display: 'flex',
-      alignItems: 'center',
-      height: 32,
-      background: '#18181b',
-      borderBottom: '1px solid #27272a',
-      userSelect: 'none',
-      zIndex: 100,
-    }}>
-      <div style={{ flex: 1 }} />
-      <div style={{ display: 'flex', WebkitAppRegion: 'no-drag' }}>
-        <button
-          aria-label="Minimize"
+    <div
+      className="relative flex h-8 items-center justify-center border-b border-gray-700 bg-gray-900"
+      style={{
+        WebkitAppRegion: 'drag',
+        userSelect: 'none',
+        zIndex: 100
+      }}
+    >
+      {/* Centered app name */}
+      <div className="text-sm font-semibold text-gray-100">Ignite</div>
+
+      {/* Window controls - absolute positioned on the right */}
+      <div className="absolute right-0 flex">
+        <WindowControlButton
+          icon={Minus}
           onClick={() => window.IgniteNative.minimize()}
-          style={{ width: 40, height: 32, background: 'none', border: 'none', color: '#fff', fontSize: 18 }}
-        >—</button>
-        <button
-          aria-label="Maximize"
+          ariaLabel="Minimize"
+        />
+        <WindowControlButton
+          icon={Square}
           onClick={() => window.IgniteNative.maximize()}
-          style={{ width: 40, height: 32, background: 'none', border: 'none', color: '#fff', fontSize: 18 }}
-        >☐</button>
-        <button
-          aria-label="Close"
+          ariaLabel="Maximize"
+        />
+        <WindowControlButton
+          icon={X}
           onClick={() => window.IgniteNative.close()}
-          style={{ width: 40, height: 32, background: 'none', border: 'none', color: '#f87171', fontSize: 18 }}
-        >×</button>
+          variant="close"
+          ariaLabel="Close"
+        />
       </div>
     </div>
   );
@@ -92,7 +113,7 @@ window.Echo = new Echo({
 
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
-    {/* <WindowBar /> */}
+    <WindowBar />
     <BrowserRouter>
       <App />
       <Toaster />
