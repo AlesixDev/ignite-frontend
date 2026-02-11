@@ -19,6 +19,32 @@ import { ChannelsService } from '@/services/channels.service';
 import { UnreadsService } from '@/services/unreads.service';
 import Mention from '../Mention/Mention.jsx';
 
+// {
+//     "id": "1368635171753951232",
+//     "nonce": "1770743251830632",
+//     "channel_id": "1361304246670065664",
+//     "user_id": "1361304229808963584",
+//     "webhook_id": null,
+//     "content": "T *Hi* W\u00a0<@1368621360774905856>*Hello* **Hello**",
+//     "name": null,
+//     "avatar_url": null,
+//     "created_at": "2026-02-10T17:07:32.000000Z",
+//     "updated_at": "2026-02-10T17:07:32.000000Z",
+//     "deleted_at": null,
+//     "author": {
+//         "id": "1361304229808963584",
+//         "name": "Sloth",
+//         "avatar_url": null,
+//         "username": "SellAuth",
+//         "is_bot": false
+//     },
+//     "mentions": [
+//         {
+//             "message_id": "1368635171753951232",
+//             "user_id": "1368621360774905856"
+//         }
+//     ]
+// }
 const ChannelMessage = ({ message, prevMessage, pending }) => {
     const { guildId } = useGuildContext();
     const channelId = message.channel_id;
@@ -69,8 +95,13 @@ const ChannelMessage = ({ message, prevMessage, pending }) => {
     const canEdit = useMemo(() => message.author.id === store.user.id, [message.author.id, store.user.id]);
 
     const canDelete = useMemo(() => {
-        return PermissionsService.hasPermission(guildId, 0, Permissions.MANAGE_MESSAGES);
+        return PermissionsService.hasPermission(guildId, 0, Permissions.MANAGE_MESSAGES) || message.author.id === store.user.id;
     }, [guildId]);
+
+    const isMentioned = useMemo(() => {
+        if (!message.mentions || !store.user?.id) return false;
+        return message.mentions.some((mention) => mention.user_id === store.user.id);
+    }, [message.mentions, store.user?.id]);
 
     const [editedMessage, setEditedMessage] = useState(message.content);
 
@@ -126,8 +157,8 @@ const ChannelMessage = ({ message, prevMessage, pending }) => {
     return (
         <Popover>
             <ContextMenu>
-                <ContextMenuTrigger className={`group relative block py-1 data-[state=open]:bg-gray-800/60 ${isEditing ? 'bg-gray-800/60' : 'hover:bg-gray-800/60'} ${shouldStack ? '' : 'mt-3.5'}`}>
-                    <div className="flex items-start px-4 gap-4">
+                <ContextMenuTrigger className={`group relative block py-1 ${isMentioned ? 'bg-yellow-500/10 hover:bg-yellow-500/15 border-l-2 border-yellow-500' : `data-[state=open]:bg-gray-800/60 ${isEditing ? 'bg-gray-800/60' : 'hover:bg-gray-800/60'}`} ${shouldStack ? '' : 'mt-3.5'}`}>
+                    <div className={`flex items-start gap-4 ${isMentioned ? 'pl-3.5 pr-4' : 'px-4'}`}>
                         {shouldStack ? (
                             <div className="w-10" />
                         ) : (
