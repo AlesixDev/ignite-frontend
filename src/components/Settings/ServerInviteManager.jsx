@@ -82,8 +82,8 @@ const ServerInviteManager = ({ guild }) => {
         {loading && <div className="text-sm text-muted-foreground">Loading invites...</div>}
         {!loading && (
           <>
-            <div className="rounded-md border border-border">
-              <div className="overflow-x-auto">
+            <div className="rounded-md border border-border overflow-hidden">
+              <div className="overflow-auto max-h-[calc(100vh-20rem)]">
                 <table className="w-full">
                   <thead className="border-b border-border bg-muted/30">
                     <tr>
@@ -165,12 +165,12 @@ const ServerInviteManager = ({ guild }) => {
 
             {/* Pagination */}
             {totalPages > 1 && (
-              <div className="flex items-center justify-between">
-                <div className="text-sm text-muted-foreground">
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <div className="text-sm text-muted-foreground text-center sm:text-left">
                   Showing {startIndex + 1} to {Math.min(startIndex + ITEMS_PER_PAGE, invites.length)} of{' '}
                   {invites.length} invites
                 </div>
-                <div className="flex gap-2">
+                <div className="flex flex-wrap items-center justify-center gap-2 sm:justify-end">
                   <Button
                     type="button"
                     variant="outline"
@@ -180,7 +180,7 @@ const ServerInviteManager = ({ guild }) => {
                   >
                     Previous
                   </Button>
-                  <div className="flex items-center gap-1">
+                  <div className="flex items-center gap-1 overflow-x-auto max-w-full">
                     {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => {
                       if (
                         page === 1 ||
@@ -194,14 +194,14 @@ const ServerInviteManager = ({ guild }) => {
                             variant={currentPage === page ? 'default' : 'ghost'}
                             size="sm"
                             onClick={() => setCurrentPage(page)}
-                            className="min-w-[2.5rem]"
+                            className="min-w-[2.5rem] shrink-0"
                           >
                             {page}
                           </Button>
                         );
                       } else if (page === currentPage - 2 || page === currentPage + 2) {
                         return (
-                          <span key={page} className="px-2 text-muted-foreground">
+                          <span key={page} className="px-2 text-muted-foreground shrink-0">
                             ...
                           </span>
                         );
