@@ -8,7 +8,7 @@ import Avatar from '../Avatar.jsx';
 import { useRolesStore } from '../../store/roles.store.ts';
 import { useGuildsStore } from '@/store/guilds.store.ts';
 import { GuildsService } from '@/services/guilds.service.ts';
-import { CircleNotch } from '@phosphor-icons/react';
+import { CircleNotch, CaretDown, CaretRight } from '@phosphor-icons/react';
 
 const MemberListItem = ({ member, onMention }) => {
     const topColor = useMemo(() => {
@@ -64,6 +64,7 @@ const MemberList = ({ guildId }) => {
     const [membersByRole, setMembersByRole] = useState({});
     const [membersWithoutRoles, setMembersWithoutRoles] = useState([]);
     const [isLoading, setIsLoading] = useState(false);
+    const [collapsedRoles, setCollapsedRoles] = useState({});
 
     const activeGuildMembers = guildMembers[guildId];
 
@@ -81,6 +82,13 @@ const MemberList = ({ guildId }) => {
     }, [inputRef, setInputMessage]);
 
     const roles = useRolesStore().guildRoles[guildId] || [];
+
+    const toggleRole = useCallback((roleId) => {
+        setCollapsedRoles((prev) => ({
+            ...prev,
+            [roleId]: !prev[roleId]
+        }));
+    }, []);
 
     useEffect(() => {
         const tempMembersByRole = {};
@@ -120,8 +128,18 @@ const MemberList = ({ guildId }) => {
                                 {roles.map((role) =>
                                     membersByRole[role.id] && membersByRole[role.id].length > 0 ? (
                                         <div key={role.id}>
-                                            <div className="px-2 py-1 text-xs font-bold text-gray-400">{role.name} &mdash; {membersByRole[role.id].length}</div>
-                                            {membersByRole[role.id].map((member) => (
+                                            <div
+                                                className="flex items-center gap-1 px-2 py-1 text-xs font-bold text-gray-400 cursor-pointer hover:text-gray-300 transition"
+                                                onClick={() => toggleRole(role.id)}
+                                            >
+                                                {collapsedRoles[role.id] ? (
+                                                    <CaretRight size={12} weight="bold" />
+                                                ) : (
+                                                    <CaretDown size={12} weight="bold" />
+                                                )}
+                                                {role.name} &mdash; {membersByRole[role.id].length}
+                                            </div>
+                                            {!collapsedRoles[role.id] && membersByRole[role.id].map((member) => (
                                                 <MemberListItem
                                                     key={member.user.id}
                                                     member={member}
@@ -133,8 +151,18 @@ const MemberList = ({ guildId }) => {
                                 )}
                                 {membersWithoutRoles.length > 0 && (
                                     <div>
-                                        <div className="px-2 py-1 text-xs font-bold text-gray-400">Members &mdash; {membersWithoutRoles.length}</div>
-                                        {membersWithoutRoles.map((member) => (
+                                        <div
+                                            className="flex items-center gap-1 px-2 py-1 text-xs font-bold text-gray-400 cursor-pointer hover:text-gray-300 transition"
+                                            onClick={() => toggleRole('no-role')}
+                                        >
+                                            {collapsedRoles['no-role'] ? (
+                                                <CaretRight size={12} weight="bold" />
+                                            ) : (
+                                                <CaretDown size={12} weight="bold" />
+                                            )}
+                                            Members &mdash; {membersWithoutRoles.length}
+                                        </div>
+                                        {!collapsedRoles['no-role'] && membersWithoutRoles.map((member) => (
                                             <MemberListItem
                                                 key={member.user.id}
                                                 member={member}
