@@ -60,6 +60,31 @@ const SortableChannel = ({
         position: 'relative'
     };
 
+    const handleMarkAsRead = async () => {
+        await UnreadsService.setLastReadMessageId(channel.channel_id, channel.last_message_id || null);
+        await ChannelsService.acknowledgeChannelMessage(channel.channel_id, channel.last_message_id || null);
+        toast.success('Channel marked as read.');
+    };
+
+    const handleCopyLink = async () => {
+        const channelLink = `${window.location.origin}/channels/${channel.guild_id}/${channel.channel_id}`;
+        try {
+            await navigator.clipboard.writeText(channelLink);
+            toast.success('Channel link copied to clipboard.');
+        } catch {
+            toast.error('Could not copy channel link to clipboard.');
+        }
+    };
+
+    const handleCopyId = async () => {
+        try {
+            await navigator.clipboard.writeText(String(channel.channel_id));
+            toast.success('Channel ID copied to clipboard.');
+        } catch {
+            toast.error('Could not copy channel ID to clipboard.');
+        }
+    };
+
     return (
         <div ref={setNodeRef} style={style} {...attributes} {...listeners}>
             <ContextMenu>
@@ -70,26 +95,29 @@ const SortableChannel = ({
                         draggable="false"
                         style={{ pointerEvents: isDragging ? 'none' : 'auto' }}
                     >
-                        {isUnread && (
-                            <div className="absolute left-0 top-1/2 h-2 w-1 -translate-y-1/2 rounded-r-full bg-white transition-all" />
+                        {/* Unread indicator bar */}
+                        {isUnread && !isActive && (
+                            <div className="absolute left-0 top-1/2 h-2 w-1 -translate-y-1/2 rounded-r-full bg-white" />
                         )}
 
                         <div
-                            className={`relative mx-2 my-0.5 flex cursor-pointer items-center rounded px-2 py-1 transition-colors ${isActive
-                                ? 'bg-gray-600 text-gray-100'
-                                : isUnread
-                                    ? 'text-gray-100 hover:bg-gray-700'
-                                    : 'text-gray-500 hover:bg-gray-700 hover:text-gray-400'
-                                }`}
+                            className={`relative mx-2 my-0.5 flex cursor-pointer items-center rounded px-2 py-1 transition-colors ${
+                                isActive
+                                    ? 'bg-gray-600 text-gray-100'
+                                    : isUnread
+                                        ? 'text-gray-100 hover:bg-gray-700'
+                                        : 'text-gray-500 hover:bg-gray-700 hover:text-gray-400'
+                            }`}
                         >
-                            <Hash className={`size-5 shrink-0 transition-colors ${isActive || isUnread ? 'text-gray-200' : 'text-gray-500 group-hover:text-gray-400'}`} />
+                            <Hash className={`size-5 shrink-0 ${isActive || isUnread ? 'text-gray-200' : 'text-gray-500 group-hover:text-gray-400'}`} />
 
-                            <p className={`ml-1 truncate text-base transition-all select-none ${isActive || isUnread ? 'font-semibold text-white' : 'font-medium'}`}>
+                            <p className={`ml-1 flex-1 truncate text-base select-none ${isActive || isUnread ? 'font-semibold text-white' : 'font-medium'}`}>
                                 {channel.name}
                             </p>
 
+                            {/* Mention badge - Discord style */}
                             {mentionsCount > 0 && (
-                                <div className="ml-auto flex h-4 min-w-[16px] items-center justify-center rounded-full bg-red-500 px-1 text-[11px] font-bold text-white">
+                                <div className="ml-auto flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-red-500 px-1 text-[11px] font-bold leading-none text-white shadow-sm">
                                     {mentionsCount}
                                 </div>
                             )}
@@ -97,53 +125,31 @@ const SortableChannel = ({
                     </Link>
                 </ContextMenuTrigger>
                 <ContextMenuContent className="w-52">
-                    <ContextMenuItem
-                        disabled={!isUnread}
-                        onSelect={async () => {
-                            UnreadsService.setLastReadMessageId(channel.channel_id, channel.last_message_id || null);
-                            ChannelsService.acknowledgeChannelMessage(channel.channel_id, channel.last_message_id || null);
-                            toast.success('Channel marked as read.');
-                        }}>
+                    <ContextMenuItem disabled={!isUnread} onSelect={handleMarkAsRead}>
                         Mark as Read
                     </ContextMenuItem>
                     <ContextMenuSeparator />
                     <ContextMenuItem onSelect={() => navigate(`/channels/${channel.guild_id}/${channel.channel_id}`)}>
                         Go to Channel
                     </ContextMenuItem>
-                    <ContextMenuItem onSelect={async () => {
-                        const channelLink = `${window.location.origin}/channels/${channel.guild_id}/${channel.channel_id}`;
-                        try {
-                            await navigator.clipboard.writeText(channelLink);
-                            toast.success('Channel link copied to clipboard.');
-                        } catch {
-                            toast.error('Could not copy channel link to clipboard.');
-                        }
-                    }}>
+                    <ContextMenuItem onSelect={handleCopyLink}>
                         Copy Link
                     </ContextMenuItem>
 
                     {canManageChannels && (
                         <>
                             <ContextMenuSeparator />
-
-                            <ContextMenuItem disabled={!canManageChannels} onSelect={() => onEditChannel?.(channel)}>
+                            <ContextMenuItem onSelect={() => onEditChannel?.(channel)}>
                                 Edit Channel
                             </ContextMenuItem>
-                            <ContextMenuItem disabled={!canManageChannels} onSelect={() => handleDeleteChannel(channel)} className="text-red-500 hover:bg-red-600/20">
+                            <ContextMenuItem onSelect={() => handleDeleteChannel(channel)} className="text-red-500 hover:bg-red-600/20">
                                 Delete Channel
                             </ContextMenuItem>
-
-                            <ContextMenuSeparator />
                         </>
                     )}
-                    <ContextMenuItem onSelect={async () => {
-                        try {
-                            await navigator.clipboard.writeText(String(channel.channel_id));
-                            toast.success('Channel ID copied to clipboard.');
-                        } catch {
-                            toast.error('Could not copy channel ID to clipboard.');
-                        }
-                    }}>
+
+                    <ContextMenuSeparator />
+                    <ContextMenuItem onSelect={handleCopyId}>
                         Copy Channel ID
                     </ContextMenuItem>
                 </ContextMenuContent>
@@ -185,7 +191,8 @@ const GuildSidebarCategory = ({
         setSortedChannels(filtered);
     }, [channels, category?.channel_id]);
 
-    const isChannelUnread = (channel) => {
+    // Check if channel has unread messages
+    const isChannelUnread = useCallback((channel) => {
         if (!channel || !channelUnreadsLoaded || !channel.last_message_id) return false;
 
         const channelUnread = channelUnreads.find((cu) => String(cu.channel_id) === String(channel.channel_id));
@@ -195,16 +202,15 @@ const GuildSidebarCategory = ({
         const channelUnreadLastReadTimestamp = BigInt(channelUnread.last_read_message_id) >> 22n;
 
         return channelLastMessageTimestamp > channelUnreadLastReadTimestamp;
-    };
+    }, [channelUnreads, channelUnreadsLoaded]);
 
-    // Function to get the amount of mentions in a channel
+    // Get mention count from channelUnreads
     const getMentionsCount = useCallback((channel) => {
-        const channelUnread = channelUnreads.find((cu) => String(cu.channel_id) === String(channel.channel_id));
-        if (!channelUnread) return 0;
+        if (!channelUnreadsLoaded) return 0;
 
-        const mentionedMessageIds = channelUnread.mentioned_message_ids || [];
-        return mentionedMessageIds.length;
-    }, [channelUnreads]);
+        const channelUnread = channelUnreads.find((cu) => String(cu.channel_id) === String(channel.channel_id));
+        return channelUnread?.mentioned_message_ids?.length || 0;
+    }, [channelUnreads, channelUnreadsLoaded]);
 
     const handleDeleteChannel = useCallback(async (channel) => {
         if (!canManageChannels) {
@@ -275,19 +281,20 @@ const GuildSidebarCategory = ({
         });
     };
 
-    const markChannelsAsRead = async () => {
+    const markChannelsAsRead = useCallback(async () => {
         const unreadChannels = sortedChannels.filter(isChannelUnread);
         await Promise.all(
-            unreadChannels.map(channel => {
-                UnreadsService.setLastReadMessageId(channel.channel_id, channel.last_message_id || null);
-                ChannelsService.acknowledgeChannelMessage(channel.channel_id, channel.last_message_id || null);
+            unreadChannels.map(async (channel) => {
+                await UnreadsService.setLastReadMessageId(channel.channel_id, channel.last_message_id || null);
+                await ChannelsService.acknowledgeChannelMessage(channel.channel_id, channel.last_message_id || null);
             })
         );
-    };
+        toast.success('Channels marked as read.');
+    }, [sortedChannels, isChannelUnread]);
 
     const anyChannelUnread = useMemo(() => {
         return sortedChannels.some(isChannelUnread);
-    }, [sortedChannels, channelUnreads]);
+    }, [sortedChannels, isChannelUnread]);
 
     return (
         <div className="flex w-full flex-col">
