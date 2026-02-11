@@ -1,6 +1,7 @@
 import { useState, useCallback, useEffect, useRef, useMemo } from 'react';
 import { toast } from 'sonner'
-import { NotePencil, Trash, ArrowBendUpLeft, PushPin, CircleNotch } from '@phosphor-icons/react';
+import { NotePencil, Trash, ArrowBendUpLeft, PushPin, CircleNotch, Smiley } from '@phosphor-icons/react';
+import { cn } from '@/lib/utils';
 import api from '../../api';
 import useStore from '../../hooks/useStore';
 import { useGuildsStore } from '../../store/guilds.store';
@@ -9,6 +10,7 @@ import { useChannelContext } from '../../contexts/ChannelContext.jsx';
 import { ContextMenu, ContextMenuContent, ContextMenuItem, ContextMenuSeparator, ContextMenuTrigger } from '../ui/context-menu';
 import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover';
 import { Badge } from '../ui/badge';
+import { EmojiPicker, EmojiPickerSearch, EmojiPickerContent, EmojiPickerFooter } from '../ui/emoji-picker';
 import GuildMemberContextMenu from '../GuildMember/GuildMemberContextMenu';
 import GuildMemberPopoverContent from '../GuildMember/GuildMemberPopoverContent';
 import { useChannelsStore } from '../../store/channels.store';
@@ -46,10 +48,12 @@ import Mention from '../Mention/Mention.jsx';
 //     ]
 // }
 const ChannelMessage = ({ message, prevMessage, pending }) => {
+    const [emojiPickerOpen, setEmojiPickerOpen] = useState(false);
     const { guildId } = useGuildContext();
     const channelId = message.channel_id;
     const store = useStore();
     const guildsStore = useGuildsStore();
+    const channelsStore = useChannelsStore();
 
     const { messages, setMessages, editingId, setEditingId, setReplyingId, setPinId, inputRef, setInputMessage } = useChannelContext();
 
@@ -153,6 +157,32 @@ const ChannelMessage = ({ message, prevMessage, pending }) => {
         toast.info('Pinning is not available yet.');
     }, [channelId, message.id, setPinId]);
 
+    const handleAddReaction = useCallback((selectedEmoji) => {
+        if (!message.id || !channelId) return;
+        ChannelsService.toggleMessageReaction(channelId, message.id, selectedEmoji.emoji);
+    }, [message.id, channelId]);
+
+    const handleReactionToggle = useCallback((messageId, emoji) => {
+        if (!messageId || !channelId) return;
+        ChannelsService.toggleMessageReaction(channelId, messageId, emoji);
+    }, [channelId]);
+
+    // FRONTEND-ONLY: Reactions are computed from the Zustand store (in-memory storage).
+    // They will NOT persist on page refresh until the backend API is fully implemented.
+    // To enable persistence, backend needs to:
+    // 1. Store reactions in the database when PUT /channels/{id}/messages/{id}/reactions/{emoji}/@me is called
+    // 2. Load reactions via WebSocket 'message.reactions.set' event when opening a channel
+    // 3. Broadcast 'message.reaction.added/removed' events to other clients
+    // See ChannelsService.toggleMessageReaction and WebSocket handlers for integration points.
+    const messageReactions = useMemo(() => {
+        const reactions = channelsStore.channelReactions[channelId]?.[message.id] || [];
+        return reactions.map(reaction => ({
+            ...reaction,
+            // Dynamically compute 'me' flag by checking if current user is in the users array
+            me: reaction.users.includes(store.user.id)
+        }));
+    }, [channelsStore.channelReactions, channelId, message.id, store.user.id]);
+
     // TODO: This is duplicated
     const onMention = useCallback((user) => {
         setInputMessage((prev) => `${prev} @${user.username} `);
@@ -224,10 +254,45 @@ const ChannelMessage = ({ message, prevMessage, pending }) => {
                                     )}
                                 </div>
                             )}
+
+                            {messageReactions.length > 0 && (
+                                <div className="flex flex-wrap gap-1 mt-2 -ml-14 pl-14">
+                                    {messageReactions.map((reaction) => (
+                                        <button
+                                            key={reaction.emoji}
+                                            type="button"
+                                            onClick={() => handleReactionToggle(message.id, reaction.emoji)}
+                                            className={cn(
+                                                "inline-flex items-center gap-1 px-2 py-1 rounded border text-sm transition-colors",
+                                                reaction.me
+                                                    ? "bg-primary/20 border-primary/50 hover:bg-primary/30 hover:border-primary/60"
+                                                    : "bg-gray-800 border-gray-700 hover:bg-gray-700 hover:border-gray-600"
+                                            )}
+                                        >
+                                            <span className="text-base leading-none">{reaction.emoji}</span>
+                                            <span className="text-xs font-medium text-gray-300">{reaction.count}</span>
+                                        </button>
+                                    ))}
+                                </div>
+                            )}
                         </div>
                     </div>
                     {(!isEditing && !pending) && (
-                        <div className="absolute -top-4 right-4 hidden rounded-md border border-gray-800 bg-gray-700 group-hover:flex">
+                        <div className={`absolute -top-4 right-4 rounded-md border border-gray-800 bg-gray-700 z-40 ${emojiPickerOpen ? 'flex' : 'hidden group-hover:flex'}`}>
+                            <Popover open={emojiPickerOpen} onOpenChange={setEmojiPickerOpen}>
+                                <PopoverTrigger asChild>
+                                    <button type="button" className="rounded-md p-2 text-sm text-white/90 hover:bg-primary/10 hover:text-primary">
+                                        <Smiley className="size-5" />
+                                    </button>
+                                </PopoverTrigger>
+                                <PopoverContent side="bottom" align="end" sideOffset={8} avoidCollisions={false} className="p-0 w-[350px] h-[400px] flex flex-col overflow-hidden z-50">
+                                    <EmojiPicker onEmojiSelect={handleAddReaction}>
+                                        <EmojiPickerSearch />
+                                        <EmojiPickerContent />
+                                        <EmojiPickerFooter />
+                                    </EmojiPicker>
+                                </PopoverContent>
+                            </Popover>
                             {/* <button type="button" onClick={onPin} className="rounded-md p-2 text-sm text-white/90 hover:bg-primary/10 hover:text-primary">
                                 <PushPin className="size-5" />
                             </button> */}

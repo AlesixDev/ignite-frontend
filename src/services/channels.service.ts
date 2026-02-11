@@ -274,7 +274,7 @@ export const ChannelsService = {
 
     /**
      * Callback for the .channel.created event from the WebSocket to update the local store with the new channel.
-     * 
+     *
      * @param event The channel created event data
      * @return void
      */
@@ -284,11 +284,123 @@ export const ChannelsService = {
         if (!channels.some((c) => c.channel_id === event.channel.id)) {
             setChannels([...channels, event.channel]);
         }
-    }
+    },
+
+    /**
+     * Toggle a reaction on a message (add if not present, remove if present)
+     *
+     * FRONTEND-ONLY IMPLEMENTATION: Currently, reactions are stored only in the Zustand store (in-memory).
+     * When the page is refreshed, all reactions are lost. This is because the backend API is not yet implemented.
+     *
+     * For persistence across page refreshes and real-time sync with other users, the following backend integration is needed:
+     * 1. API endpoints to save/remove reactions to the server
+     * 2. WebSocket events to broadcast reaction changes to all connected clients
+     *
+     * @param channelId The ID of the channel
+     * @param messageId The ID of the message
+     * @param emoji The emoji to react with
+     */
+    toggleMessageReaction(channelId: string, messageId: string, emoji: string) {
+        const { user } = useStore.getState();
+        const { channelReactions, addReaction, removeReaction } = useChannelsStore.getState();
+
+        const messageReactions = channelReactions[channelId]?.[messageId] || [];
+        const existingReaction = messageReactions.find(r => r.emoji === emoji);
+
+        if (existingReaction?.users.includes(user.id)) {
+            removeReaction(channelId, messageId, emoji, user.id);
+            // TODO: BACKEND INTEGRATION NEEDED
+            // When ready, make API call to remove reaction from server:
+            // await api.delete(`/channels/${channelId}/messages/${messageId}/reactions/${encodeURIComponent(emoji)}/@me`);
+            // This will:
+            // - Remove the current user from the reaction's users list on the server
+            // - Trigger a 'message.reaction.removed' WebSocket event (see handleReactionRemoved)
+            // - Delete the entire reaction if no other users have reacted with this emoji
+        } else {
+            addReaction(channelId, messageId, emoji, user.id);
+            // TODO: BACKEND INTEGRATION NEEDED
+            // When ready, make API call to add reaction to server:
+            // await api.put(`/channels/${channelId}/messages/${messageId}/reactions/${encodeURIComponent(emoji)}/@me`);
+            // This will:
+            // - Add the current user to the reaction's users list on the server
+            // - Trigger a 'message.reaction.added' WebSocket event (see handleReactionAdded)
+            // - Create the reaction if no one has reacted with this emoji yet
+        }
+    },
+
+    /**
+     * Callback for the .message.reaction.added event from the WebSocket to add a reaction.
+     *
+     * BACKEND INTEGRATION: This handler is called when another user (or you, from another client) adds a reaction to a message.
+     * The server broadcasts this event via WebSocket when an API call is made to:
+     * PUT /channels/{channelId}/messages/{messageId}/reactions/{emoji}/@me
+     *
+     * To enable this:
+     * 1. Add this event listener in the WebSocket message handler (typically in websocket.service.ts or similar)
+     *    Example: websocket.on('message.reaction.added', (event) => ChannelsService.handleReactionAdded(event))
+     * 2. The backend should broadcast this event to all clients in the channel when a reaction is added
+     * 3. Each event should contain: { channel_id, message_id, emoji, user_id }
+     *
+     * @param event The reaction added event data: { channel_id, message_id, emoji, user_id }
+     * @return void
+     */
+    handleReactionAdded(event: any) {
+        const { addReaction } = useChannelsStore.getState();
+        const { channel_id, message_id, emoji, user_id } = event;
+
+        addReaction(channel_id, message_id, emoji, user_id);
+    },
+
+    /**
+     * Callback for the .message.reaction.removed event from the WebSocket to remove a reaction.
+     *
+     * BACKEND INTEGRATION: This handler is called when another user (or you, from another client) removes a reaction from a message.
+     * The server broadcasts this event via WebSocket when an API call is made to:
+     * DELETE /channels/{channelId}/messages/{messageId}/reactions/{emoji}/@me
+     *
+     * To enable this:
+     * 1. Add this event listener in the WebSocket message handler (typically in websocket.service.ts or similar)
+     *    Example: websocket.on('message.reaction.removed', (event) => ChannelsService.handleReactionRemoved(event))
+     * 2. The backend should broadcast this event to all clients in the channel when a reaction is removed
+     * 3. Each event should contain: { channel_id, message_id, emoji, user_id }
+     *
+     * @param event The reaction removed event data: { channel_id, message_id, emoji, user_id }
+     * @return void
+     */
+    handleReactionRemoved(event: any) {
+        const { removeReaction } = useChannelsStore.getState();
+        const { channel_id, message_id, emoji, user_id } = event;
+
+        removeReaction(channel_id, message_id, emoji, user_id);
+    },
+
+    /**
+     * Callback for the .message.reactions.set event from the WebSocket when loading existing reactions.
+     *
+     * BACKEND INTEGRATION: This handler is called when initially loading a message's reactions (e.g., when opening a channel).
+     * The server broadcasts this event via WebSocket after the client opens a channel to sync all existing reactions.
+     *
+     * To enable this:
+     * 1. Add this event listener in the WebSocket message handler (typically in websocket.service.ts or similar)
+     *    Example: websocket.on('message.reactions.set', (event) => ChannelsService.handleReactionsSet(event))
+     * 2. The backend should send this event for each message when a channel is opened
+     * 3. Or, implement a GET /channels/{channelId}/messages/{messageId}/reactions endpoint to load reactions
+     * 4. Each event should contain: { channel_id, message_id, reactions: Reaction[] }
+     *    Where Reaction = { emoji, count, users: string[], me: boolean }
+     *
+     * @param event The reactions set event data: { channel_id, message_id, reactions }
+     * @return void
+     */
+    handleReactionsSet(event: any) {
+        const { setMessageReactions } = useChannelsStore.getState();
+        const { channel_id, message_id, reactions } = event;
+
+        setMessageReactions(channel_id, message_id, reactions);
+    },
 
     /**
      * Callback for the .channel.deleted event from the WebSocket to update the local store by removing the deleted channel.
-     * 
+     *
      * @param event The channel deleted event data
      * @return void
      */
