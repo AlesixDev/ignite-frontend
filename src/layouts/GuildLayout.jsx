@@ -6,6 +6,8 @@ import useStore from '../hooks/useStore';
 import EditGuildChannelModal from '../components/Modals/EditGuildChannelModal';
 import { useChannelsStore } from '../store/channels.store';
 import GuildSidebar from '@/components/Guild/GuildSidebar';
+import CreateGuildChannelDialog from '@/components/Guild/CreateGuildChannelDialog';
+import CreateGuildCategoryDialog from '@/components/Guild/CreateGuildCategoryDialog';
 import { PermissionsService } from '@/services/permissions.service';
 import { Permissions } from '@/enums/Permissions';
 
@@ -13,8 +15,11 @@ const GuildLayout = ({ children, guild }) => {
   const store = useStore();
   const [isServerSettingsOpen, setIsServerSettingsOpen] = useState(false);
   const [isEditChannelModalOpen, setIsEditChannelModalOpen] = useState(false);
+  const [isCreateChannelDialogOpen, setIsCreateChannelDialogOpen] = useState(false);
+  const [isCreateCategoryDialogOpen, setIsCreateCategoryDialogOpen] = useState(false);
   const [settingsTab, setSettingsTab] = useState('info');
   const [editChannelId, setEditChannelId] = useState(null);
+  const [createChannelCategoryId, setCreateChannelCategoryId] = useState(null);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const { channels } = useChannelsStore();
 
@@ -80,6 +85,11 @@ const GuildLayout = ({ children, guild }) => {
             onEditChannel={(channel) => {
               openEditChannelModal({ channelId: channel.channel_id || channel.id });
             }}
+            onCreateChannel={(categoryId) => {
+              setCreateChannelCategoryId(categoryId);
+              setIsCreateChannelDialogOpen(true);
+            }}
+            onCreateCategory={() => setIsCreateCategoryDialogOpen(true)}
             canOpenServerSettings={canManageGuild}
             canManageChannels={canManageChannels}
           />
@@ -110,6 +120,17 @@ const GuildLayout = ({ children, guild }) => {
         guild={guild}
         onClose={() => setIsEditChannelModalOpen(false)}
         channel={channels.find((c) => String(c.channel_id) === String(editChannelId))}
+      />
+      <CreateGuildChannelDialog
+        isOpen={isCreateChannelDialogOpen}
+        setIsOpen={setIsCreateChannelDialogOpen}
+        guild={guild}
+        categoryId={createChannelCategoryId}
+      />
+      <CreateGuildCategoryDialog
+        isOpen={isCreateCategoryDialogOpen}
+        setIsOpen={setIsCreateCategoryDialogOpen}
+        guild={guild}
       />
     </DefaultLayout>
   );

@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Button } from "@/components/ui/button";
 
-import Dialog from '@/components/Dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { ChannelsService } from '@/services/channels.service';
 
 const CreateGuildChannelDialog = ({ isOpen, setIsOpen, guild, categoryId }) => {
@@ -47,9 +47,13 @@ const CreateGuildChannelDialog = ({ isOpen, setIsOpen, guild, categoryId }) => {
   }, [guild.id, categoryId, setIsOpen, reset]);
 
   return (
-    <Dialog isOpen={isOpen} setIsOpen={setIsOpen} title="Create Channel">
-      <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-        
+    <Dialog open={isOpen} onOpenChange={setIsOpen}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Create Channel</DialogTitle>
+        </DialogHeader>
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+
         {/* Channel Type Selection */}
         <div className="space-y-3">
           <Label className="text-xs font-bold uppercase text-muted-foreground">
@@ -130,10 +134,10 @@ const CreateGuildChannelDialog = ({ isOpen, setIsOpen, guild, categoryId }) => {
         </div>
 
         {/* Footer Actions */}
-        <div className="flex justify-end gap-3 pt-2">
-          <Button 
-            type="button" 
-            variant="ghost" 
+        <DialogFooter>
+          <Button
+            type="button"
+            variant="ghost"
             onClick={() => {
               setIsOpen(false);
               reset();
@@ -141,16 +145,17 @@ const CreateGuildChannelDialog = ({ isOpen, setIsOpen, guild, categoryId }) => {
           >
             Cancel
           </Button>
-          <Button 
-            type="submit" 
+          <Button
+            type="submit"
             disabled={isSubmitting}
             className="text-white px-6"
           >
             {isSubmitting ? "Creating..." : "Create Channel"}
             {!isSubmitting && <ArrowRight className="ml-2 size-4" />}
           </Button>
-        </div>
+        </DialogFooter>
       </form>
+      </DialogContent>
     </Dialog>
   );
 }

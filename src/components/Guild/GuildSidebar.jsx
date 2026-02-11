@@ -20,7 +20,6 @@ import {
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 
-import CreateGuildChannelDialog from '@/components/Guild/CreateGuildChannelDialog';
 import api from '@/api';
 import { GuildsService } from '@/services/guilds.service';
 import { ContextMenu, ContextMenuContent, ContextMenuItem, ContextMenuSeparator, ContextMenuTrigger } from '@/components/ui/context-menu';
@@ -28,7 +27,6 @@ import { useUnreadsStore } from '@/store/unreads.store';
 import { UnreadsService } from '@/services/unreads.service';
 import { ChannelsService } from '@/services/channels.service';
 import { useChannelsStore } from '@/store/channels.store';
-import CreateGuildCategoryDialog from '@/components/Guild/CreateGuildCategoryDialog';
 import GuildSidebarHeader from './GuildSidebarHeader';
 
 const SortableChannel = ({
@@ -376,13 +374,12 @@ const GuildSidebar = ({
     guild,
     onOpenServerSettings,
     onEditChannel,
+    onCreateChannel,
+    onCreateCategory,
     canOpenServerSettings,
     canManageChannels,
 }) => {
     const { channelId } = useParams();
-    const [isCreateChannelDialogOpen, setIsCreateChannelDialogOpen] = useState(false);
-    const [isCreateCategoryDialogOpen, setIsCreateCategoryDialogOpen] = useState(false);
-    const [categoryId, setCategoryId] = useState(null);
     const { channels } = useChannelsStore();
 
     const guildChannels = useMemo(() => {
@@ -391,18 +388,6 @@ const GuildSidebar = ({
 
     // Go through all categories (channels with type 3) and render their channels inside them
     const categories = (guildChannels || []).filter((c) => c.type === 3);
-
-    // Also find channels with NO category (root level) to pass to first section
-    const rootChannels = (guildChannels || []).filter(c => !c.parent_id && c.type !== 3);
-
-    const onCreateChannel = useCallback(() => {
-        setCategoryId(null);
-        setIsCreateChannelDialogOpen(true);
-    }, []);
-
-    const onCreateCategory = useCallback(() => {
-        setIsCreateCategoryDialogOpen(true);
-    }, []);
 
     return (
         <>
@@ -423,7 +408,7 @@ const GuildSidebar = ({
                                 category={null}
                                 channels={guildChannels} // Passing all, section filters
                                 activeChannelId={channelId}
-                                openCreateChannelDialog={() => { setIsCreateChannelDialogOpen(true); setCategoryId(null); }}
+                                openCreateChannelDialog={() => onCreateChannel(null)}
                                 guild={guild}
                                 onEditChannel={onEditChannel}
                                 canManageChannels={canManageChannels}
@@ -435,10 +420,7 @@ const GuildSidebar = ({
                                     category={category}
                                     channels={guildChannels}
                                     activeChannelId={channelId}
-                                    openCreateChannelDialog={() => {
-                                        setIsCreateChannelDialogOpen(true);
-                                        setCategoryId(category.channel_id);
-                                    }}
+                                    openCreateChannelDialog={() => onCreateChannel(category.channel_id)}
                                     guild={guild}
                                     onEditChannel={onEditChannel}
                                     canManageChannels={canManageChannels}
@@ -449,28 +431,17 @@ const GuildSidebar = ({
                 </ContextMenuTrigger>
                 <ContextMenuContent className="w-52">
                     {canManageChannels && (
-                        <ContextMenuItem onSelect={onCreateChannel}>
+                        <ContextMenuItem onSelect={() => onCreateChannel(null)}>
                             Create Channel
                         </ContextMenuItem>
                     )}
                     {canManageChannels && (
-                        <ContextMenuItem onSelect={onCreateCategory}>
+                        <ContextMenuItem onSelect={() => onCreateCategory()}>
                             Create Category
                         </ContextMenuItem>
                     )}
                 </ContextMenuContent>
             </ContextMenu>
-            <CreateGuildChannelDialog
-                isOpen={isCreateChannelDialogOpen}
-                setIsOpen={setIsCreateChannelDialogOpen}
-                guild={guild}
-                categoryId={categoryId}
-            />
-            <CreateGuildCategoryDialog
-                isOpen={isCreateCategoryDialogOpen}
-                setIsOpen={setIsCreateCategoryDialogOpen}
-                guild={guild}
-            />
         </>
     );
 };
