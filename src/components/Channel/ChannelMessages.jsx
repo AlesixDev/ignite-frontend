@@ -159,17 +159,6 @@ const ChannelMessage = ({ message, prevMessage, pending }) => {
         inputRef.current.focus();
     }, [inputRef, setInputMessage]);
 
-    // Check if the current user is mentioned in this message
-    const isMentioned = useMemo(() => {
-        if (!store.user) return false;
-        // Check if message content contains @username or @userid
-        const mentionPatterns = [
-            `@${store.user.username}`,
-            `@${store.user.id}`,
-        ];
-        return mentionPatterns.some(pattern => message.content.includes(pattern));
-    }, [message.content, store.user]);
-
     return (
         <Popover>
             <ContextMenu>

@@ -103,24 +103,6 @@ const Sidebar = () => {
     return false;
   }, [isChannelUnread]);
 
-  // Get total mention count for a guild across all its channels
-  const getGuildMentionCount = useCallback((guild) => {
-    const guildChannels = guild.channels || [];
-    let totalMentions = 0;
-
-    for (const channel of guildChannels) {
-      if (channel.type === 0) { // Only count text channels
-        const channelUnread = channelUnreads.find((cu) => String(cu.channel_id) === String(channel.channel_id));
-        if (channelUnread) {
-          const mentionedMessageIds = channelUnread.mentioned_message_ids || [];
-          totalMentions += mentionedMessageIds.length;
-        }
-      }
-    }
-
-    return totalMentions;
-  }, [channelUnreads]);
-
   // Calculate pending friend requests count (incoming requests only)
   const pendingCount = useMemo(() => {
     if (!user) return 0;
