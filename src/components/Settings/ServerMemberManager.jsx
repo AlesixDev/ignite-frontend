@@ -2,10 +2,20 @@ import { useEffect, useMemo, useState } from 'react';
 import api from '../../api';
 import { Badge } from '../ui/badge';
 import { Button } from '../ui/button';
+import { Input } from '../ui/input';
 import { Label } from '../ui/label';
 import { ScrollArea } from '../ui/scroll-area';
 import { Separator } from '../ui/separator';
 import { Switch } from '../ui/switch';
+import { Search } from 'lucide-react';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from '../ui/dialog';
+
+const ITEMS_PER_PAGE = 10;
 
 const ServerMemberManager = ({ guild }) => {
   const [members, setMembers] = useState([]);
@@ -15,6 +25,8 @@ const ServerMemberManager = ({ guild }) => {
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [currentPage, setCurrentPage] = useState(1);
 
   useEffect(() => {
     if (!guild?.id) return;
@@ -29,12 +41,13 @@ const ServerMemberManager = ({ guild }) => {
     ])
       .then(([membersResponse, rolesResponse]) => {
         if (!active) return;
+
         const membersData = Array.isArray(membersResponse.data) ? membersResponse.data : [];
         const rolesData = Array.isArray(rolesResponse.data) ? rolesResponse.data : [];
-        console.log('Member manager: loaded members', membersData);
-        console.log('Member manager: loaded roles', rolesData);
+
         setMembers(membersData);
         setRoles(rolesData);
+
         const initialRoles = membersData.reduce((acc, member) => {
           const roleIds = Array.isArray(member.roles)
             ? member.roles.map((role) => role.id || role.role_id).filter(Boolean)
@@ -67,6 +80,7 @@ const ServerMemberManager = ({ guild }) => {
       members.map((member) => ({
         id: member.user_id || member.id,
         name: member.nickname || member.user?.username || member.username || 'Unknown',
+        joinedAt: member.joined_at || member.created_at || null,
       })),
     [members]
   );
@@ -79,6 +93,22 @@ const ServerMemberManager = ({ guild }) => {
       })),
     [roles]
   );
+
+  const filteredMembers = useMemo(() => {
+    if (!searchQuery.trim()) return memberOptions;
+    const query = searchQuery.toLowerCase();
+    return memberOptions.filter((member) =>
+      member.name.toLowerCase().includes(query)
+    );
+  }, [memberOptions, searchQuery]);
+
+  const totalPages = Math.ceil(filteredMembers.length / ITEMS_PER_PAGE);
+  const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+  const paginatedMembers = filteredMembers.slice(startIndex, startIndex + ITEMS_PER_PAGE);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchQuery]);
 
   const toggleRole = (memberId, roleId) => {
     setMemberRoles((prev) => {
@@ -94,14 +124,11 @@ const ServerMemberManager = ({ guild }) => {
 
   const handleSave = async (memberId) => {
     if (!guild?.id || !memberId) return;
+
     setSaving(true);
     setError('');
 
     try {
-      console.log('Member manager: updating member', {
-        memberId,
-        roles: Array.from(memberRoles[memberId] || []),
-      });
       await api.patch(`/guilds/${guild.id}/members/${memberId}`, {
         roles: Array.from(memberRoles[memberId] || []),
       });
@@ -115,105 +142,203 @@ const ServerMemberManager = ({ guild }) => {
   };
 
   return (
-    <div className="w-full space-y-6 min-w-0">
-      <div className="space-y-1">
-        <h3 className="text-lg font-semibold">Member Management</h3>
-        <p className="text-sm text-muted-foreground">
-          Assign roles to members in {guild?.name || 'this server'}.
-        </p>
-      </div>
-
-      <div className="grid gap-4 lg:grid-cols-[minmax(0,1.2fr)_minmax(0,0.8fr)]">
-        <div className="rounded-lg border border-border bg-card/60 p-5">
-          <div className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-            Members
-          </div>
-          <p className="mt-1 text-xs text-muted-foreground">
-            Select a member to edit their role assignments.
+    <div className="max-w-full space-y-6">
+      <div className="flex items-start justify-between gap-4">
+        <div className="space-y-2">
+          <h2 className="text-xl font-bold">Members</h2>
+          <p className="text-sm text-muted-foreground">
+            Manage members in {guild?.name || 'this server'}.
           </p>
-          <Separator className="my-4" />
-          {loading && <div className="text-xs text-muted-foreground">Loading members...</div>}
-          {error && <div className="text-xs text-destructive">{error}</div>}
-          {!loading && (
-            <ScrollArea className="max-h-[420px] pr-2">
-              <div className="space-y-3">
-                {memberOptions.length === 0 ? (
-                  <div className="rounded bg-muted/40 px-3 py-2 text-xs text-muted-foreground">
-                    No members found.
-                  </div>
-                ) : (
-                  memberOptions.map((member) => {
-                    const assignedRoles = memberRoles[member.id] || new Set();
-                    const isActive = editingMemberId === member.id;
-                    return (
-                      <div
-                        key={member.id}
-                        className={`rounded-md border p-3 transition ${
-                          isActive ? 'border-primary/60 bg-primary/10' : 'border-border bg-background/40'
-                        }`}
-                      >
-                        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                          <div className="space-y-2">
-                            <div className="text-sm font-medium text-foreground break-words">
-                              {member.name}
-                            </div>
-                            <div className="flex flex-wrap gap-2">
-                              {roleOptions.length === 0 && (
-                                <span className="text-[10px] text-muted-foreground">No roles</span>
-                              )}
-                              {roleOptions.map((role) => (
-                                <Badge
-                                  key={role.id}
-                                  variant={assignedRoles.has(role.id) ? 'default' : 'outline'}
-                                  className={assignedRoles.has(role.id) ? '' : 'text-muted-foreground'}
-                                >
-                                  {role.name}
-                                </Badge>
-                              ))}
-                            </div>
-                          </div>
-                          <Button
-                            type="button"
-                            variant={isActive ? 'default' : 'outline'}
-                            size="sm"
-                            onClick={() =>
-                              setEditingMemberId((current) => (current === member.id ? null : member.id))
-                            }
-                          >
-                            {isActive ? 'Editing' : 'Edit Roles'}
-                          </Button>
-                        </div>
-                      </div>
-                    );
-                  })
-                )}
-              </div>
-            </ScrollArea>
-          )}
         </div>
 
-        <div className="rounded-lg border border-border bg-card/60 p-5">
-          <div className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-            Role Editor
+        {/* Search Bar */}
+        <div className="relative w-80">
+          <Input
+            type="text"
+            placeholder="Search members"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="pl-10"
+          />
+        </div>
+      </div>
+
+      {loading && <div className="text-sm text-muted-foreground">Loading members...</div>}
+      {error && (
+        <div className="rounded-md bg-destructive/10 px-4 py-3 text-sm text-destructive">
+          {error}
+        </div>
+      )}
+
+      {!loading && (
+        <>
+          {/* Members Table */}
+          <div className="rounded-md border border-border">
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead className="border-b border-border bg-muted/30">
+                  <tr>
+                    <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                      Name
+                    </th>
+                    <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                      Member Since
+                    </th>
+                    <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                      Roles
+                    </th>
+                    <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                      Actions
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-border">
+                  {paginatedMembers.length === 0 ? (
+                    <tr>
+                      <td colSpan="4" className="px-4 py-12 text-center text-sm text-muted-foreground">
+                        {searchQuery ? 'No members found matching your search.' : 'No members found.'}
+                      </td>
+                    </tr>
+                  ) : (
+                    paginatedMembers.map((member) => {
+                      const assignedRoles = memberRoles[member.id] || new Set();
+                      const memberRolesList = roleOptions.filter((role) =>
+                        assignedRoles.has(role.id)
+                      );
+                      return (
+                        <tr key={member.id} className="hover:bg-muted/20 transition-colors">
+                          <td className="px-4 py-3">
+                            <div className="flex items-center gap-3">
+                              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/20 text-sm font-semibold">
+                                {member.name.charAt(0).toUpperCase()}
+                              </div>
+                              <span className="font-medium">{member.name}</span>
+                            </div>
+                          </td>
+                          <td className="px-4 py-3 text-sm text-muted-foreground">
+                            {member.joinedAt
+                              ? new Date(member.joinedAt).toLocaleDateString('en-US', {
+                                  year: 'numeric',
+                                  month: 'short',
+                                  day: 'numeric',
+                                })
+                              : 'Unknown'}
+                          </td>
+                          <td className="px-4 py-3">
+                            <div className="flex flex-wrap gap-1.5">
+                              {memberRolesList.length === 0 ? (
+                                <span className="text-sm text-muted-foreground">No roles</span>
+                              ) : (
+                                memberRolesList.map((role) => (
+                                  <Badge key={role.id} variant="secondary" className="text-xs">
+                                    {role.name}
+                                  </Badge>
+                                ))
+                              )}
+                            </div>
+                          </td>
+                          <td className="px-4 py-3 text-right">
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => setEditingMemberId(member.id)}
+                            >
+                              Edit
+                            </Button>
+                          </td>
+                        </tr>
+                      );
+                    })
+                  )}
+                </tbody>
+              </table>
+            </div>
           </div>
-          <p className="mt-1 text-xs text-muted-foreground">
-            Toggle roles and save changes.
-          </p>
-          <Separator className="my-4" />
-          {editingMemberId ? (
-            <>
-              <Label className="text-xs text-muted-foreground">Update roles</Label>
-              <ScrollArea className="mt-3 max-h-[360px] pr-2">
-                <div className="grid gap-2">
+
+          {/* Pagination */}
+          {totalPages > 1 && (
+            <div className="flex items-center justify-between">
+              <div className="text-sm text-muted-foreground">
+                Showing {startIndex + 1} to {Math.min(startIndex + ITEMS_PER_PAGE, filteredMembers.length)} of{' '}
+                {filteredMembers.length} members
+              </div>
+              <div className="flex gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                  disabled={currentPage === 1}
+                >
+                  Previous
+                </Button>
+                <div className="flex items-center gap-1">
+                  {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => {
+                    if (
+                      page === 1 ||
+                      page === totalPages ||
+                      (page >= currentPage - 1 && page <= currentPage + 1)
+                    ) {
+                      return (
+                        <Button
+                          key={page}
+                          type="button"
+                          variant={currentPage === page ? 'default' : 'ghost'}
+                          size="sm"
+                          onClick={() => setCurrentPage(page)}
+                          className="min-w-[2.5rem]"
+                        >
+                          {page}
+                        </Button>
+                      );
+                    } else if (page === currentPage - 2 || page === currentPage + 2) {
+                      return (
+                        <span key={page} className="px-2 text-muted-foreground">
+                          ...
+                        </span>
+                      );
+                    }
+                    return null;
+                  })}
+                </div>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                  disabled={currentPage === totalPages}
+                >
+                  Next
+                </Button>
+              </div>
+            </div>
+          )}
+        </>
+      )}
+
+      {/* Edit Roles Dialog */}
+      <Dialog open={!!editingMemberId} onOpenChange={(open) => !open && setEditingMemberId(null)}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>
+              Edit Roles - {memberOptions.find((m) => m.id === editingMemberId)?.name}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label className="text-sm font-semibold">Roles</Label>
+              <ScrollArea className="max-h-[300px]">
+                <div className="space-y-2">
                   {roleOptions.length === 0 ? (
-                    <div className="text-xs text-muted-foreground">No roles available.</div>
+                    <div className="text-sm text-muted-foreground">No roles available.</div>
                   ) : (
                     roleOptions.map((role) => (
                       <div
                         key={role.id}
-                        className="flex items-center justify-between rounded-md border border-border bg-background/40 px-3 py-2"
+                        className="flex items-center justify-between rounded-md border border-border bg-muted/20 px-3 py-2.5"
                       >
-                        <span className="text-xs text-foreground">{role.name}</span>
+                        <span className="text-sm font-medium">{role.name}</span>
                         <Switch
                           checked={(memberRoles[editingMemberId] || new Set()).has(role.id)}
                           onCheckedChange={() => toggleRole(editingMemberId, role.id)}
@@ -223,30 +348,27 @@ const ServerMemberManager = ({ guild }) => {
                   )}
                 </div>
               </ScrollArea>
-              <div className="mt-4 flex items-center gap-2">
-                <Button
-                  type="button"
-                  onClick={() => handleSave(editingMemberId)}
-                  disabled={saving}
-                >
-                  {saving ? 'Saving...' : 'Save Roles'}
-                </Button>
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => setEditingMemberId(null)}
-                >
-                  Cancel
-                </Button>
-              </div>
-            </>
-          ) : (
-            <div className="rounded-md border border-dashed border-border bg-muted/20 px-4 py-6 text-xs text-muted-foreground">
-              Select a member on the left to edit their roles.
             </div>
-          )}
-        </div>
-      </div>
+            <Separator />
+            <div className="flex justify-end gap-2">
+              <Button
+                type="button"
+                variant="ghost"
+                onClick={() => setEditingMemberId(null)}
+              >
+                Cancel
+              </Button>
+              <Button
+                type="button"
+                onClick={() => handleSave(editingMemberId)}
+                disabled={saving}
+              >
+                {saving ? 'Saving...' : 'Save Changes'}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

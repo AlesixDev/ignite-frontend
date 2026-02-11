@@ -268,5 +268,28 @@ export const ChannelsService = {
                 m.id === event.message.id ? { ...m, content: event.message.content, updated_at: event.message.updated_at } : m
             ));
         }
+    },
+
+    /**
+     * Callback for the .channel.created event from the WebSocket to update the local store with the new channel.
+     * 
+     * @param event The channel created event data
+     * @return void
+     */
+    handleChannelCreated(event: any) {
+        const { channels, setChannels } = useChannelsStore.getState();
+
+        if (!channels.some((c) => c.channel_id === event.channel.id)) {
+            setChannels([...channels, event.channel]);
+        }
     }
+
+    /**
+     * Callback for the .channel.deleted event from the WebSocket to update the local store by removing the deleted channel.
+     * 
+     * @param event The channel deleted event data
+     * @return void
+     */
+    // handleChannelDeleted(event: any) {
+    //     const { channels, setChannels } = useChannelsStore.getState();
 };

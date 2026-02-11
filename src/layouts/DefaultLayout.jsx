@@ -33,7 +33,7 @@ const SidebarIcon = ({ icon = '', iconUrl = '', isActive = false, isServerIcon =
         ) : (
           <span className="text-xl leading-none text-gray-400">{text.slice(0, 2)}</span>
         )}
-
+        
         {/* Tooltip */}
         <span className="pointer-events-none absolute left-14 m-2 w-auto min-w-max origin-left scale-0 rounded-md bg-gray-900 p-2 text-sm font-bold text-white shadow-lg transition-all duration-100 group-hover:scale-100 z-50">
           {text}
@@ -59,7 +59,7 @@ const Sidebar = () => {
   const { requests } = useFriendsStore();
   const [isGuildDialogOpen, setIsGuildDialogOpen] = useState(false);
 
-  const isChannelUnread = (channel) => {
+  const isChannelUnread = useCallback((channel) => {
     if (!channel || !channelUnreadsLoaded || !channel.last_message_id) return false;
 
     const channelUnread = channelUnreads.find((cu) => String(cu.channel_id) === String(channel.channel_id));
@@ -69,9 +69,31 @@ const Sidebar = () => {
     const channelUnreadLastReadTimestamp = BigInt(channelUnread.last_read_message_id) >> 22n;
 
     return channelLastMessageTimestamp > channelUnreadLastReadTimestamp;
-  };
+  }, [channelUnreads, channelUnreadsLoaded]);
 
-  const isGuildUnread = (guild) => {
+  // Get mention count for a specific channel
+  const getChannelMentionCount = useCallback((channelId) => {
+    if (!channelUnreadsLoaded) return 0;
+
+    const channelUnread = channelUnreads.find((cu) => String(cu.channel_id) === String(channelId));
+    return channelUnread?.mentioned_message_ids?.length || 0;
+  }, [channelUnreads, channelUnreadsLoaded]);
+
+  // Get total mention count for a guild
+  const getGuildMentionCount = useCallback((guild) => {
+    if (!channelUnreadsLoaded) return 0;
+
+    const guildChannels = channels.filter((c) => String(c.guild_id) === String(guild.id) && c.type === 0);
+    let totalMentions = 0;
+
+    for (const channel of guildChannels) {
+      totalMentions += getChannelMentionCount(channel.channel_id);
+    }
+
+    return totalMentions;
+  }, [channels, channelUnreadsLoaded, getChannelMentionCount]);
+
+  const isGuildUnread = useCallback((guild) => {
     const guildChannels = guild.channels || [];
     for (const channel of guildChannels) {
       if (channel.type === 0 && isChannelUnread(channel)) {
@@ -79,7 +101,7 @@ const Sidebar = () => {
       }
     }
     return false;
-  };
+  }, [isChannelUnread]);
 
   // Get total mention count for a guild across all its channels
   const getGuildMentionCount = useCallback((guild) => {

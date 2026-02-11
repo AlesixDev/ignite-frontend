@@ -196,9 +196,16 @@ const ServerRoleManager = ({ guild }) => {
 
   useEffect(() => {
     const roles = guildRoles[guild.id] || [];
-    setLocalRoles(roles);
+    // Deduplicate roles by ID to prevent duplicates from showing
+    const uniqueRoles = roles.reduce((acc, role) => {
+      if (!acc.find(r => r.id === role.id)) {
+        acc.push(role);
+      }
+      return acc;
+    }, []);
+    setLocalRoles(uniqueRoles);
     // Store array of IDs to compare order later
-    setOriginalRoleOrder(roles.map(r => r.id));
+    setOriginalRoleOrder(uniqueRoles.map(r => r.id));
   }, [guildRoles, guild.id]);
 
   useEffect(() => {
@@ -379,69 +386,88 @@ const ServerRoleManager = ({ guild }) => {
             </Button>
           </div>
           <ScrollArea className="h-[400px] pr-2">
-            <div className="space-y-1">
-              {localRoles.map((role, index) => (
-                <div
-                  key={role.id}
-                  draggable
-                  onDragStart={() => (dragItem.current = index)}
-                  onDragEnter={() => (dragOverItem.current = index)}
-                  onDragEnd={handleSort}
-                  onDragOver={(e) => e.preventDefault()}
-                  className="flex items-center gap-1 group"
-                >
-                  <div className="cursor-grab active:cursor-grabbing text-muted-foreground/50 hover:text-foreground p-1 rounded transition-colors opacity-0 group-hover:opacity-100">
-                    <GripVertical size={14} />
-                  </div>
-
-                  <Button
-                    variant="ghost"
-                    onClick={() => {
-                      const selectedRoleColor = intToHex(role.color);
-
-                      setSelectedRoleId(role.id);
-                      // Manually trigger updates for editor because we aren't relying solely on useEffect for these updates to prevent loops during drag
-                      setActivePermissions(Number(role.permissions || 0));
-                      setOriginalPermissions(Number(role.permissions || 0));
-                      setRoleName(role.name || '');
-                      setOriginalName(role.name || '');
-                      setRoleColor(selectedRoleColor);
-                      setOriginalColor(selectedRoleColor);
-                    }}
-                    className={`flex-1 justify-start gap-3 ${selectedRoleId === role.id ? 'bg-primary/10 text-primary' : ''}`}
+            {localRoles.length === 0 ? (
+              <div className="flex flex-col items-center justify-center h-full text-center px-4 py-12">
+                <Shield className="h-12 w-12 text-muted-foreground/50 mb-4" />
+                <p className="text-sm font-medium text-muted-foreground mb-2">No roles yet</p>
+                <p className="text-xs text-muted-foreground/70">Create your first role to get started</p>
+              </div>
+            ) : (
+              <div className="space-y-1">
+                {localRoles.map((role, index) => (
+                  <div
+                    key={role.id}
+                    draggable
+                    onDragStart={() => (dragItem.current = index)}
+                    onDragEnter={() => (dragOverItem.current = index)}
+                    onDragEnd={handleSort}
+                    onDragOver={(e) => e.preventDefault()}
+                    className="flex items-center gap-1 group"
                   >
-                    <div
-                      className="h-3 w-3 rounded-full flex-shrink-0"
-                      style={{ backgroundColor: role.id === selectedRoleId ? roleColor : intToHex(role.color) }}
-                    />
-                    <span className="truncate">
-                      {role.id === selectedRoleId ? roleName : role.name}
-                    </span>
-                  </Button>
-                </div>
-              ))}
-            </div>
+                    <div className="cursor-grab active:cursor-grabbing text-muted-foreground/50 hover:text-foreground p-1 rounded transition-colors opacity-0 group-hover:opacity-100">
+                      <GripVertical size={14} />
+                    </div>
+
+                    <Button
+                      variant="ghost"
+                      onClick={() => {
+                        const selectedRoleColor = intToHex(role.color);
+
+                        setSelectedRoleId(role.id);
+                        // Manually trigger updates for editor because we aren't relying solely on useEffect for these updates to prevent loops during drag
+                        setActivePermissions(Number(role.permissions || 0));
+                        setOriginalPermissions(Number(role.permissions || 0));
+                        setRoleName(role.name || '');
+                        setOriginalName(role.name || '');
+                        setRoleColor(selectedRoleColor);
+                        setOriginalColor(selectedRoleColor);
+                      }}
+                      className={`flex-1 justify-start gap-3 ${selectedRoleId === role.id ? 'bg-primary/10 text-primary' : ''}`}
+                    >
+                      <div
+                        className="h-3 w-3 rounded-full flex-shrink-0"
+                        style={{ backgroundColor: role.id === selectedRoleId ? roleColor : intToHex(role.color) }}
+                      />
+                      <span className="truncate">
+                        {role.id === selectedRoleId ? roleName : role.name}
+                      </span>
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            )}
           </ScrollArea>
         </div>
 
         {/* Right Column: Tabs Interface */}
         <div className="rounded-lg border border-border flex flex-col min-h-[520px] relative">
-          <Tabs value={selectedRoleId ? undefined : "display"} defaultValue="display" className="flex flex-col h-full">
-            <div className="px-5 pt-5">
-              <div className="mb-4 text-sm font-bold truncate">
-                Editing Role: <span className="text-primary">{activeRole?.name || 'Select a role'}</span>
-              </div>
-              <TabsList className="grid w-full grid-cols-2">
-                <TabsTrigger value="display" className="gap-2">
-                  <Monitor size={14} /> Display
-                </TabsTrigger>
-                <TabsTrigger value="permissions" className="gap-2">
-                  <Shield size={14} /> Permissions
-                </TabsTrigger>
-              </TabsList>
+          {!activeRole ? (
+            <div className="flex flex-col items-center justify-center h-full text-center px-8 py-16">
+              <Users className="h-16 w-16 text-muted-foreground/50 mb-4" />
+              <h4 className="text-lg font-semibold mb-2">No Role Selected</h4>
+              <p className="text-sm text-muted-foreground mb-4">
+                {localRoles.length === 0
+                  ? 'Create a new role to get started managing permissions'
+                  : 'Select a role from the list to view and edit its settings'}
+              </p>
             </div>
+          ) : (
+            <Tabs value={selectedRoleId ? undefined : "display"} defaultValue="display" className="flex flex-col h-full">
+              <div className="px-5 pt-5">
+                <div className="mb-4 text-sm font-bold truncate">
+                  Editing Role: <span className="text-primary">{activeRole?.name || 'Select a role'}</span>
+                </div>
+                <TabsList className="grid w-full grid-cols-2">
+                  <TabsTrigger value="display" className="gap-2">
+                    <Monitor size={14} /> Display
+                  </TabsTrigger>
+                  <TabsTrigger value="permissions" className="gap-2">
+                    <Shield size={14} /> Permissions
+                  </TabsTrigger>
+                </TabsList>
+              </div>
 
-            <Separator className="mt-4" />
+              <Separator className="mt-4" />
 
             <div className="flex-1 p-5 overflow-hidden">
               {/* TAB: DISPLAY */}
@@ -584,6 +610,7 @@ const ServerRoleManager = ({ guild }) => {
               </div>
             )}
           </Tabs>
+          )}
         </div>
       </div>
     </div>

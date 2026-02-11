@@ -19,6 +19,32 @@ import { ChannelsService } from '@/services/channels.service';
 import { UnreadsService } from '@/services/unreads.service';
 import Mention from '../Mention/Mention.jsx';
 
+// {
+//     "id": "1368635171753951232",
+//     "nonce": "1770743251830632",
+//     "channel_id": "1361304246670065664",
+//     "user_id": "1361304229808963584",
+//     "webhook_id": null,
+//     "content": "T *Hi* W\u00a0<@1368621360774905856>*Hello* **Hello**",
+//     "name": null,
+//     "avatar_url": null,
+//     "created_at": "2026-02-10T17:07:32.000000Z",
+//     "updated_at": "2026-02-10T17:07:32.000000Z",
+//     "deleted_at": null,
+//     "author": {
+//         "id": "1361304229808963584",
+//         "name": "Sloth",
+//         "avatar_url": null,
+//         "username": "SellAuth",
+//         "is_bot": false
+//     },
+//     "mentions": [
+//         {
+//             "message_id": "1368635171753951232",
+//             "user_id": "1368621360774905856"
+//         }
+//     ]
+// }
 const ChannelMessage = ({ message, prevMessage, pending }) => {
     const { guildId } = useGuildContext();
     const channelId = message.channel_id;
@@ -76,6 +102,11 @@ const ChannelMessage = ({ message, prevMessage, pending }) => {
         if (!guildId || !message.channel_id) return false;
         return PermissionsService.hasPermission(guildId, message.channel_id, Permissions.MANAGE_MESSAGES);
     }, [guildId, message.channel_id, message.author.id, store.user.id]);
+
+    const isMentioned = useMemo(() => {
+        if (!message.mentions || !store.user?.id) return false;
+        return message.mentions.some((mention) => mention.user_id === store.user.id);
+    }, [message.mentions, store.user?.id]);
 
     const [editedMessage, setEditedMessage] = useState(message.content);
 

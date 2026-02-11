@@ -36,13 +36,7 @@ export const RolesService = {
      */
     async createGuildRole(guildId: string, roleData: any) {
         try {
-            const response = await api.post(`/guilds/${guildId}/roles`, roleData);
-            const newRole = response.data;
-
-            // Update local store
-            const { guildRoles, setGuildRoles } = useRolesStore.getState();
-            const roles = guildRoles[guildId] || [];
-            setGuildRoles(guildId, [...roles, newRole]);
+            await api.post(`/guilds/${guildId}/roles`, roleData);
 
             toast.success('Role created successfully');
         }

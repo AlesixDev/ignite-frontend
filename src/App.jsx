@@ -97,8 +97,9 @@ const AuthRoute = ({ children }) => {
       })
       .listen('.message.created', ChannelsService.handleMessageCreated)
       .listen('.message.updated', ChannelsService.handleMessageUpdated)
-      .listen('.message.deleted', ChannelsService.handleMessageDeleted);
-  }, [store.user]);
+      .listen('.message.deleted', ChannelsService.handleMessageDeleted)
+      .listen('.channel.created', ChannelsService.handleChannelCreated);
+  }, [initialized, store.user]);
 
   // Subscribe to all channels via Echo
   useEffect(() => {

@@ -1,10 +1,16 @@
 import { create } from 'zustand';
 
+export type ChannelUnread = {
+    channel_id: string;
+    last_read_message_id?: string;
+    mentioned_message_ids?: string[];
+};
+
 type UnreadsStore = {
-    channelUnreads: any[];
+    channelUnreads: ChannelUnread[];
     channelUnreadsLoaded: boolean;
 
-    setChannelUnreads: (channelUnreads: any[]) => void;
+    setChannelUnreads: (channelUnreads: ChannelUnread[]) => void;
 };
 
 export const useUnreadsStore = create<UnreadsStore>((set) => ({

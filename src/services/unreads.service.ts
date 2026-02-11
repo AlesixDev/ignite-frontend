@@ -1,6 +1,6 @@
 import { toast } from 'sonner'
 import api from '../api.js';
-import { useUnreadsStore } from '../store/unreads.store.js';
+import { useUnreadsStore, type ChannelUnread } from '../store/unreads.store.js';
 
 export const UnreadsService = {
     async loadUnreads() {
@@ -15,7 +15,7 @@ export const UnreadsService = {
         }
     },
 
-    async updateUnread(channelId, updates) {
+    async updateUnread(channelId: string, updates: Partial<ChannelUnread>) {
         const { channelUnreads, setChannelUnreads } = useUnreadsStore.getState();
 
         const exists = channelUnreads.some((unread) => unread.channel_id === channelId);
@@ -33,7 +33,7 @@ export const UnreadsService = {
 
             setChannelUnreads(updatedUnreads);
         } else {
-            const updatedUnreads = [
+            const updatedUnreads: ChannelUnread[] = [
                 ...channelUnreads,
                 {
                     channel_id: channelId,
