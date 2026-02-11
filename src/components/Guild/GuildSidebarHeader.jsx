@@ -94,7 +94,7 @@ const GuildSidebarHeader = ({ guildName = '', guild, onOpenServerSettings }) => 
     const handleCopyInvite = useCallback(async () => {
         if (!inviteInfo?.code) return;
         try {
-            await navigator.clipboard.writeText(inviteInfo.code);
+            await navigator.clipboard.writeText('https://app.ignite-chat.com/invite/' + inviteInfo.code);
             toast.success('Copied invite code.');
         } catch {
             toast.error('Could not copy to clipboard.');
