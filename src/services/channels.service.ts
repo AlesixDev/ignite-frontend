@@ -223,9 +223,9 @@ export const ChannelsService = {
          * Play notification sound for incoming messages not sent by the current user
          */
         if (event.message.author.id !== user.id) {
-            new Audio(notificationSound).play().catch((err) => {
-                console.log('Failed to play notification sound.', err);
-            });
+            // new Audio(notificationSound).play().catch((err) => {
+            //     console.log('Failed to play notification sound.', err);
+            // });
         }
     },
 

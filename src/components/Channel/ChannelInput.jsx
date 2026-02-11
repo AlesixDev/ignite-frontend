@@ -151,11 +151,12 @@ const ChannelInput = ({ channel }) => {
   const members = guildsStore.guildMembers[guildId] || [];
 
   // Check if user can send messages in this channel
-  const canSendMessages = useMemo(() => {
-    // DM channels (no guildId) always allow sending
-    if (!guildId || !channel?.channel_id) return true;
-    return PermissionsService.hasPermission(guildId, channel.channel_id, Permissions.SEND_MESSAGES);
-  }, [guildId, channel?.channel_id]);
+  // const canSendMessages = useMemo(() => {
+  //   // DM channels (no guildId) always allow sending
+  //   if (!guildId || !channel?.channel_id) return true;
+  //   return PermissionsService.hasPermission(guildId, channel.channel_id, Permissions.SEND_MESSAGES);
+  // }, [guildId, channel?.channel_id]);
+  const canSendMessages = true;
 
   const resolveUser = useCallback(
     (id) => {
