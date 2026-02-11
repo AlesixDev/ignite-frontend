@@ -171,8 +171,6 @@ export const RolesService = {
         await api.patch(`/guilds/${guildId}/members/${memberId}`, {
             roles: updatedRoles
         });
-
-        toast.success('Role removed from member successfully');
     },
 
     /**
