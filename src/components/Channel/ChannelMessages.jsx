@@ -228,9 +228,9 @@ const ChannelMessage = ({ message, prevMessage, pending }) => {
                     </div>
                     {(!isEditing && !pending) && (
                         <div className="absolute -top-4 right-4 hidden rounded-md border border-gray-800 bg-gray-700 group-hover:flex">
-                            <button type="button" onClick={onPin} className="rounded-md p-2 text-sm text-white/90 hover:bg-primary/10 hover:text-primary">
+                            {/* <button type="button" onClick={onPin} className="rounded-md p-2 text-sm text-white/90 hover:bg-primary/10 hover:text-primary">
                                 <PushPin className="size-5" />
-                            </button>
+                            </button> */}
                             {canEdit && (
                                 <button type="button" onClick={() => setEditingId(message.id)} className="rounded-md p-2 text-sm text-white/90 hover:bg-primary/10 hover:text-primary">
                                     <NotePencil className="size-5" />
@@ -241,40 +241,27 @@ const ChannelMessage = ({ message, prevMessage, pending }) => {
                                     <Trash className="size-5" />
                                 </button>
                             )}
-                            <button type="button" onClick={onReply} className="rounded-md p-2 text-sm text-white/90 hover:bg-primary/10 hover:text-primary">
+                            {/* <button type="button" onClick={onReply} className="rounded-md p-2 text-sm text-white/90 hover:bg-primary/10 hover:text-primary">
                                 <ArrowBendUpLeft className="size-5" />
-                            </button>
+                            </button> */}
                         </div>
                     )}
                 </ContextMenuTrigger>
                 <ContextMenuContent className="w-52">
-                    <ContextMenuItem>
-                        Add Reaction
-                    </ContextMenuItem>
-                    <ContextMenuSeparator />
                     {canEdit && (
-                        <ContextMenuItem onSelect={() => setEditingId(message.id)}>
-                            Edit Message
-                        </ContextMenuItem>
+                        <>
+                            <ContextMenuItem onSelect={() => setEditingId(message.id)}>
+                                Edit Message
+                            </ContextMenuItem>
+
+                            <ContextMenuSeparator />
+                        </>
                     )}
-                    <ContextMenuItem onSelect={onReply}>
-                        Reply
-                    </ContextMenuItem>
-                    <ContextMenuItem>
-                        Forward
-                    </ContextMenuItem>
-                    <ContextMenuSeparator />
                     <ContextMenuItem onSelect={() => {
                         navigator.clipboard.writeText(message.content);
                         toast.success('Message text copied to clipboard.');
                     }}>
                         Copy Text
-                    </ContextMenuItem>
-                    <ContextMenuItem onSelect={onPin}>
-                        Pin Message
-                    </ContextMenuItem>
-                    <ContextMenuItem>
-                        Mark Unread
                     </ContextMenuItem>
                     <ContextMenuItem onSelect={() => {
                         const link = `${message.id}`;
@@ -282,9 +269,6 @@ const ChannelMessage = ({ message, prevMessage, pending }) => {
                         toast.success('Message link copied to clipboard.');
                     }}>
                         Copy Message ID
-                    </ContextMenuItem>
-                    <ContextMenuItem>
-                        Speak Message
                     </ContextMenuItem>
                     {canDelete && (
                         <>
