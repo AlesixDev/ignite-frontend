@@ -213,13 +213,15 @@ const InvitePage = () => {
 
               {/* Stats */}
               <div className="flex w-full justify-center gap-6 text-sm">
-                <div className="flex items-center gap-2">
-                  <div className="size-2 rounded-full bg-green-500"></div>
-                  <div>
-                    <span className="font-semibold">{invite.guild.online_count || 0}</span>
-                    <span className="ml-1 text-muted-foreground">Online</span>
+                {invite.guild.online_count && (
+                  <div className="flex items-center gap-2">
+                    <div className="size-2 rounded-full bg-green-500"></div>
+                    <div>
+                      <span className="font-semibold">{invite.guild.online_count || 0}</span>
+                      <span className="ml-1 text-muted-foreground">Online</span>
+                    </div>
                   </div>
-                </div>
+                )}
                 <div className="flex items-center gap-2">
                   <div className="size-2 rounded-full bg-gray-500"></div>
                   <div>
