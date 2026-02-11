@@ -6,8 +6,8 @@ import Markdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 
 const MentionText = ({ userId }) => {
-    const { getUser } = useUsersStore();
-    const user = useMemo(() => getUser(userId), [userId, getUser]);
+    const { getUser, users } = useUsersStore();
+    const user = useMemo(() => getUser(userId), [userId, getUser, users]);
 
     if (!user) {
         return <span className="text-blue-400">&lt;@{userId}&gt;</span>;
