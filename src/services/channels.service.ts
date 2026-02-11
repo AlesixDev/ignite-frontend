@@ -59,9 +59,11 @@ export const ChannelsService = {
         try {
             const { data } = await api.post('@me/channels', { recipients: recipientsIds });
 
-            // Update local store
+            // Update local store only if channel doesn't already exist
             const { channels, setChannels } = useChannelsStore.getState();
-            setChannels([...channels, data]);
+            if (!channels.some((c) => c.channel_id === data.channel_id)) {
+                setChannels([...channels, data]);
+            }
 
             return data;
         } catch {
