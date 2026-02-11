@@ -33,7 +33,7 @@ const SidebarIcon = ({ icon = '', iconUrl = '', isActive = false, isServerIcon =
         ) : (
           <span className="text-xl leading-none text-gray-400">{text.slice(0, 2)}</span>
         )}
-        
+
         {/* Tooltip */}
         <span className="pointer-events-none absolute left-14 m-2 w-auto min-w-max origin-left scale-0 rounded-md bg-gray-900 p-2 text-sm font-bold text-white shadow-lg transition-all duration-100 group-hover:scale-100 z-50">
           {text}
@@ -167,7 +167,7 @@ const Sidebar = () => {
             icon={<Fire className="size-6" />}
             text="Friends"
             isServerIcon={true}
-            isActive={guildId === '@me' && !channelId} // Active only on dashboard, not inside a specific DM
+            isActive={!guildId}
             mentionCount={pendingCount}
           />
         </Link>
@@ -189,7 +189,9 @@ const Sidebar = () => {
           </Link>
         ))}
 
-        <hr className="mx-auto mb-2 w-8 rounded-full border-2 border-gray-800 bg-gray-800" />
+        {unreadDmChannels.length > 0 && (
+          <hr className="mx-auto mb-2 w-8 rounded-full border-2 border-gray-800 bg-gray-800" />
+        )}
 
         {/* Guilds List */}
         {guilds.map((guild) => (
