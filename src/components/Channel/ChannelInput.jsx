@@ -4,6 +4,8 @@ import { EmojiPicker, EmojiPickerContent, EmojiPickerFooter, EmojiPickerSearch }
 import { useChannelContext } from '../../contexts/ChannelContext.jsx';
 import { useGuildsStore } from '../../store/guilds.store';
 import { useGuildContext } from '../../contexts/GuildContext';
+import { ChannelType } from '../../enums/ChannelType';
+import useStore from '../../hooks/useStore';
 import { useState, useCallback, useMemo, useRef } from 'react';
 import { Button } from '../ui/button';
 import { Smile } from 'lucide-react';
@@ -148,6 +150,7 @@ const ChannelInput = ({ channel }) => {
 
   const { guildId } = useGuildContext();
   const guildsStore = useGuildsStore();
+  const currentUser = useStore((s) => s.user);
   const members = guildsStore.guildMembers[guildId] || [];
 
   // Check if user can send messages in this channel
@@ -290,6 +293,8 @@ const ChannelInput = ({ channel }) => {
     editorRef.current.innerHTML = '';
   };
 
+  const otherRecipient = channel?.type === ChannelType.DM ? (channel.recipients || []).find(r => r.id !== currentUser?.id) : {}
+
   /* ---------------- render ---------------- */
 
   return (
@@ -321,7 +326,9 @@ const ChannelInput = ({ channel }) => {
               }`}
               data-placeholder={
                 canSendMessages
-                  ? `Message #${channel?.name || 'unknown'}`
+                  ? channel?.type === ChannelType.DM
+                    ? `Message @${otherRecipient.name || 'Unknown'}`
+                    : `Message #${channel?.name || 'unknown'}`
                   : 'You cannot send messages in this channel'
               }
             />
