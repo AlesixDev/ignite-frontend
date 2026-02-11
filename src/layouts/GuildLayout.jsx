@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useState, useMemo } from 'react';
 import { toast } from 'sonner'
 import DefaultLayout from './DefaultLayout';
 import ServerSettings from '../components/Settings/ServerSettings';
@@ -6,6 +6,8 @@ import useStore from '../hooks/useStore';
 import EditGuildChannelModal from '../components/Modals/EditGuildChannelModal';
 import { useChannelsStore } from '../store/channels.store';
 import GuildSidebar from '@/components/Guild/GuildSidebar';
+import { PermissionsService } from '@/services/permissions.service';
+import { Permissions } from '@/enums/Permissions';
 
 const GuildLayout = ({ children, guild }) => {
   const store = useStore();
@@ -14,35 +16,42 @@ const GuildLayout = ({ children, guild }) => {
   const [settingsTab, setSettingsTab] = useState('info');
   const [editChannelId, setEditChannelId] = useState(null);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-  const isGuildOwner =
-    guild?.owner_id != null &&
-    store.user?.id != null &&
-    String(guild.owner_id) === String(store.user.id);
   const { channels } = useChannelsStore();
+
+  // Check permissions using PermissionsService instead of owner-only checks
+  const canManageGuild = useMemo(() => {
+    if (!guild?.id) return false;
+    return PermissionsService.hasPermission(guild.id, null, Permissions.MANAGE_GUILD);
+  }, [guild?.id]);
+
+  const canManageChannels = useMemo(() => {
+    if (!guild?.id) return false;
+    return PermissionsService.hasPermission(guild.id, null, Permissions.MANAGE_CHANNELS);
+  }, [guild?.id]);
 
   const openServerSettings = useCallback(
     ({ tab = 'info', channelId = null } = {}) => {
-      if (!isGuildOwner) {
-        toast.error('Only the server owner can open server settings.');
+      if (!canManageGuild) {
+        toast.error('You do not have permission to access server settings.');
         return;
       }
       setSettingsTab(tab);
       setEditChannelId(channelId);
       setIsServerSettingsOpen(true);
     },
-    [isGuildOwner]
+    [canManageGuild]
   );
 
   const openEditChannelModal = useCallback(
     ({ channelId = null } = {}) => {
-      if (!isGuildOwner) {
-        toast.error('Only the server owner can edit channels.');
+      if (!canManageChannels) {
+        toast.error('You do not have permission to edit channels.');
         return;
       }
       setEditChannelId(channelId);
       setIsEditChannelModalOpen(true);
     },
-    [isGuildOwner]
+    [canManageChannels]
   );
 
   // Open sidebar when a new guild is selected
@@ -71,8 +80,8 @@ const GuildLayout = ({ children, guild }) => {
             onEditChannel={(channel) => {
               openEditChannelModal({ channelId: channel.channel_id || channel.id });
             }}
-            canOpenServerSettings={isGuildOwner}
-            canManageChannels={isGuildOwner}
+            canOpenServerSettings={canManageGuild}
+            canManageChannels={canManageChannels}
           />
         </div>
         {!isSidebarOpen && (

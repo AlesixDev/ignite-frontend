@@ -69,8 +69,13 @@ const ChannelMessage = ({ message, prevMessage, pending }) => {
     const canEdit = useMemo(() => message.author.id === store.user.id, [message.author.id, store.user.id]);
 
     const canDelete = useMemo(() => {
-        return PermissionsService.hasPermission(guildId, 0, Permissions.MANAGE_MESSAGES);
-    }, [guildId]);
+        // Authors can always delete their own messages
+        if (message.author.id === store.user.id) return true;
+
+        // Moderators with MANAGE_MESSAGES can delete any message
+        if (!guildId || !message.channel_id) return false;
+        return PermissionsService.hasPermission(guildId, message.channel_id, Permissions.MANAGE_MESSAGES);
+    }, [guildId, message.channel_id, message.author.id, store.user.id]);
 
     const [editedMessage, setEditedMessage] = useState(message.content);
 
@@ -123,10 +128,21 @@ const ChannelMessage = ({ message, prevMessage, pending }) => {
         inputRef.current.focus();
     }, [inputRef, setInputMessage]);
 
+    // Check if the current user is mentioned in this message
+    const isMentioned = useMemo(() => {
+        if (!store.user) return false;
+        // Check if message content contains @username or @userid
+        const mentionPatterns = [
+            `@${store.user.username}`,
+            `@${store.user.id}`,
+        ];
+        return mentionPatterns.some(pattern => message.content.includes(pattern));
+    }, [message.content, store.user]);
+
     return (
         <Popover>
             <ContextMenu>
-                <ContextMenuTrigger className={`group relative block py-1 data-[state=open]:bg-gray-800/60 ${isEditing ? 'bg-gray-800/60' : 'hover:bg-gray-800/60'} ${shouldStack ? '' : 'mt-3.5'}`}>
+                <ContextMenuTrigger className={`group relative block py-1 data-[state=open]:bg-gray-800/60 ${isEditing ? 'bg-gray-800/60' : isMentioned ? 'bg-yellow-900/20 hover:bg-yellow-900/30 border-l-4 border-yellow-600' : 'hover:bg-gray-800/60'} ${shouldStack ? '' : 'mt-3.5'}`}>
                     <div className="flex items-start px-4 gap-4">
                         {shouldStack ? (
                             <div className="w-10" />

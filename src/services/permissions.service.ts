@@ -6,13 +6,13 @@ import { useRolesStore } from "@/store/roles.store";
 export const PermissionsService = {
     /**
      * Checks if the current user has the specified permission in a given guild and channel.
-     * 
+     *
      * @param guildId The ID of the guild.
-     * @param channelId The ID of the channel.
+     * @param channelId The ID of the channel (or null for guild-level permissions).
      * @param permission The permission to check
      * @return True if the user has the permission, false otherwise.
      */
-    hasPermission: (guildId: string, channelId: string, permission: bigint): boolean => {
+    hasPermission: (guildId: string, channelId: string | null, permission: bigint): boolean => {
         const localUser = useStore.getState().user;
         const guild = useGuildsStore.getState().guilds.find(g => g.id === guildId);
 

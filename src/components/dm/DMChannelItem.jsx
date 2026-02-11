@@ -25,7 +25,7 @@ const DMChannelItem = ({ channel, isActive, onClick, channelUnreads, channelUnre
             className={`
         group relative flex w-full items-center gap-3 rounded px-2 py-1.5 text-sm transition-all
         ${isActive ? 'bg-gray-700 text-white' : 'text-gray-400 hover:bg-gray-700/50 hover:text-gray-200'}
-        ${!isActive && unreadState ? 'text-gray-100' : ''} 
+        ${!isActive && unreadState ? 'text-gray-100' : ''}
       `}
         >
             {!isActive && unreadState && (

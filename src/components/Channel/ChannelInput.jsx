@@ -8,6 +8,9 @@ import { useState, useCallback, useMemo, useRef } from 'react';
 import { Button } from '../ui/button';
 import { Smile } from 'lucide-react';
 import { ChannelsService } from '../../services/channels.service';
+import { PermissionsService } from '../../services/permissions.service';
+import { Permissions } from '../../enums/Permissions';
+import { toast } from 'sonner';
 
 const MAX_MESSAGE_LENGTH = 2000;
 const SUGGESTIONS_LIMIT = 10;
@@ -147,6 +150,13 @@ const ChannelInput = ({ channel }) => {
   const guildsStore = useGuildsStore();
   const members = guildsStore.guildMembers[guildId] || [];
 
+  // Check if user can send messages in this channel
+  const canSendMessages = useMemo(() => {
+    // DM channels (no guildId) always allow sending
+    if (!guildId || !channel?.channel_id) return true;
+    return PermissionsService.hasPermission(guildId, channel.channel_id, Permissions.SEND_MESSAGES);
+  }, [guildId, channel?.channel_id]);
+
   const resolveUser = useCallback(
     (id) => {
       const m = members.find((x) => x.user_id === id);
@@ -267,6 +277,10 @@ const ChannelInput = ({ channel }) => {
   };
 
   const sendMessage = () => {
+    if (!canSendMessages) {
+      toast.error('You do not have permission to send messages in this channel.');
+      return;
+    }
     if (!channel?.channel_id || !inputMessage.trim()) return;
     if (inputMessage.length > MAX_MESSAGE_LENGTH) return;
 
@@ -294,15 +308,21 @@ const ChannelInput = ({ channel }) => {
           <Popover.Anchor asChild>
             <div
               ref={editorRef}
-              contentEditable
+              contentEditable={canSendMessages}
               suppressContentEditableWarning
               onInput={handleInput}
               onKeyDown={handleKeyDown}
               onKeyUp={saveSelection}
               onClick={saveSelection}
               onPaste={handlePaste}
-              className="min-h-[44px] w-full px-3 py-3 text-sm outline-none max-h-[50vh] overflow-y-auto"
-              data-placeholder={`Message #${channel?.name || 'unknown'}`}
+              className={`min-h-[44px] w-full px-3 py-3 text-sm outline-none max-h-[50vh] overflow-y-auto ${
+                !canSendMessages ? 'opacity-50 cursor-not-allowed' : ''
+              }`}
+              data-placeholder={
+                canSendMessages
+                  ? `Message #${channel?.name || 'unknown'}`
+                  : 'You cannot send messages in this channel'
+              }
             />
           </Popover.Anchor>
 

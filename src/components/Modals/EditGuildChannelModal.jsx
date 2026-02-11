@@ -4,6 +4,9 @@ import { InputGroup, InputGroupInput } from '../ui/input-group';
 import api from '../../api';
 import { useGuildsStore } from '../../store/guilds.store';
 import { Slash } from 'lucide-react';
+import { PermissionsService } from '@/services/permissions.service';
+import { Permissions } from '@/enums/Permissions';
+import { toast } from 'sonner';
 
 const permissions = {
     2: "Manage Guild",     // 2
@@ -15,10 +18,16 @@ const permissions = {
 
 const OverviewTab = ({ guild, channel }) => {
     const store = useGuildsStore();
-    
+
     const [name, setName] = useState(channel?.name || '');
     const [description, setDescription] = useState(channel?.description || '');
     const [isSaving, setIsSaving] = useState(false);
+
+    // Check if user can manage channels
+    const canManageChannels = useMemo(() => {
+        if (!guild?.id) return false;
+        return PermissionsService.hasPermission(guild.id, null, Permissions.MANAGE_CHANNELS);
+    }, [guild?.id]);
 
     // Update local state if the channel prop changes externally
     useEffect(() => {
@@ -31,6 +40,10 @@ const OverviewTab = ({ guild, channel }) => {
     }, [name, description, channel]);
 
     const handleSave = () => {
+        if (!canManageChannels) {
+            toast.error('You do not have permission to manage channels.');
+            return;
+        }
         if (!hasChanged) return;
         setIsSaving(true);
 
@@ -119,10 +132,10 @@ const OverviewTab = ({ guild, channel }) => {
                     </span>
                     <button
                         onClick={handleSave}
-                        disabled={!hasChanged || isSaving}
+                        disabled={!hasChanged || isSaving || !canManageChannels}
                         className={`flex items-center gap-2 rounded px-4 py-2 text-sm font-medium text-white transition-colors ${
-                            hasChanged 
-                                ? 'bg-green-600 hover:bg-green-500 shadow-lg shadow-green-900/20' 
+                            hasChanged && canManageChannels
+                                ? 'bg-green-600 hover:bg-green-500 shadow-lg shadow-green-900/20'
                                 : 'bg-gray-700 cursor-not-allowed opacity-50'
                         }`}
                     >
@@ -185,12 +198,18 @@ const PermissionsTab = ({ guild, channel }) => {
     const [selectedRoleId, setSelectedRoleId] = useState();
     const rolesList = guild?.roles ?? [];
     const [savedPermissionsByRole, setSavedPermissionsByRole] = useState({});
-    
+
     // Track if changes have been made locally
     const [isSaving, setIsSaving] = useState(false);
 
     const [allowedPermissions, setAllowedPermissions] = useState(0);
     const [deniedPermissions, setDeniedPermissions] = useState(0);
+
+    // Check if user can manage channels
+    const canManageChannels = useMemo(() => {
+        if (!guild?.id) return false;
+        return PermissionsService.hasPermission(guild.id, null, Permissions.MANAGE_CHANNELS);
+    }, [guild?.id]);
 
     const hasChanged = useMemo(() => {
         const savedPerm = savedPermissionsByRole[selectedRoleId];
@@ -249,6 +268,10 @@ const PermissionsTab = ({ guild, channel }) => {
     };
 
     const handleSave = () => {
+        if (!canManageChannels) {
+            toast.error('You do not have permission to manage channels.');
+            return;
+        }
         setIsSaving(true);
         api.put(`/channels/${channel.channel_id}/permissions/${selectedRoleId}`, {
             allowed_permissions: allowedPermissions,
@@ -370,10 +393,10 @@ const PermissionsTab = ({ guild, channel }) => {
                         </span>
                         <button
                             onClick={handleSave}
-                            disabled={!hasChanged || isSaving}
+                            disabled={!hasChanged || isSaving || !canManageChannels}
                             className={`flex items-center gap-2 rounded px-4 py-2 text-sm font-medium text-white transition-colors ${
-                                hasChanged 
-                                    ? 'bg-green-600 hover:bg-green-500 shadow-lg shadow-green-900/20' 
+                                hasChanged && canManageChannels
+                                    ? 'bg-green-600 hover:bg-green-500 shadow-lg shadow-green-900/20'
                                     : 'bg-gray-700 cursor-not-allowed opacity-50'
                             }`}
                         >
