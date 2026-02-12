@@ -228,7 +228,7 @@ const GuildMemberPopoverContent = ({ user, guild = null }) => {
           <div className="mt-14 px-4 pb-4">
             <div className="rounded-md bg-[#111214] p-1">
               <h2 className="text-lg font-bold text-white flex items-center gap-1.5">
-                {user.username}
+                {user.name}
               </h2>
               <p className="text-xs font-medium text-gray-300">{user.username}</p>
 
