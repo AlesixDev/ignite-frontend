@@ -6,6 +6,40 @@ import axios from 'axios';
 import useStore from '../hooks/useStore';
 import notificationSound from '../assets/notification.wav'
 
+/**
+ * Notification sound — plays once across all tabs, instantly.
+ * First tab to receive the event plays it and tells others to skip.
+ * If ALL tabs are minimized, one background tab will still play it.
+ */
+const notificationAudio = new Audio(notificationSound);
+const notificationChannel = typeof BroadcastChannel !== 'undefined'
+    ? new BroadcastChannel('ignite:notification-sound')
+    : null;
+const recentlyPlayed = new Set<string>();
+
+// When another tab plays the sound, mark that message as handled
+notificationChannel?.addEventListener('message', (event) => {
+    if (event.data?.type === 'played') {
+        recentlyPlayed.add(event.data.id);
+    }
+});
+
+function playNotificationSound(messageId: string) {
+    // Already handled by this or another tab
+    if (recentlyPlayed.has(messageId)) return;
+
+    // Mark as played and tell other tabs immediately
+    recentlyPlayed.add(messageId);
+    notificationChannel?.postMessage({ type: 'played', id: messageId });
+
+    // Play instantly — no delays
+    notificationAudio.currentTime = 0;
+    notificationAudio.play().catch(() => { });
+
+    // Cleanup old IDs after 10s so the set doesn't grow forever
+    setTimeout(() => recentlyPlayed.delete(messageId), 10000);
+}
+
 export const ChannelsService = {
     /**
      * Initialize channels for a specific guild
@@ -226,12 +260,11 @@ export const ChannelsService = {
         setChannels(newChannels);
 
         /**
-         * Play notification sound for incoming messages not sent by the current user
+         * Play notification sound for incoming messages not sent by the current user.
+         * Coordinated across tabs via BroadcastChannel to prevent doubling.
          */
         if (event.message.author.id !== user.id) {
-            // new Audio(notificationSound).play().catch((err) => {
-            //     console.log('Failed to play notification sound.', err);
-            // });
+            playNotificationSound(event.message.id);
         }
     },
 
