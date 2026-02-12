@@ -24,6 +24,8 @@ export function useGuildOrder(guilds) {
         if (orderMap) {
             try {
                 localStorage.setItem(STORAGE_KEY, JSON.stringify(orderMap));
+                // TODO: Backend would go here to save between devices
+                // e.g. api.patch('/users/@me/settings', { guild_order: orderMap });
             } catch {
                 // localStorage full or unavailable — ignore
             }
