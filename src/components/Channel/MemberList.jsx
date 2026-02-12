@@ -111,6 +111,16 @@ const MemberList = ({ guildId }) => {
 
         setMembersByRole(tempMembersByRole);
         setMembersWithoutRoles(tempMembersWithoutRoles);
+
+        // Auto-collapse groups with more than 100 members
+        const autoCollapsed = {};
+        for (const [roleId, members] of Object.entries(tempMembersByRole)) {
+            if (members.length > 100) autoCollapsed[roleId] = true;
+        }
+        if (tempMembersWithoutRoles.length > 100) autoCollapsed['no-role'] = true;
+        if (Object.keys(autoCollapsed).length > 0) {
+            setCollapsedRoles((prev) => ({ ...autoCollapsed, ...prev }));
+        }
     }, [activeGuildMembers, roles]);
 
     return (
