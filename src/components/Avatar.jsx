@@ -1,6 +1,6 @@
 const Avatar = ({ user, className = 'h-10' }) => {
   return (
-    user.avatar_url ? (
+    false ? (
       <img
         className={`cursor-pointer border-none rounded-full bg-transparent ${className}`}
         src={user.avatar_url}
