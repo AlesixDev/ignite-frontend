@@ -1,8 +1,11 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useState, useRef } from 'react';
 import { useNavigate, Link, useSearchParams } from 'react-router-dom';
 import { useForm, FormProvider, Controller } from 'react-hook-form';
+import HCaptcha from '@hcaptcha/react-hcaptcha';
 import useStore from '../hooks/useStore';
 import { AuthService } from '../services/auth.service';
+
+const HCAPTCHA_SITE_KEY = '78b0437e-9a22-4e50-aae6-26ae467445d8';
 import GuestLayout from '../layouts/GuestLayout';
 import { Card, CardContent } from '../components/ui/card';
 import { Field, FieldGroup, FieldLabel, FieldDescription, FieldError } from '../components/ui/field';
@@ -16,17 +19,26 @@ const LoginPage = () => {
   const [searchParams] = useSearchParams();
 
   const [submitError, setSubmitError] = useState(null);
-  
+  const [captchaToken, setCaptchaToken] = useState(null);
+  const captchaRef = useRef(null);
+
   const onSubmit = useCallback(async (data) => {
+    if (!captchaToken) {
+      setSubmitError('Please complete the captcha.');
+      return;
+    }
+
     try {
-      await AuthService.login(data);
+      await AuthService.login({ ...data, hcaptcha_captcha_token: captchaToken });
       const redirectTo = searchParams.get('redirect') || '/channels/@me';
       navigate(redirectTo, { replace: true });
     } catch (error) {
       console.error(error);
       setSubmitError(error.response?.data?.message || 'An unknown error occurred during login.');
+      captchaRef.current?.resetCaptcha();
+      setCaptchaToken(null);
     }
-  }, [navigate, searchParams]);
+  }, [navigate, searchParams, captchaToken]);
 
   return (
     <GuestLayout>
@@ -95,6 +107,15 @@ const LoginPage = () => {
                         )}
                       />
                     </Field>
+                    <Field>
+                      <HCaptcha
+                        ref={captchaRef}
+                        sitekey={HCAPTCHA_SITE_KEY}
+                        theme="dark"
+                        onVerify={(token) => setCaptchaToken(token)}
+                        onExpire={() => setCaptchaToken(null)}
+                      />
+                    </Field>
                     {submitError && (
                       <FieldError>
                         {submitError}
@@ -103,7 +124,7 @@ const LoginPage = () => {
                     <Field>
                       <Button
                         type="submit"
-                        disabled={form.formState.isSubmitting}
+                        disabled={form.formState.isSubmitting || !captchaToken}
                       >
                         {form.formState.isSubmitting ? 'Logging in...' : 'Login'}
                       </Button>
