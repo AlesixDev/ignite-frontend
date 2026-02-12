@@ -1,0 +1,149 @@
+import { useState, useCallback, useMemo, memo } from 'react';
+import { toast } from 'sonner';
+import api from '../../api';
+import useStore from '../../hooks/useStore';
+import { useChannelsStore } from '../../store/channels.store';
+import { ContextMenu, ContextMenuContent, ContextMenuTrigger } from '../ui/context-menu';
+import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover';
+import Avatar from '../Avatar.jsx';
+import GuildMemberContextMenu from '../GuildMember/GuildMemberContextMenu';
+import GuildMemberPopoverContent from '../GuildMember/GuildMemberPopoverContent';
+import MessageContent from '../MessageContent/MessageContent.jsx';
+import MessageHeader from './MessageHeader';
+import MessageEditor from './MessageEditor';
+import MessageReactions from './MessageReactions';
+import MessageActions from './MessageActions';
+import MessageContextMenu from './MessageContextMenu';
+import { PermissionsService } from '@/services/permissions.service';
+import { Permissions } from '@/enums/Permissions';
+
+const ChannelMessage = memo(({ message, prevMessage, pending, isEditing, setEditingId, guildId }) => {
+    const store = useStore();
+    const channelId = message.channel_id;
+
+    const shouldStack = useMemo(() => {
+        if (!prevMessage) return false;
+        const sameAuthor = prevMessage.author.id === message.author.id;
+        const sameName = prevMessage.author.name === message.author.name;
+        const sentWithinMinute = (new Date(message.created_at) - new Date(prevMessage.created_at)) / 1000 < 60;
+        return sameAuthor && sameName && sentWithinMinute;
+    }, [prevMessage, message]);
+
+    const canEdit = useMemo(() =>
+        message.author.id === store.user.id,
+        [message.author.id, store.user.id]
+    );
+
+    const canDelete = useMemo(() => {
+        if (message.author.id === store.user.id) return true;
+        if (!guildId || !message.channel_id) return false;
+        return PermissionsService.hasPermission(guildId, message.channel_id, Permissions.MANAGE_MESSAGES);
+    }, [guildId, message.channel_id, message.author.id, store.user.id]);
+
+    const isMentioned = useMemo(() => {
+        if (!message.mentions || !store.user?.id) return false;
+        return message.mentions.some((mention) => mention.user_id === store.user.id);
+    }, [message.mentions, store.user?.id]);
+
+    const handleSaveEdit = useCallback(async (editedContent) => {
+        try {
+            await api.put(`/channels/${channelId}/messages/${message.id}`, { content: editedContent });
+            const { channelMessages, setChannelMessages } = useChannelsStore.getState();
+            const messages = channelMessages[channelId] || [];
+            setChannelMessages(
+                channelId,
+                messages.map((m) => m.id === message.id ? { ...m, content: editedContent, updated_at: new Date().toISOString() } : m)
+            );
+            setEditingId(null);
+        } catch (error) {
+            console.error(error);
+            toast.error(error.response?.data?.message || 'Could not edit message.');
+        }
+    }, [channelId, message.id, setEditingId]);
+
+    const handleDelete = useCallback(async () => {
+        try {
+            await api.delete(`/channels/${channelId}/messages/${message.id}`);
+        } catch (error) {
+            console.error(error);
+            toast.error(error.response?.data?.message || 'Could not delete message.');
+        }
+    }, [channelId, message.id]);
+
+    const messageClasses = `group relative block py-1 data-[state=open]:bg-gray-800/60 ${
+        isEditing ? 'bg-gray-800/60' :
+        isMentioned ? 'bg-yellow-900/20 hover:bg-yellow-900/30 border-l-4 border-yellow-600' :
+        'hover:bg-gray-800/60'
+    } ${shouldStack ? '' : 'mt-3.5'}`;
+
+    return (
+        <Popover>
+            <ContextMenu>
+                <ContextMenuTrigger className={messageClasses}>
+                    <div className="flex items-start px-4 gap-4">
+                        {shouldStack ? (
+                            <div className="w-10" />
+                        ) : (
+                            <ContextMenu>
+                                <PopoverTrigger>
+                                    <ContextMenuTrigger>
+                                        <Avatar user={message.author} className="size-10" />
+                                    </ContextMenuTrigger>
+                                    <ContextMenuContent>
+                                        <GuildMemberContextMenu user={message.author} />
+                                    </ContextMenuContent>
+                                </PopoverTrigger>
+                            </ContextMenu>
+                        )}
+
+                        <div className="flex flex-1 flex-col items-start justify-start">
+                            {!shouldStack && <MessageHeader message={message} />}
+
+                            {isEditing ? (
+                                <MessageEditor
+                                    initialContent={message.content}
+                                    onSave={handleSaveEdit}
+                                    onCancel={() => setEditingId(null)}
+                                />
+                            ) : (
+                                <div className={`text-gray-400 break-words break-all whitespace-pre-wrap ${pending ? 'opacity-50' : ''}`}>
+                                    <MessageContent content={message.content} />
+                                    {(message.updated_at && message.created_at !== message.updated_at) && (
+                                        <span className="ml-1 text-[0.65rem] text-gray-500">(edited)</span>
+                                    )}
+                                </div>
+                            )}
+
+                            <MessageReactions message={message} channelId={channelId} />
+                        </div>
+                    </div>
+
+                    {(!isEditing && !pending) && (
+                        <MessageActions
+                            message={message}
+                            channelId={channelId}
+                            canEdit={canEdit}
+                            canDelete={canDelete}
+                            onEdit={() => setEditingId(message.id)}
+                            onDelete={handleDelete}
+                        />
+                    )}
+                </ContextMenuTrigger>
+
+                <MessageContextMenu
+                    message={message}
+                    canEdit={canEdit}
+                    canDelete={canDelete}
+                    onEdit={() => setEditingId(message.id)}
+                    onDelete={handleDelete}
+                />
+            </ContextMenu>
+
+            <PopoverContent className="w-auto p-2" align="start" alignOffset={0}>
+                <GuildMemberPopoverContent user={message.author} guild={null} />
+            </PopoverContent>
+        </Popover>
+    );
+});
+
+export default ChannelMessage;
