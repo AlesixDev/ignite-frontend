@@ -1,7 +1,11 @@
 import { useMemo } from 'react';
 import { useUsersStore } from '../../store/users.store';
+import { useGuildsStore } from '../../store/guilds.store';
+import { useGuildContext } from '../../contexts/GuildContext';
 import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover';
+import { ContextMenu, ContextMenuContent, ContextMenuTrigger } from '../ui/context-menu';
 import GuildMemberPopoverContent from '../GuildMember/GuildMemberPopoverContent';
+import GuildMemberContextMenu from '../GuildMember/GuildMemberContextMenu';
 import Markdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import ExternalLink from './ExternalLink.jsx';
@@ -9,25 +13,51 @@ import ExternalLink from './ExternalLink.jsx';
 const MentionText = ({ userId }) => {
     const { getUser, users } = useUsersStore();
     const user = useMemo(() => getUser(userId), [userId, getUser, users]);
+    const { guildId } = useGuildContext();
+    const { guildMembers } = useGuildsStore();
+
+    const roleColor = useMemo(() => {
+        const members = guildMembers[guildId] || [];
+        const member = members.find((m) => m.user_id === userId);
+        if (!member) return null;
+
+        const role = [...(member.roles || [])]
+            .sort((a, b) => b.position - a.position)
+            .find((r) => r.color && r.color !== 0);
+
+        return role ? `#${role.color.toString(16).padStart(6, '0')}` : null;
+    }, [guildMembers, guildId, userId]);
 
     if (!user) {
         return <span className="text-blue-400">&lt;@{userId}&gt;</span>;
     }
 
+    const mentionStyle = roleColor
+        ? { color: roleColor, backgroundColor: `${roleColor}33` }
+        : {};
+
     return (
-        <Popover>
-            <PopoverTrigger asChild>
-                <button
-                    type="button"
-                    className="inline rounded bg-blue-500/20 px-1 font-medium text-blue-400 hover:bg-blue-500/30 hover:text-blue-300 transition-colors cursor-pointer"
-                >
-                    @{user.name}
-                </button>
-            </PopoverTrigger>
-            <PopoverContent className="w-auto p-2" align="start" alignOffset={0}>
-                <GuildMemberPopoverContent user={user} guild={null} />
-            </PopoverContent>
-        </Popover>
+        <ContextMenu>
+            <Popover>
+                <ContextMenuTrigger asChild>
+                    <PopoverTrigger asChild>
+                        <button
+                            type="button"
+                            className={`inline rounded px-1 font-medium transition-colors cursor-pointer ${roleColor ? 'hover:brightness-110' : 'bg-blue-500/20 text-blue-400 hover:bg-blue-500/30 hover:text-blue-300'}`}
+                            style={mentionStyle}
+                        >
+                            @{user.name}
+                        </button>
+                    </PopoverTrigger>
+                </ContextMenuTrigger>
+                <PopoverContent className="w-auto p-2" align="start" alignOffset={0}>
+                    <GuildMemberPopoverContent user={user} guild={null} />
+                </PopoverContent>
+            </Popover>
+            <ContextMenuContent>
+                <GuildMemberContextMenu user={user} />
+            </ContextMenuContent>
+        </ContextMenu>
     );
 };
 
