@@ -5,12 +5,15 @@ import { Hash, Plus, CaretDown, CaretRight } from '@phosphor-icons/react';
 import { toast } from 'sonner'
 import {
     DndContext,
+    DragOverlay,
     closestCenter,
     KeyboardSensor,
     PointerSensor,
     useSensor,
-    useSensors
+    useSensors,
+    useDroppable
 } from '@dnd-kit/core';
+import { restrictToVerticalAxis } from '@dnd-kit/modifiers';
 import {
     arrayMove,
     SortableContext,
@@ -29,6 +32,32 @@ import { ChannelsService } from '@/services/channels.service';
 import { useChannelsStore } from '@/store/channels.store';
 import GuildSidebarHeader from './GuildSidebarHeader';
 
+// Presentational channel row, used both in SortableChannel and DragOverlay
+const ChannelRow = ({ channel, isActive, isUnread, mentionsCount, isDragOverlay }) => (
+    <div
+        className={`relative mx-2 my-0.5 flex items-center rounded px-2 py-1 transition-colors ${isDragOverlay
+            ? 'bg-gray-600 text-gray-100 shadow-md shadow-black/40 ring-1 ring-gray-500/40'
+            : isActive
+                ? 'bg-gray-600 text-gray-100'
+                : isUnread
+                    ? 'text-gray-100 hover:bg-gray-700'
+                    : 'text-gray-500 hover:bg-gray-700 hover:text-gray-400'
+            }`}
+    >
+        <Hash className={`size-5 shrink-0 ${isDragOverlay ? 'text-gray-300' : isActive || isUnread ? 'text-gray-200' : 'text-gray-500 group-hover:text-gray-400'
+            }`} />
+        <p className={`ml-1 flex-1 truncate text-base select-none ${isDragOverlay ? 'font-medium text-gray-100' : isActive || isUnread ? 'font-semibold text-white' : 'font-medium'
+            }`}>
+            {channel.name}
+        </p>
+        {mentionsCount > 0 && (
+            <div className="ml-auto flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-red-500 px-1 text-[11px] font-bold leading-none text-white shadow-sm">
+                {mentionsCount}
+            </div>
+        )}
+    </div>
+);
+
 const SortableChannel = ({
     channel,
     isActive,
@@ -38,7 +67,8 @@ const SortableChannel = ({
     canManageChannels,
     onEditChannel,
     handleDeleteChannel,
-    navigate
+    navigate,
+    globalIsDragging
 }) => {
     const {
         attributes,
@@ -52,9 +82,8 @@ const SortableChannel = ({
     const style = {
         transform: CSS.Transform.toString(transform),
         transition,
-        opacity: isDragging ? 0.5 : 1,
+        opacity: isDragging ? 0.3 : 1,
         touchAction: 'none',
-        zIndex: isDragging ? 50 : 'auto',
         position: 'relative'
     };
 
@@ -98,28 +127,12 @@ const SortableChannel = ({
                             <div className="absolute left-0 top-1/2 h-2 w-1 -translate-y-1/2 rounded-r-full bg-white" />
                         )}
 
-                        <div
-                            className={`relative mx-2 my-0.5 flex cursor-pointer items-center rounded px-2 py-1 transition-colors ${
-                                isActive
-                                    ? 'bg-gray-600 text-gray-100'
-                                    : isUnread
-                                        ? 'text-gray-100 hover:bg-gray-700'
-                                        : 'text-gray-500 hover:bg-gray-700 hover:text-gray-400'
-                            }`}
-                        >
-                            <Hash className={`size-5 shrink-0 ${isActive || isUnread ? 'text-gray-200' : 'text-gray-500 group-hover:text-gray-400'}`} />
-
-                            <p className={`ml-1 flex-1 truncate text-base select-none ${isActive || isUnread ? 'font-semibold text-white' : 'font-medium'}`}>
-                                {channel.name}
-                            </p>
-
-                            {/* Mention badge - Discord style */}
-                            {mentionsCount > 0 && (
-                                <div className="ml-auto flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-red-500 px-1 text-[11px] font-bold leading-none text-white shadow-sm">
-                                    {mentionsCount}
-                                </div>
-                            )}
-                        </div>
+                        <ChannelRow
+                            channel={channel}
+                            isActive={isActive}
+                            isUnread={isUnread}
+                            mentionsCount={mentionsCount}
+                        />
                     </Link>
                 </ContextMenuTrigger>
                 <ContextMenuContent className="w-52">
@@ -164,11 +177,22 @@ const GuildSidebarCategory = ({
     guild,
     onEditChannel,
     canManageChannels,
+    isDropTarget,
+    globalIsDragging,
 }) => {
     const [expanded, setExpanded] = useState(true);
     const navigate = useNavigate();
     const sectionName = category?.name;
     const { channelUnreads, channelUnreadsLoaded } = useUnreadsStore();
+
+    const { setNodeRef } = useDroppable({
+        id: category?.channel_id,
+        disabled: !category,
+        data: {
+            type: 'category',
+            category
+        }
+    });
 
     // Local state for optimistic sorting updates
     const [sortedChannels, setSortedChannels] = useState([]);
@@ -202,7 +226,6 @@ const GuildSidebarCategory = ({
         return channelLastMessageTimestamp > channelUnreadLastReadTimestamp;
     }, [channelUnreads, channelUnreadsLoaded]);
 
-    // Get mention count from channelUnreads
     const getMentionsCount = useCallback((channel) => {
         if (!channelUnreadsLoaded) return 0;
 
@@ -216,7 +239,6 @@ const GuildSidebarCategory = ({
             return;
         }
         if (!guild?.id || !channel) return;
-        // If this is a category, make sure that we don't allow deletion if it has child channels
         if (channel.type === 3) {
             const childChannels = channels.filter(c => c.parent_id === channel.channel_id);
             if (childChannels.length > 0) {
@@ -226,58 +248,8 @@ const GuildSidebarCategory = ({
         }
         const confirmDelete = window.confirm('Delete this channel?');
         if (!confirmDelete) return;
-        // GuildsService.deleteGuildChannel(guild.id, channel.channel_id)
         ChannelsService.deleteGuildChannel(guild.id, channel.channel_id);
     }, [canManageChannels, guild?.id]);
-
-    // DnD Sensors
-    const sensors = useSensors(
-        useSensor(PointerSensor, {
-            activationConstraint: {
-                distance: 8, // Requires 8px movement before drag starts (prevents blocking clicks)
-            },
-        }),
-        useSensor(KeyboardSensor, {
-            coordinateGetter: sortableKeyboardCoordinates,
-        })
-    );
-
-    const handleDragEnd = async (event) => {
-        const { active, over } = event;
-
-        if (!over || active.id === over.id || !canManageChannels) {
-            return;
-        }
-
-        setSortedChannels((items) => {
-            const oldIndex = items.findIndex((c) => c.channel_id === active.id);
-            const newIndex = items.findIndex((c) => c.channel_id === over.id);
-
-            const newItems = arrayMove(items, oldIndex, newIndex);
-
-            // Trigger API Update
-            // Map the new order to an array of updates: { id, position }
-            // This is optimistic UI: we update state immediately, then call API.
-            const updates = newItems.map((item, index) => ({
-                id: item.channel_id,
-                position: index,
-                parent_id: category?.channel_id
-            }));
-
-            // NOTE: You will need to implement a batch update endpoint or loop through single updates.
-            // Assuming a batch update exists or using single updates for now:
-            api.patch(`/guilds/${guild.id}/channels`, updates)
-                .then(() => {
-                    toast.success('Channel order updated.');
-                })
-                .catch(err => {
-                    console.error("Failed to reorder channels", err);
-                    toast.error("Failed to save channel order");
-                });
-
-            return newItems;
-        });
-    };
 
     const markChannelsAsRead = useCallback(async () => {
         const unreadChannels = sortedChannels.filter(isChannelUnread);
@@ -299,7 +271,14 @@ const GuildSidebarCategory = ({
             {category && (
                 <ContextMenu>
                     <ContextMenuTrigger>
-                        <div className="mb-1 flex items-center pt-4 text-gray-400 hover:text-gray-100">
+                        <div
+                            ref={setNodeRef}
+                            className={`mb-1 flex items-center pt-4 transition-colors duration-150 ${isDropTarget
+                                ? 'rounded bg-gray-700/60 text-gray-100'
+                                : 'text-gray-400 hover:text-gray-100'
+                                }`}
+                        >
+
                             <button
                                 type="button"
                                 className="flex flex-auto items-center"
@@ -335,37 +314,32 @@ const GuildSidebarCategory = ({
                 </ContextMenu>
             )}
 
-            <DndContext
-                sensors={sensors}
-                collisionDetection={closestCenter}
-                onDragEnd={handleDragEnd}
+            <SortableContext
+                items={sortedChannels.map(c => c.channel_id)}
+                strategy={verticalListSortingStrategy}
             >
-                <SortableContext
-                    items={sortedChannels.map(c => c.channel_id)}
-                    strategy={verticalListSortingStrategy}
-                >
-                    {sortedChannels.map((channel) => {
-                        const isUnread = isChannelUnread(channel);
-                        const isActive = channel.channel_id == activeChannelId;
-                        const mentionsCount = getMentionsCount(channel);
+                {sortedChannels.map((channel) => {
+                    const isUnread = isChannelUnread(channel);
+                    const isActive = channel.channel_id == activeChannelId;
+                    const mentionsCount = getMentionsCount(channel);
 
-                        return (
-                            <SortableChannel
-                                key={channel.channel_id}
-                                channel={channel}
-                                isActive={isActive}
-                                isUnread={isUnread}
-                                mentionsCount={mentionsCount}
-                                expanded={expanded}
-                                canManageChannels={canManageChannels}
-                                onEditChannel={onEditChannel}
-                                handleDeleteChannel={handleDeleteChannel}
-                                navigate={navigate}
-                            />
-                        );
-                    })}
-                </SortableContext>
-            </DndContext>
+                    return (
+                        <SortableChannel
+                            key={channel.channel_id}
+                            channel={channel}
+                            isActive={isActive}
+                            isUnread={isUnread}
+                            mentionsCount={mentionsCount}
+                            expanded={expanded}
+                            canManageChannels={canManageChannels}
+                            onEditChannel={onEditChannel}
+                            handleDeleteChannel={handleDeleteChannel}
+                            navigate={navigate}
+                            globalIsDragging={globalIsDragging}
+                        />
+                    );
+                })}
+            </SortableContext>
         </div>
     );
 };
@@ -380,17 +354,150 @@ const GuildSidebar = ({
     canManageChannels,
 }) => {
     const { channelId } = useParams();
-    const { channels } = useChannelsStore();
+    const { channels, setChannels } = useChannelsStore();
+    const [activeId, setActiveId] = useState(null);
+    const [overId, setOverId] = useState(null);
 
     const guildChannels = useMemo(() => {
         return (channels || []).filter((c) => String(c.guild_id) === String(guild?.id));
     }, [channels, guild?.id]);
 
-    // Go through all categories (channels with type 3) and render their channels inside them
     const categories = (guildChannels || []).filter((c) => c.type === 3);
 
+    // Find the active channel data for the drag overlay
+    const activeChannel = useMemo(() => {
+        if (!activeId) return null;
+        return channels.find((c) => c.channel_id === activeId);
+    }, [activeId, channels]);
+
+    // Determine which category is being hovered over
+    const dropTargetCategoryId = useMemo(() => {
+        if (!overId || !activeId) return null;
+        const overItem = channels.find((c) => c.channel_id === overId);
+        if (!overItem) return null;
+        // If hovering over a category header directly
+        if (overItem.type === 3) return overItem.channel_id;
+        // If hovering over a channel, highlight its parent category
+        return overItem.parent_id;
+    }, [overId, activeId, channels]);
+
+    const sensors = useSensors(
+        useSensor(PointerSensor, {
+            activationConstraint: {
+                distance: 8,
+            },
+        }),
+        useSensor(KeyboardSensor, {
+            coordinateGetter: sortableKeyboardCoordinates,
+        })
+    );
+
+    const handleDragStart = (event) => {
+        setActiveId(event.active.id);
+    };
+
+    const handleDragOver = (event) => {
+        setOverId(event.over?.id || null);
+    };
+
+    const handleDragCancel = () => {
+        setActiveId(null);
+        setOverId(null);
+    };
+
+    const handleDragEnd = async (event) => {
+        setActiveId(null);
+        setOverId(null);
+        const { active, over } = event;
+
+        if (!over || active.id === over.id || !canManageChannels) {
+            return;
+        }
+
+        const activeChannel = channels.find((c) => c.channel_id === active.id);
+        const overChannel = channels.find((c) => c.channel_id === over.id);
+
+        if (!activeChannel || !overChannel) return;
+
+        let newChannels = [...channels];
+        const oldIndex = newChannels.findIndex((c) => c.channel_id === active.id);
+
+        let newParentId;
+
+        // Case 1: Drop on a Category Header (Type 3)
+        if (overChannel.type === 3) {
+            newParentId = overChannel.channel_id;
+
+            // Update parent_id of the active channel
+            newChannels[oldIndex] = {
+                ...newChannels[oldIndex],
+                parent_id: newParentId
+                // We don't set position here, will rely on API/sibling finding or append
+            };
+
+            // Move the channel to the end of the new list in UI (simplest optimistic update)
+            // Or filter out and push.
+            // But simplest way for optimistic UI is just update parent_id. 
+            // The sort logic in GuildSidebarCategory handles visual placement (based on position).
+            // Since we didn't update position, it might look odd.
+            // Let's rely on setting a high position?
+            newChannels[oldIndex].position = 9999;
+        }
+        // Case 2: Drop on another Channel (Sortable)
+        else {
+            newParentId = overChannel.parent_id;
+
+            // Update active channel parent
+            newChannels[oldIndex] = { ...newChannels[oldIndex], parent_id: newParentId };
+
+            // Find target index in global list
+            const newIndex = newChannels.findIndex((c) => c.channel_id === over.id);
+
+            // Reorder
+            newChannels = arrayMove(newChannels, oldIndex, newIndex);
+        }
+
+        // Recalculate positions for all sibling channels in the target parent group
+        // Filter to only text channels (type 0) in the same parent, preserving array order
+        const siblingsInOrder = newChannels.filter(c => c.parent_id === newParentId && c.type === 0);
+
+        // Update position fields on the channel objects so the UI sorts correctly
+        siblingsInOrder.forEach((sibling, index) => {
+            const channelIndex = newChannels.findIndex(c => c.channel_id === sibling.channel_id);
+            if (channelIndex !== -1) {
+                newChannels[channelIndex] = { ...newChannels[channelIndex], position: index };
+            }
+        });
+
+        // Update local state immediately (now with correct position values)
+        setChannels([...newChannels]);
+
+        // Prepare API payload
+        const siblings = siblingsInOrder.map((c, index) => ({
+            id: c.channel_id,
+            position: index,
+            parent_id: newParentId
+        }));
+
+        try {
+            await api.patch(`/guilds/${guild.id}/channels`, siblings);
+            toast.success('Channel moved.');
+        } catch (err) {
+            console.error("Failed to move channel", err);
+            toast.error("Failed to move channel");
+        }
+    };
+
     return (
-        <>
+        <DndContext
+            sensors={sensors}
+            collisionDetection={closestCenter}
+            onDragStart={handleDragStart}
+            onDragOver={handleDragOver}
+            onDragEnd={handleDragEnd}
+            onDragCancel={handleDragCancel}
+            modifiers={[restrictToVerticalAxis]}
+        >
             <ContextMenu>
                 <ContextMenuTrigger>
                     <div className="relative top-0 flex h-full min-w-[240px] flex-col bg-gray-800 text-gray-100">
@@ -406,12 +513,14 @@ const GuildSidebar = ({
                             {/* Root Channels (No Category) */}
                             <GuildSidebarCategory
                                 category={null}
-                                channels={guildChannels} // Passing all, section filters
+                                channels={guildChannels}
                                 activeChannelId={channelId}
                                 openCreateChannelDialog={() => onCreateChannel(null)}
                                 guild={guild}
                                 onEditChannel={onEditChannel}
                                 canManageChannels={canManageChannels}
+                                isDropTarget={dropTargetCategoryId === null && !!activeId}
+                                globalIsDragging={!!activeId}
                             />
 
                             {categories.map((category) => (
@@ -424,6 +533,8 @@ const GuildSidebar = ({
                                     guild={guild}
                                     onEditChannel={onEditChannel}
                                     canManageChannels={canManageChannels}
+                                    isDropTarget={dropTargetCategoryId === category.channel_id}
+                                    globalIsDragging={!!activeId}
                                 />
                             ))}
                         </div>
@@ -442,7 +553,25 @@ const GuildSidebar = ({
                     )}
                 </ContextMenuContent>
             </ContextMenu>
-        </>
+
+            {/* Drag overlay - floating ghost preview */}
+            <DragOverlay dropAnimation={{
+                duration: 150,
+                easing: 'ease',
+            }}>
+                {activeChannel ? (
+                    <div className="w-[240px]" style={{ pointerEvents: 'none' }}>
+                        <ChannelRow
+                            channel={activeChannel}
+                            isActive={false}
+                            isUnread={false}
+                            mentionsCount={0}
+                            isDragOverlay={true}
+                        />
+                    </div>
+                ) : null}
+            </DragOverlay>
+        </DndContext>
     );
 };
 
