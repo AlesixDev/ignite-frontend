@@ -23,7 +23,7 @@ const DirectMessagesPage = () => {
 
   return (
     <DefaultLayout>
-      <div className="flex h-screen w-screen overflow-hidden bg-gray-700 text-gray-100 select-none">
+      <div className="flex h-screen w-screen overflow-hidden bg-gray-700 text-gray-100">
 
         {/* Sidebar Component */}
         <DMSidebar
