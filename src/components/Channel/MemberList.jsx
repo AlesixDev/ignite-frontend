@@ -7,10 +7,14 @@ import GuildMemberPopoverContent from '../GuildMember/GuildMemberPopoverContent.
 import Avatar from '../Avatar.jsx';
 import { useRolesStore } from '../../store/roles.store.ts';
 import { useGuildsStore } from '@/store/guilds.store.ts';
+import { useUsersStore } from '@/store/users.store.ts';
 import { GuildsService } from '@/services/guilds.service.ts';
 import { CircleNotch, CaretDown, CaretRight } from '@phosphor-icons/react';
 
-const MemberListItem = ({ member}) => {
+const MemberListItem = ({ member }) => {
+    const userFromStore = useUsersStore((state) => state.users[member.user.id]);
+    const status = userFromStore?.status ?? member.user.status;
+
     const topColor = useMemo(() => {
         if (!member.roles || member.roles.length === 0) return 'inherit';
 
@@ -32,18 +36,18 @@ const MemberListItem = ({ member}) => {
                 <PopoverTrigger className="w-full text-left">
                     <ContextMenuTrigger>
                         <div className="flex items-center gap-3 rounded-md p-2 transition hover:bg-gray-700/50">
-                            <Avatar user={member.user} className="size-8" />
-                            <div className="min-w-0 flex-1">
-                                <p
-                                    className="truncate text-sm font-medium"
-                                    style={{ color: topColor }}
-                                >
-                                    {member.user.name ?? member.user.username}
-                                </p>
-                                <p className="truncate text-xs text-gray-400">
-                                    {member.user.status}
-                                </p>
+                            <div className="relative flex-shrink-0">
+                                <Avatar user={member.user} className="size-8" />
+                                {status === 'online' && (
+                                    <span className="absolute -bottom-0.5 -right-0.5 size-3 rounded-full bg-green-500 border-2 border-gray-800" />
+                                )}
                             </div>
+                            <p
+                                className="truncate text-sm font-medium min-w-0 flex-1"
+                                style={{ color: topColor }}
+                            >
+                                {member.user.name ?? member.user.username}
+                            </p>
                         </div>
                     </ContextMenuTrigger>
                 </PopoverTrigger>
@@ -52,7 +56,7 @@ const MemberListItem = ({ member}) => {
                 </ContextMenuContent>
             </ContextMenu>
             <PopoverContent className="w-auto p-2" align="start" alignOffset={0}>
-                <GuildMemberPopoverContent user={member.user} guild={null} />
+                <GuildMemberPopoverContent userId={member.user.id} guild={null} />
             </PopoverContent>
         </Popover>
     );
@@ -61,8 +65,10 @@ const MemberListItem = ({ member}) => {
 const MemberList = ({ guildId }) => {
     const { memberListOpen } = useChannelContext();
     const { guildMembers } = useGuildsStore();
+    const users = useUsersStore((state) => state.users);
     const [membersByRole, setMembersByRole] = useState({});
     const [membersWithoutRoles, setMembersWithoutRoles] = useState([]);
+    const [offlineMembers, setOfflineMembers] = useState([]);
     const [isLoading, setIsLoading] = useState(false);
     const [collapsedRoles, setCollapsedRoles] = useState({});
 
@@ -88,9 +94,17 @@ const MemberList = ({ guildId }) => {
     useEffect(() => {
         const tempMembersByRole = {};
         const tempMembersWithoutRoles = [];
+        const tempOfflineMembers = []
         const assignedMemberIds = new Set();
 
         activeGuildMembers?.forEach((member) => {
+            const userStatus = users[member.user.id]?.status ?? member.user.status;
+            // Offline members
+            if (userStatus === 'offline') {
+                tempOfflineMembers.push(member);
+                return;
+            }
+
             if (member.roles && member.roles.length > 0) {
                 // Map member's role ids to role objects, filter out missing, sort by position
                 const firstRole = member.roles.sort((a, b) => b.position - a.position)[0];
@@ -106,6 +120,7 @@ const MemberList = ({ guildId }) => {
 
         setMembersByRole(tempMembersByRole);
         setMembersWithoutRoles(tempMembersWithoutRoles);
+        setOfflineMembers(tempOfflineMembers);
 
         // Auto-collapse groups with more than 100 members
         const autoCollapsed = {};
@@ -116,14 +131,14 @@ const MemberList = ({ guildId }) => {
         if (Object.keys(autoCollapsed).length > 0) {
             setCollapsedRoles((prev) => ({ ...autoCollapsed, ...prev }));
         }
-    }, [activeGuildMembers, roles]);
+    }, [activeGuildMembers, roles, users]);
 
     return (
         <div className={`relative z-0 transition-all duration-300 ${memberListOpen ? 'w-60 md:w-72' : 'w-0'}`}>
             {memberListOpen && (
                 <div className="flex h-full flex-col border-l border-gray-800 bg-gray-800">
                     <div className="flex h-12 items-center border-b border-gray-700 px-4 text-sm font-semibold text-gray-300">
-                        Members
+                        Members - {activeGuildMembers?.length}
                     </div>
                     <div className="flex flex-1 flex-col gap-2 p-2 text-gray-400 overflow-y-auto">
                         {isLoading ? (

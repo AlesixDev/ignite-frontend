@@ -15,6 +15,7 @@ import { useChannelsStore } from './store/channels.store';
 import { UnreadsService } from './services/unreads.service';
 import { RolesService } from './services/roles.service';
 import { ChannelsService } from './services/channels.service';
+import { useUsersStore } from './store/users.store';
 
 const AuthRoute = ({ children }) => {
   const store = useStore();
@@ -98,7 +99,10 @@ const AuthRoute = ({ children }) => {
       .listen('.message.created', ChannelsService.handleMessageCreated)
       .listen('.message.updated', ChannelsService.handleMessageUpdated)
       .listen('.message.deleted', ChannelsService.handleMessageDeleted)
-      .listen('.channel.created', ChannelsService.handleChannelCreated);
+      .listen('.channel.created', ChannelsService.handleChannelCreated)
+      .listen('.user.updated', (event) => {
+        useUsersStore.getState().setUser(event.user.id, event.user);
+      });
   }, [initialized, store.user]);
 
   // Subscribe to all channels via Echo
@@ -128,7 +132,10 @@ const AuthRoute = ({ children }) => {
           .listen('.message.deleted', ChannelsService.handleMessageDeleted)
           .listen('.role.created', RolesService.handleRoleCreated)
           .listen('.role.updated', RolesService.handleRoleUpdated)
-          .listen('.role.deleted', RolesService.handleRoleDeleted);
+          .listen('.role.deleted', RolesService.handleRoleDeleted)
+          .listen('.user.updated', (event) => {
+            useUsersStore.getState().setUser(event.user.id, event.user);
+          });
 
         // Mark as subscribed
         activeSubscriptions.current.add(guildId);

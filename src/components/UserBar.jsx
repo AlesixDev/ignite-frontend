@@ -13,9 +13,11 @@ const UserIcon = () => {
   return (
     <div className="relative -ml-1 flex h-8 w-8">
       <Avatar user={store.user} className="size-8" />
-      <div className="absolute -bottom-1 -right-1 h-4 w-4 items-center justify-center rounded-full bg-gray-900 text-center">
-        <div className="relative left-1/2 top-1/2 h-2.5 w-2.5 -translate-x-1/2 -translate-y-1/2 rounded-full bg-green-600 text-center"></div>
-      </div>
+      {store.user.status !== 'offline' && (
+        <div className="absolute -bottom-1 -right-1 h-4 w-4 items-center justify-center rounded-full bg-gray-900 text-center">
+          <div className="relative left-1/2 top-1/2 h-2.5 w-2.5 -translate-x-1/2 -translate-y-1/2 rounded-full bg-green-600 text-center"></div>
+        </div>
+      )}
     </div>
   );
 };

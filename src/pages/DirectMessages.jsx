@@ -5,7 +5,7 @@ import useStore from '../hooks/useStore';
 import { ChannelContextProvider } from '../contexts/ChannelContext';
 import Channel from '../components/Channel/Channel';
 import DMSidebar from '../components/dm/DMSidebar';
-import FriendsDashboard from '../components/friends/FriendsDashboard';
+import FriendsDashboard from '../components/Friends/FriendsDashboard';
 import { useChannelsStore } from '../store/channels.store';
 
 const DirectMessagesPage = () => {

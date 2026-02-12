@@ -40,7 +40,6 @@ const DMChannelItem = ({ channel, isActive, onClick, channelUnreads, channelUnre
 
                     <div className="relative">
                         <Avatar user={channel.user} className="size-8 rounded-full" />
-                        <div className="absolute bottom-0 right-0 size-3 rounded-full border-2 border-gray-800 bg-green-500" />
                     </div>
 
                     <div className="min-w-0 flex-1 flex items-center justify-between">

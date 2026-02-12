@@ -140,7 +140,7 @@ const ChannelMessage = memo(({ message, prevMessage, pending, isEditing, setEdit
             </ContextMenu>
 
             <PopoverContent className="w-auto p-2" align="start" alignOffset={0}>
-                <GuildMemberPopoverContent user={message.author} guild={null} />
+                <GuildMemberPopoverContent userId={message.author.id} guild={null} />
             </PopoverContent>
         </Popover>
     );

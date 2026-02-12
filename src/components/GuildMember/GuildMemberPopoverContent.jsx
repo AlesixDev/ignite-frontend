@@ -11,13 +11,16 @@ import { CircleNotch, DotsThree, Prohibit, UserCircle, ChatTeardropText } from '
 import GuildMemberContextMenu from './GuildMemberContextMenu';
 import { toast } from 'sonner';
 import UserProfileModal from '../UserProfileModal';
+import { useUsersStore } from '@/store/users.store';
 
-const GuildMemberPopoverContent = ({ user, guild = null }) => {
+const GuildMemberPopoverContent = ({ userId, guild = null }) => {
   const store = useStore();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const [profileModalOpen, setProfileModalOpen] = useState(false);
   const { friends, requests } = useFriendsStore();
+  const { getUser, users } = useUsersStore();
+  const user = useMemo(() => getUser(userId), [userId, getUser, users]);
 
   const isFriend = useMemo(() => {
     return friends.some((friend) => friend.id === user.id);
@@ -94,6 +97,8 @@ const GuildMemberPopoverContent = ({ user, guild = null }) => {
     toast.info('Block feature coming soon!');
   };
 
+  console.log(user);
+
   return (
     <>
       {loading ? (
@@ -120,7 +125,7 @@ const GuildMemberPopoverContent = ({ user, guild = null }) => {
                 <div className="rounded-full border-[6px] border-[#111214] bg-[#111214] transition hover:brightness-110">
                   <Avatar user={user} className="size-20 !cursor-pointer text-3xl" />
                 </div>
-                <div className="absolute bottom-1 right-1 size-6 rounded-full border-4 border-[#111214] bg-[#23a559] z-10" />
+                {user.status === 'online' && (<div className="absolute bottom-1 right-1 size-6 rounded-full border-4 border-[#111214] bg-[#23a559] z-10" />)}
 
                 <div className="absolute inset-0 flex items-center justify-center rounded-full bg-black/40 opacity-0 transition group-hover:opacity-100">
                   <span className="text-[10px] font-bold uppercase text-white drop-shadow-md">View Profile</span>

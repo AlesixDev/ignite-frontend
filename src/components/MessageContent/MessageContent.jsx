@@ -52,7 +52,7 @@ const MentionText = ({ userId }) => {
                     </PopoverTrigger>
                 </ContextMenuTrigger>
                 <PopoverContent className="w-auto p-2" align="start" alignOffset={0}>
-                    <GuildMemberPopoverContent user={user} guild={null} />
+                    <GuildMemberPopoverContent userId={user.id} guild={null} />
                 </PopoverContent>
             </Popover>
             <ContextMenuContent>

@@ -28,12 +28,16 @@ const FriendsList = ({ friends, filter }) => {
             .catch(() => toast.error("Failed to remove friend"));
     };
 
+    const filteredFriends = filter === 'online'
+        ? friends.filter(f => f.status !== 'offline')
+        : friends;
+
     return (
         <div className="space-y-1">
             <div className="mb-4 text-[10px] font-semibold uppercase text-gray-400">
-                {filter} — {friends.length}
+                {filter} — {filteredFriends.length}
             </div>
-            {friends.map(friend => (
+            {filteredFriends.map(friend => (
                 <div key={friend.id} className="group flex items-center justify-between border-t border-gray-600/30 px-2 py-3 hover:bg-gray-600/30 hover:rounded-lg cursor-pointer">
                     <div className="flex items-center gap-3">
                         <Avatar user={friend} className="size-8 rounded-full" />
@@ -42,7 +46,7 @@ const FriendsList = ({ friends, filter }) => {
                                 {friend.username}
                                 <span className="hidden text-xs text-gray-400 ml-1 group-hover:inline">#{friend.discriminator || '0000'}</span>
                             </div>
-                            <div className="text-xs text-gray-400">Online</div>
+                            <div className="text-xs text-gray-400">{friend.status}</div>
                         </div>
                     </div>
                     <div className="flex gap-2 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
