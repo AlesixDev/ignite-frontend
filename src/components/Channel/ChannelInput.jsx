@@ -283,7 +283,7 @@ const ChannelInput = ({ channel }) => {
     if (!mentionQuery) return [];
     return members
       .filter((m) =>
-        m.user.username.toLowerCase().includes(mentionQuery.toLowerCase())
+        m.user.username.toLowerCase().includes(mentionQuery.toLowerCase()) || m.user.name.toLowerCase().includes(mentionQuery.toLowerCase())
       )
       .slice(0, SUGGESTIONS_LIMIT);
   }, [members, mentionQuery]);
