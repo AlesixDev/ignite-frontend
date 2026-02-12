@@ -24,7 +24,7 @@ const intToHex = (intColor) => {
   return `#${intColor.toString(16).padStart(6, '0')}`;
 };
 
-const GuildMemberContextMenu = ({ user, onMention = undefined }) => {
+const GuildMemberContextMenu = ({ user }) => {
   const store = useStore();
   const navigate = useNavigate();
   const { friends, requests } = useFriendsStore();
@@ -105,12 +105,6 @@ const GuildMemberContextMenu = ({ user, onMention = undefined }) => {
       <ContextMenuItem onSelect={() => toast.info('Profile feature coming soon.')}>
         View Profile
       </ContextMenuItem>
-
-      {onMention !== undefined && (
-        <ContextMenuItem onSelect={() => onMention(user)}>
-          Mention
-        </ContextMenuItem>
-      )}
 
       {user.id !== store.user.id && (
         <ContextMenuItem onSelect={() => onSendMessage(user)}>

@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect, useMemo } from 'react';
-import { useChannelContext } from '../../contexts/ChannelContext.jsx';
+import { useChannelContext, useChannelInputContext } from '../../contexts/ChannelContext.jsx';
 import { ContextMenu, ContextMenuContent, ContextMenuTrigger } from '../ui/context-menu';
 import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover';
 import GuildMemberContextMenu from '../GuildMember/GuildMemberContextMenu.jsx';
@@ -10,7 +10,7 @@ import { useGuildsStore } from '@/store/guilds.store.ts';
 import { GuildsService } from '@/services/guilds.service.ts';
 import { CircleNotch, CaretDown, CaretRight } from '@phosphor-icons/react';
 
-const MemberListItem = ({ member, onMention }) => {
+const MemberListItem = ({ member}) => {
     const topColor = useMemo(() => {
         if (!member.roles || member.roles.length === 0) return 'inherit';
 
@@ -48,7 +48,7 @@ const MemberListItem = ({ member, onMention }) => {
                     </ContextMenuTrigger>
                 </PopoverTrigger>
                 <ContextMenuContent>
-                    <GuildMemberContextMenu user={member.user} onMention={onMention} />
+                    <GuildMemberContextMenu user={member.user} />
                 </ContextMenuContent>
             </ContextMenu>
             <PopoverContent className="w-auto p-2" align="start" alignOffset={0}>
@@ -59,7 +59,7 @@ const MemberListItem = ({ member, onMention }) => {
 };
 
 const MemberList = ({ guildId }) => {
-    const { memberListOpen, setInputMessage, inputRef } = useChannelContext();
+    const { memberListOpen } = useChannelContext();
     const { guildMembers } = useGuildsStore();
     const [membersByRole, setMembersByRole] = useState({});
     const [membersWithoutRoles, setMembersWithoutRoles] = useState([]);
@@ -75,11 +75,6 @@ const MemberList = ({ guildId }) => {
 
         GuildsService.loadGuildMembers(guildId).finally(() => setIsLoading(false));
     }, [guildId]);
-
-    const onMention = useCallback((user) => {
-        setInputMessage((prev) => `${prev} @${user.username} `);
-        inputRef.current.focus();
-    }, [inputRef, setInputMessage]);
 
     const roles = useRolesStore().guildRoles[guildId] || [];
 
@@ -153,7 +148,6 @@ const MemberList = ({ guildId }) => {
                                                 <MemberListItem
                                                     key={member.user.id}
                                                     member={member}
-                                                    onMention={onMention}
                                                 />
                                             ))}
                                         </div>
@@ -176,7 +170,6 @@ const MemberList = ({ guildId }) => {
                                             <MemberListItem
                                                 key={member.user.id}
                                                 member={member}
-                                                onMention={onMention}
                                             />
                                         ))}
                                     </div>

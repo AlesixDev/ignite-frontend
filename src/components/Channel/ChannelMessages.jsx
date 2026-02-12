@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect, useRef, useMemo } from 'react';
+import { useState, useCallback, useEffect, useRef, useMemo, memo } from 'react';
 import { toast } from 'sonner'
 import { NotePencil, Trash, ArrowBendUpLeft, PushPin, CircleNotch, Smiley } from '@phosphor-icons/react';
 import { cn } from '@/lib/utils';
@@ -6,7 +6,7 @@ import api from '../../api';
 import useStore from '../../hooks/useStore';
 import { useGuildsStore } from '../../store/guilds.store';
 import { useGuildContext } from '../../contexts/GuildContext';
-import { useChannelContext } from '../../contexts/ChannelContext.jsx';
+import { useChannelContext, useChannelInputContext } from '../../contexts/ChannelContext.jsx';
 import { ContextMenu, ContextMenuContent, ContextMenuItem, ContextMenuSeparator, ContextMenuTrigger } from '../ui/context-menu';
 import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover';
 import { Badge } from '../ui/badge';
@@ -21,41 +21,15 @@ import { ChannelsService } from '@/services/channels.service';
 import { UnreadsService } from '@/services/unreads.service';
 import Mention from '../Mention/Mention.jsx';
 
-// {
-//     "id": "1368635171753951232",
-//     "nonce": "1770743251830632",
-//     "channel_id": "1361304246670065664",
-//     "user_id": "1361304229808963584",
-//     "webhook_id": null,
-//     "content": "T *Hi* W\u00a0<@1368621360774905856>*Hello* **Hello**",
-//     "name": null,
-//     "avatar_url": null,
-//     "created_at": "2026-02-10T17:07:32.000000Z",
-//     "updated_at": "2026-02-10T17:07:32.000000Z",
-//     "deleted_at": null,
-//     "author": {
-//         "id": "1361304229808963584",
-//         "name": "Sloth",
-//         "avatar_url": null,
-//         "username": "SellAuth",
-//         "is_bot": false
-//     },
-//     "mentions": [
-//         {
-//             "message_id": "1368635171753951232",
-//             "user_id": "1368621360774905856"
-//         }
-//     ]
-// }
-const ChannelMessage = ({ message, prevMessage, pending }) => {
+const ChannelMessage = memo(({ message, prevMessage, pending, isEditing, setEditingId }) => {
     const [emojiPickerOpen, setEmojiPickerOpen] = useState(false);
     const { guildId } = useGuildContext();
     const channelId = message.channel_id;
     const store = useStore();
     const guildsStore = useGuildsStore();
-    const channelsStore = useChannelsStore();
+    const channelReactions = useChannelsStore(s => s.channelReactions);
 
-    const { messages, setMessages, editingId, setEditingId, setReplyingId, setPinId, inputRef, setInputMessage } = useChannelContext();
+    // const { setInputMessage } = useChannelInputContext();
 
     const authorColor = useMemo(() => {
         const members = guildsStore.guildMembers[guildId] || [];
@@ -67,7 +41,7 @@ const ChannelMessage = ({ message, prevMessage, pending }) => {
         const topRole = sortedRoles.find(r => r.color && r.color !== 0); // 0 is usually 'default/none'
 
         return topRole ? `#${topRole.color.toString(16).padStart(6, '0')}` : 'inherit';
-    }, [guildId, guildsStore.guildMembers, message.author.id]); 1
+    }, [guildId, guildsStore.guildMembers, message.author.id]);
 
     const formattedDateTime = useMemo(() => {
         const date = new Date(message.created_at);
@@ -95,7 +69,6 @@ const ChannelMessage = ({ message, prevMessage, pending }) => {
         }
     }, [prevMessage, message]);
 
-    const isEditing = useMemo(() => editingId === message.id, [editingId, message.id]);
     const canEdit = useMemo(() => message.author.id === store.user.id, [message.author.id, store.user.id]);
 
     const canDelete = useMemo(() => {
@@ -124,38 +97,25 @@ const ChannelMessage = ({ message, prevMessage, pending }) => {
 
         try {
             await api.put(`/channels/${channelId}/messages/${message.id}`, { content: editedMessage });
-            setMessages(messages.map((m) => m.id === message.id ? { ...m, content: editedMessage, updated_at: new Date().toISOString() } : m));
+            // Update the Zustand store directly for immediate UI feedback
+            const { channelMessages, setChannelMessages } = useChannelsStore.getState();
+            const messages = channelMessages[channelId] || [];
+            setChannelMessages(channelId, messages.map((m) => m.id === message.id ? { ...m, content: editedMessage, updated_at: new Date().toISOString() } : m));
             setEditingId(null);
         } catch (error) {
             console.error(error);
             toast.error(error.response?.data?.message || 'Could not edit message.');
         }
-    }, [editedMessage, message.content, channelId, message.id, setEditingId, setMessages, messages]);
+    }, [editedMessage, message.content, channelId, message.id, setEditingId]);
 
     const onDelete = useCallback(async () => {
         try {
             await api.delete(`/channels/${channelId}/messages/${message.id}`);
-            //setMessages(messages.filter((m) => m.id !== message.id));
         } catch (error) {
             console.error(error);
             toast.error(error.response?.data?.message || 'Could not delete message.');
         }
-    }, [channelId, message.id, messages, setMessages]);
-
-    const onReply = useCallback(() => {
-        setReplyingId(message.id);
-    }, [message.id, setReplyingId]);
-
-    const onPin = useCallback(async () => {
-        try {
-            await api.post(`/channels/${channelId}/messages/${message.id}/pin`);
-            setPinId(message.id);
-        } catch (error) {
-            console.error(error);
-            toast.error(error.response?.data?.message || 'Could not pin message.');
-        }
-        toast.info('Pinning is not available yet.');
-    }, [channelId, message.id, setPinId]);
+    }, [channelId, message.id]);
 
     const handleAddReaction = useCallback((selectedEmoji) => {
         if (!message.id || !channelId) return;
@@ -168,26 +128,13 @@ const ChannelMessage = ({ message, prevMessage, pending }) => {
     }, [channelId]);
 
     // FRONTEND-ONLY: Reactions are computed from the Zustand store (in-memory storage).
-    // They will NOT persist on page refresh until the backend API is fully implemented.
-    // To enable persistence, backend needs to:
-    // 1. Store reactions in the database when PUT /channels/{id}/messages/{id}/reactions/{emoji}/@me is called
-    // 2. Load reactions via WebSocket 'message.reactions.set' event when opening a channel
-    // 3. Broadcast 'message.reaction.added/removed' events to other clients
-    // See ChannelsService.toggleMessageReaction and WebSocket handlers for integration points.
     const messageReactions = useMemo(() => {
-        const reactions = channelsStore.channelReactions[channelId]?.[message.id] || [];
+        const reactions = channelReactions[channelId]?.[message.id] || [];
         return reactions.map(reaction => ({
             ...reaction,
-            // Dynamically compute 'me' flag by checking if current user is in the users array
             me: reaction.users.includes(store.user.id)
         }));
-    }, [channelsStore.channelReactions, channelId, message.id, store.user.id]);
-
-    // TODO: This is duplicated
-    const onMention = useCallback((user) => {
-        setInputMessage((prev) => `${prev} @${user.username} `);
-        inputRef.current.focus();
-    }, [inputRef, setInputMessage]);
+    }, [channelReactions, channelId, message.id, store.user.id]);
 
     return (
         <Popover>
@@ -203,7 +150,7 @@ const ChannelMessage = ({ message, prevMessage, pending }) => {
                                         <Avatar user={message.author} className="size-10" />
                                     </ContextMenuTrigger>
                                     <ContextMenuContent>
-                                        <GuildMemberContextMenu user={message.author} onMention={onMention} />
+                                        <GuildMemberContextMenu user={message.author} />
                                     </ContextMenuContent>
                                 </PopoverTrigger>
                             </ContextMenu>
@@ -350,11 +297,12 @@ const ChannelMessage = ({ message, prevMessage, pending }) => {
             </PopoverContent>
         </Popover>
     );
-};
+});
 
 const ChannelMessages = ({ channel }) => {
-    const { setEditingId, replyingId, setReplyingId } = useChannelContext();
-    const { channelMessages, channelPendingMessages } = useChannelsStore();
+    const { editingId, setEditingId, replyingId, setReplyingId } = useChannelContext();
+    const channelMessages = useChannelsStore(s => s.channelMessages);
+    const channelPendingMessages = useChannelsStore(s => s.channelPendingMessages);
     const [atTop, setAtTop] = useState(false);
 
     const [forceScrollDown, setForceScrollDown] = useState(false);
@@ -500,14 +448,26 @@ const ChannelMessages = ({ channel }) => {
                         const prevMessage = messages[index - 1] || null;
                         return (
                             <div key={message.id} id={`msg-${message.id}`} className={highlightId === message.id ? 'rounded ring-2 ring-primary' : ''}>
-                                <ChannelMessage message={message} prevMessage={prevMessage} />
+                                <ChannelMessage
+                                    message={message}
+                                    prevMessage={prevMessage}
+                                    isEditing={editingId === message.id}
+                                    setEditingId={setEditingId}
+                                />
                             </div>
                         );
                     })}
                     {pendingMessages && pendingMessages.map((message, index) => {
                         const prevMessage = pendingMessages[index - 1] || messages[messages.length - 1] || null;
                         return (
-                            <ChannelMessage key={message.nonce} message={message} prevMessage={prevMessage} pending={true} />
+                            <ChannelMessage
+                                key={message.nonce}
+                                message={message}
+                                prevMessage={prevMessage}
+                                pending={true}
+                                isEditing={false}
+                                setEditingId={setEditingId}
+                            />
                         );
                     })}
                 </>

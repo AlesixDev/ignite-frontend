@@ -1,7 +1,7 @@
 import * as Popover from '@radix-ui/react-popover';
 import { InputGroup } from '../ui/input-group';
 import { EmojiPicker, EmojiPickerContent, EmojiPickerFooter, EmojiPickerSearch } from '../ui/emoji-picker';
-import { useChannelContext } from '../../contexts/ChannelContext.jsx';
+import { useChannelInputContext } from '../../contexts/ChannelContext.jsx';
 import { useGuildsStore } from '../../store/guilds.store';
 import { useGuildContext } from '../../contexts/GuildContext';
 import { ChannelType } from '../../enums/ChannelType';
@@ -240,7 +240,7 @@ const convertSerializedMentions = (root, members, resolveUser) => {
 /* ------------------------------- component ------------------------------- */
 
 const ChannelInput = ({ channel }) => {
-  const { inputMessage, setInputMessage } = useChannelContext();
+  const { inputMessage, setInputMessage } = useChannelInputContext();
   const editorRef = useRef(null);
   const savedSelectionRef = useRef(null);
 
@@ -460,9 +460,8 @@ const ChannelInput = ({ channel }) => {
               onKeyUp={saveSelection}
               onClick={saveSelection}
               onPaste={handlePaste}
-              className={`min-h-[44px] w-full px-3 py-3 text-sm outline-none max-h-[50vh] overflow-y-auto ${
-                !canSendMessages ? 'opacity-50 cursor-not-allowed' : ''
-              }`}
+              className={`min-h-[44px] w-full px-3 py-3 text-sm outline-none max-h-[50vh] overflow-y-auto ${!canSendMessages ? 'opacity-50 cursor-not-allowed' : ''
+                }`}
               data-placeholder={
                 canSendMessages
                   ? channel?.type === ChannelType.DM
@@ -507,9 +506,8 @@ const ChannelInput = ({ channel }) => {
               {filteredEmojis.map((item, i) => (
                 <button
                   key={item.shortcode}
-                  className={`flex w-full items-center gap-3 px-4 py-2 text-left text-sm transition-colors ${
-                    i === emojiIndex ? 'bg-gray-700' : 'hover:bg-gray-700/50'
-                  }`}
+                  className={`flex w-full items-center gap-3 px-4 py-2 text-left text-sm transition-colors ${i === emojiIndex ? 'bg-gray-700' : 'hover:bg-gray-700/50'
+                    }`}
                   onMouseDown={(e) => {
                     e.preventDefault();
                     replaceEmojiQueryWithEmoji(emojiQuery, item.emoji);
