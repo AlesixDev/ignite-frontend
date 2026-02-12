@@ -19,6 +19,58 @@ const SUGGESTIONS_LIMIT = 10;
 
 /* -------------------------------- utils -------------------------------- */
 
+// Store emoji mappings dynamically
+const emojiMap = new Map();
+let emojiDataLoaded = false;
+
+// Load emoji data from CDN (emojibase format)
+const loadEmojiData = async () => {
+  if (emojiDataLoaded) return;
+
+  try {
+    const response = await fetch('https://cdn.jsdelivr.net/npm/emojibase-data@latest/en/data.json');
+    const data = await response.json();
+
+    data.forEach((emoji) => {
+      // Use the unicode emoji and its canonical name
+      if (emoji.emoji && emoji.label) {
+        const shortcode = `:${emoji.label.toLowerCase().replace(/\s+/g, '_')}:`;
+        emojiMap.set(shortcode, emoji.emoji);
+      }
+
+      // Also add aliases if available
+      if (emoji.emoji && emoji.aliases) {
+        emoji.aliases.forEach((alias) => {
+          const shortcode = `:${alias.toLowerCase().replace(/\s+/g, '_')}:`;
+          if (!emojiMap.has(shortcode)) {
+            emojiMap.set(shortcode, emoji.emoji);
+          }
+        });
+      }
+    });
+
+    emojiDataLoaded = true;
+  } catch (error) {
+    console.warn('Failed to load emoji data from CDN:', error);
+  }
+};
+
+// Start loading emoji data on module load (non-blocking)
+loadEmojiData();
+
+const registerEmoji = (label, emoji) => {
+  const shortcode = `:${label.toLowerCase().replace(/\s+/g, '_')}:`;
+  if (!emojiMap.has(shortcode)) {
+    emojiMap.set(shortcode, emoji);
+  }
+};
+
+const convertEmojiShortcodes = (text) => {
+  return text.replace(/:[\w_+-]+:/g, (match) => {
+    return emojiMap.get(match) || match;
+  });
+};
+
 const serializeFromDom = (root) => {
   let out = '';
 
@@ -44,7 +96,7 @@ const serializeFromDom = (root) => {
   };
 
   for (const c of root.childNodes) walk(c);
-  return out;
+  return convertEmojiShortcodes(out);
 };
 
 const insertTextAtCaret = (text) => {
@@ -82,6 +134,50 @@ const getMentionQuery = (root) => {
   if (query.includes(' ') || query.includes('\n')) return null;
 
   return query;
+};
+
+const getEmojiQuery = (root) => {
+  const sel = window.getSelection();
+  if (!sel || !sel.rangeCount) return null;
+
+  const range = sel.getRangeAt(0);
+  if (!root.contains(range.startContainer)) return null;
+
+  const pre = range.cloneRange();
+  pre.selectNodeContents(root);
+  pre.setEnd(range.startContainer, range.startOffset);
+
+  const text = pre.toString();
+  const idx = text.lastIndexOf(':');
+
+  if (idx === -1) return null;
+  if (idx > 0 && ![' ', '\n'].includes(text[idx - 1])) return null;
+
+  const query = text.slice(idx + 1);
+  if (query.includes(' ') || query.includes('\n')) return null;
+  if (query.includes(':')) return null; // Closing colon found
+
+  return query;
+};
+
+const replaceEmojiQueryWithEmoji = (query, emojiChar) => {
+  const sel = window.getSelection();
+  if (!sel || !sel.rangeCount) return;
+
+  const range = sel.getRangeAt(0);
+
+  // delete ":query"
+  const del = range.cloneRange();
+  del.setStart(range.startContainer, Math.max(0, range.startOffset - (query.length + 1)));
+  del.deleteContents();
+
+  // Insert emoji
+  const node = document.createTextNode(emojiChar + ' ');
+  range.insertNode(node);
+  range.setStartAfter(node);
+  range.collapse(true);
+  sel.removeAllRanges();
+  sel.addRange(range);
 };
 
 const replaceAtQueryWithMention = (query, user, resolveUser) => {
@@ -192,6 +288,24 @@ const ChannelInput = ({ channel }) => {
       .slice(0, SUGGESTIONS_LIMIT);
   }, [members, mentionQuery]);
 
+  /* ---------------- emojis ---------------- */
+
+  const [emojiQuery, setEmojiQuery] = useState(null);
+  const [emojiIndex, setEmojiIndex] = useState(0);
+
+  const filteredEmojis = useMemo(() => {
+    if (!emojiQuery) return [];
+
+    const results = [];
+    for (const [shortcode, emoji] of emojiMap) {
+      if (shortcode.toLowerCase().includes(`:${emojiQuery.toLowerCase()}`)) {
+        results.push({ shortcode, emoji });
+      }
+      if (results.length >= SUGGESTIONS_LIMIT) break;
+    }
+    return results;
+  }, [emojiQuery]);
+
   /* ---------------- handlers ---------------- */
 
   const saveSelection = useCallback(() => {
@@ -232,7 +346,9 @@ const ChannelInput = ({ channel }) => {
     saveSelection();
     syncValue();
     setMentionQuery(getMentionQuery(editorRef.current));
+    setEmojiQuery(getEmojiQuery(editorRef.current));
     setMentionIndex(0);
+    setEmojiIndex(0);
 
     // Clean up empty editor to show placeholder
     if (editorRef.current && editorRef.current.textContent.trim() === '') {
@@ -241,6 +357,29 @@ const ChannelInput = ({ channel }) => {
   };
 
   const handleKeyDown = (e) => {
+    // Handle emoji suggestions first (higher priority than mentions)
+    if (emojiQuery && filteredEmojis.length) {
+      if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        setEmojiIndex((i) => Math.min(i + 1, filteredEmojis.length - 1));
+        return;
+      }
+
+      if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        setEmojiIndex((i) => Math.max(i - 1, 0));
+        return;
+      }
+
+      if (e.key === 'Enter' || e.key === 'Tab') {
+        e.preventDefault();
+        replaceEmojiQueryWithEmoji(emojiQuery, filteredEmojis[emojiIndex].emoji);
+        setEmojiQuery(null);
+        syncValue();
+        return;
+      }
+    }
+
     if (mentionQuery && filteredMembers.length) {
       if (e.key === 'ArrowDown') {
         e.preventDefault();
@@ -361,6 +500,31 @@ const ChannelInput = ({ channel }) => {
           </Popover.Portal>
         </Popover.Root>
 
+        {emojiQuery && filteredEmojis.length > 0 && (
+          <div className="absolute left-0 right-0 bottom-full mb-2 z-50 w-full max-h-[300px] rounded bg-[#2c2f33] shadow-lg flex flex-col border border-gray-700">
+            <div className="text-xs font-bold text-gray-400 px-4 py-3 border-b border-gray-700 flex-shrink-0">EMOJI MATCHING :{emojiQuery}</div>
+            <div className="overflow-y-auto flex-1">
+              {filteredEmojis.map((item, i) => (
+                <button
+                  key={item.shortcode}
+                  className={`flex w-full items-center gap-3 px-4 py-2 text-left text-sm transition-colors ${
+                    i === emojiIndex ? 'bg-gray-700' : 'hover:bg-gray-700/50'
+                  }`}
+                  onMouseDown={(e) => {
+                    e.preventDefault();
+                    replaceEmojiQueryWithEmoji(emojiQuery, item.emoji);
+                    setEmojiQuery(null);
+                    syncValue();
+                  }}
+                >
+                  <div className="text-xl flex-shrink-0">{item.emoji}</div>
+                  <div className="flex-1 truncate text-gray-200 font-medium">{item.shortcode}</div>
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
         <Popover.Root modal={false}>
           <Popover.Trigger asChild>
             <Button variant="ghost" className="h-8 w-8 text-gray-400 self-start mt-2 mr-2">
@@ -375,7 +539,10 @@ const ChannelInput = ({ channel }) => {
             className="p-0 w-[350px] h-[400px] flex flex-col overflow-hidden"
           >
             <EmojiPicker
-              onEmojiSelect={({ label }) => {
+              onEmojiSelect={({ label, emoji }) => {
+                // Register the emoji in our map for conversion
+                registerEmoji(label, emoji);
+
                 // Restore focus and selection to the editor
                 restoreSelection();
 

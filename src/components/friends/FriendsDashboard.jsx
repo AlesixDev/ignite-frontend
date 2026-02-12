@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { Users } from 'lucide-react';
+import { useState, useMemo } from 'react';
+import { Users, X } from 'lucide-react';
 import { Separator } from "@/components/ui/separator";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -11,11 +11,21 @@ import PendingRequests from './PendingRequests';
 
 const FriendsDashboard = () => {
     const [activeTab, setActiveTab] = useState('online');
+    const [searchQuery, setSearchQuery] = useState('');
     const { friends, requests } = useFriendsStore();
     const store = useStore();
     const currentUser = store.user;
 
     const pendingCount = requests.filter(req => req.sender_id != currentUser.id).length;
+
+    const filteredFriends = useMemo(() => {
+        if (!searchQuery.trim()) return friends;
+        const query = searchQuery.toLowerCase();
+        return friends.filter(friend =>
+            friend.username.toLowerCase().includes(query) ||
+            friend.name?.toLowerCase().includes(query)
+        );
+    }, [friends, searchQuery]);
 
     return (
         <div className="flex h-full flex-col bg-gray-700">
@@ -63,14 +73,39 @@ const FriendsDashboard = () => {
             </header>
 
             {/* Content */}
-            <div className="flex-1 overflow-y-auto p-6">
+            <div className="flex-1 overflow-y-auto p-6 flex flex-col">
                 {activeTab === 'add_friend' && <AddFriendForm />}
 
                 {(activeTab === 'online' || activeTab === 'all') && (
-                    <FriendsList
-                        friends={friends}
-                        filter={activeTab}
-                    />
+                    <>
+                        <div className="mb-4">
+                            <div className="relative">
+                                <input
+                                    type="text"
+                                    placeholder="Search friends..."
+                                    value={searchQuery}
+                                    onChange={(e) => setSearchQuery(e.target.value)}
+                                    className="w-full px-4 py-2.5 bg-gray-800/50 text-white placeholder:text-gray-500 rounded-lg border border-gray-700/60 text-sm focus:outline-none focus:bg-gray-800/80 focus:border-gray-600 focus:ring-0 transition-all"
+                                />
+                                {searchQuery && (
+                                    <button
+                                        onClick={() => setSearchQuery('')}
+                                        className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-300 transition-colors"
+                                        type="button"
+                                        aria-label="Clear search"
+                                    >
+                                        <X size={16} />
+                                    </button>
+                                )}
+                            </div>
+                        </div>
+                        <div className="flex-1 overflow-y-auto">
+                            <FriendsList
+                                friends={filteredFriends}
+                                filter={activeTab}
+                            />
+                        </div>
+                    </>
                 )}
 
                 {activeTab === 'pending' && (
