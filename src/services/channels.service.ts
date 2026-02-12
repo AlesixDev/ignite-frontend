@@ -60,14 +60,18 @@ export const ChannelsService = {
             const { data } = await api.post('@me/channels', { recipients: recipientsIds });
 
             // Update local store only if channel doesn't already exist
-            const { channels, setChannels } = useChannelsStore.getState();
-            if (!channels.some((c) => c.channel_id === data.channel_id)) {
-                setChannels([...channels, data]);
-            }
+            const { addChannel } = useChannelsStore.getState();
+            addChannel(data);
 
             return data;
-        } catch {
-            toast.error('Failed to create DM');
+        } catch (error) {
+            console.error('Failed to create DM:', error);
+            if (axios.isAxiosError(error) && error.response) {
+                console.error('Server response:', error.response.data);
+                toast.error(`Failed to create DM: ${error.response.data?.message || error.message}`);
+            } else {
+                toast.error('Failed to create DM');
+            }
         }
     },
 

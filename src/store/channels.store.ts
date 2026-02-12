@@ -15,6 +15,7 @@ type ChannelsStore = {
     pinnedChannelIds: string[];
 
     setChannels: (channels: any[]) => void;
+    addChannel: (channel: any) => void;
     setChannelMessages: (channelId: string, messages: any[]) => void;
     setChannelPendingMessages: (channelId: string, messages: any[]) => void;
     addReaction: (channelId: string, messageId: string, emoji: string, userId: string) => void;
@@ -37,6 +38,15 @@ export const useChannelsStore = create<ChannelsStore>((set) => ({
     pinnedChannelIds: JSON.parse(localStorage.getItem('pinnedChannels') || '[]'),
 
     setChannels: (channels) => set({ channels }),
+    addChannel: (channel) => set((state) => {
+        const channelId = String(channel.channel_id || channel.id);
+        const exists = state.channels.some(c => String(c.channel_id || c.id) === channelId);
+        if (exists) return {};
+
+        return {
+            channels: [...state.channels, { ...channel, channel_id: channelId }]
+        };
+    }),
     setChannelMessages: (channelId, messages) =>
         set((state) => ({
             channelMessages: {
