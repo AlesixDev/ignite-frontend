@@ -13,63 +13,12 @@ import { ChannelsService } from '../../services/channels.service';
 import { PermissionsService } from '../../services/permissions.service';
 import { Permissions } from '../../enums/Permissions';
 import { toast } from 'sonner';
+import { emojiMap, registerEmoji } from '../../utils/emoji.utils';
 
 const MAX_MESSAGE_LENGTH = 2000;
 const SUGGESTIONS_LIMIT = 10;
 
 /* -------------------------------- utils -------------------------------- */
-
-// Store emoji mappings dynamically
-const emojiMap = new Map();
-let emojiDataLoaded = false;
-
-// Load emoji data from CDN (emojibase format)
-const loadEmojiData = async () => {
-  if (emojiDataLoaded) return;
-
-  try {
-    const response = await fetch('https://cdn.jsdelivr.net/npm/emojibase-data@latest/en/data.json');
-    const data = await response.json();
-
-    data.forEach((emoji) => {
-      // Use the unicode emoji and its canonical name
-      if (emoji.emoji && emoji.label) {
-        const shortcode = `:${emoji.label.toLowerCase().replace(/\s+/g, '_')}:`;
-        emojiMap.set(shortcode, emoji.emoji);
-      }
-
-      // Also add aliases if available
-      if (emoji.emoji && emoji.aliases) {
-        emoji.aliases.forEach((alias) => {
-          const shortcode = `:${alias.toLowerCase().replace(/\s+/g, '_')}:`;
-          if (!emojiMap.has(shortcode)) {
-            emojiMap.set(shortcode, emoji.emoji);
-          }
-        });
-      }
-    });
-
-    emojiDataLoaded = true;
-  } catch (error) {
-    console.warn('Failed to load emoji data from CDN:', error);
-  }
-};
-
-// Start loading emoji data on module load (non-blocking)
-loadEmojiData();
-
-const registerEmoji = (label, emoji) => {
-  const shortcode = `:${label.toLowerCase().replace(/\s+/g, '_')}:`;
-  if (!emojiMap.has(shortcode)) {
-    emojiMap.set(shortcode, emoji);
-  }
-};
-
-const convertEmojiShortcodes = (text) => {
-  return text.replace(/:[\w_+-]+:/g, (match) => {
-    return emojiMap.get(match) || match;
-  });
-};
 
 const serializeFromDom = (root) => {
   let out = '';
@@ -96,7 +45,7 @@ const serializeFromDom = (root) => {
   };
 
   for (const c of root.childNodes) walk(c);
-  return convertEmojiShortcodes(out);
+  return out;
 };
 
 const insertTextAtCaret = (text) => {
@@ -373,7 +322,7 @@ const ChannelInput = ({ channel }) => {
 
       if (e.key === 'Enter' || e.key === 'Tab') {
         e.preventDefault();
-        replaceEmojiQueryWithEmoji(emojiQuery, filteredEmojis[emojiIndex].emoji);
+        replaceEmojiQueryWithEmoji(emojiQuery, filteredEmojis[emojiIndex].shortcode);
         setEmojiQuery(null);
         syncValue();
         return;
@@ -510,7 +459,7 @@ const ChannelInput = ({ channel }) => {
                     }`}
                   onMouseDown={(e) => {
                     e.preventDefault();
-                    replaceEmojiQueryWithEmoji(emojiQuery, item.emoji);
+                    replaceEmojiQueryWithEmoji(emojiQuery, item.shortcode);
                     setEmojiQuery(null);
                     syncValue();
                   }}

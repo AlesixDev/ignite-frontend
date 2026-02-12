@@ -9,6 +9,7 @@ import GuildMemberContextMenu from '../GuildMember/GuildMemberContextMenu';
 import Markdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import ExternalLink from './ExternalLink.jsx';
+import { convertEmojiShortcodes } from '../../utils/emoji.utils';
 
 const MentionText = ({ userId }) => {
     const { getUser, users } = useUsersStore();
@@ -119,10 +120,10 @@ const MessageContent = ({ content }) => {
                             // Disable image rendering - show as plain text
                             img: ({ src, alt }) => <span className="text-gray-500">[{alt || 'image'}]({src})</span>,
                             // External links with confirmation dialog
-                            a: ({ href, children }) => <ExternalLink href={href}>{children}</ExternalLink>,
+                            a: ({ href, children }) => href ? <ExternalLink href={href}>{children}</ExternalLink> : <>{children}</>,
                         }}
                     >
-                        {part.content}
+                        {convertEmojiShortcodes(part.content)}
                     </Markdown>
                 );
             })}
