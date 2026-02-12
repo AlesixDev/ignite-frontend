@@ -20,7 +20,7 @@ const MentionText = ({ userId }) => {
                     type="button"
                     className="inline rounded bg-blue-500/20 px-1 font-medium text-blue-400 hover:bg-blue-500/30 hover:text-blue-300 transition-colors cursor-pointer"
                 >
-                    @{user.username}
+                    @{user.name}
                 </button>
             </PopoverTrigger>
             <PopoverContent className="w-auto p-2" align="start" alignOffset={0}>
@@ -30,7 +30,7 @@ const MentionText = ({ userId }) => {
     );
 };
 
-const Mention = ({ content }) => {
+const MessageContent = ({ content }) => {
     // Parse the content and split by mentions
     // Regex to match <@userid> pattern
     const mentionRegex = /<@(\d+)>/g;
@@ -85,6 +85,8 @@ const Mention = ({ content }) => {
                         components={{
                             // Override paragraph to render inline
                             p: ({ children }) => <>{children}</>,
+                            // Disable image rendering - show as plain text
+                            img: ({ src, alt }) => <span className="text-gray-500">[{alt || 'image'}]({src})</span>,
                         }}
                     >
                         {part.content}
@@ -95,4 +97,4 @@ const Mention = ({ content }) => {
     );
 };
 
-export default Mention;
+export default MessageContent;
