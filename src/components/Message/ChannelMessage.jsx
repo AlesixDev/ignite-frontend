@@ -106,14 +106,14 @@ const ChannelMessage = memo(({ message, prevMessage, allMessages, pending, isEdi
                             />
                         </div>
                     )}
-                    <div className="flex items-center px-4 gap-4">
+                    <div className="flex items-start px-4 gap-4">
                         {shouldStack ? (
                             <div className="w-10" />
                         ) : hasReply ? (
                             <ContextMenu>
                                 <PopoverTrigger>
                                     <ContextMenuTrigger>
-                                        <Avatar user={message.author} className="size-10 -mt-2" />
+                                        <Avatar user={message.author} className="size-10" />
                                     </ContextMenuTrigger>
                                     <ContextMenuContent>
                                         <GuildMemberContextMenu user={message.author} />
