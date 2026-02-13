@@ -14,10 +14,10 @@ import { toast } from 'sonner';
 
 /**
  * Detect if running inside Electron.
- * The preload script exposes `window.electronAPI`.
+ * The preload script exposes `window.IgniteNative`.
  */
 const isElectron = () =>
-  typeof window !== 'undefined' && window.electronAPI?.isElectron === true;
+  typeof window !== 'undefined' && window.IgniteNative?.isElectron === true;
 
 /**
  * Open a URL externally.
@@ -26,7 +26,7 @@ const isElectron = () =>
  */
 const openUrl = (url) => {
   if (isElectron()) {
-    window.electronAPI.openExternal(url);
+    window.IgniteNative.openExternal(url);
   } else {
     window.open(url, '_blank', 'noopener,noreferrer');
   }

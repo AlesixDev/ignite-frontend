@@ -1,6 +1,6 @@
 # Ignite
 
-A Discord-inspired chat platform built with React, featuring real-time messaging, guild management, role-based permissions, and a desktop client powered by Electron.
+A Discord-inspired chat platform built with React, featuring real-time messaging, guild management, role-based permissions.
 
 ## Features
 
@@ -11,7 +11,6 @@ A Discord-inspired chat platform built with React, featuring real-time messaging
 - **Friends System** — Send/accept friend requests, manage your friends list, and start direct message conversations
 - **Mentions & Unreads** — `@user` mention support with inline suggestions, per-channel unread tracking, and badge indicators
 - **Invite System** — Generate invite links with preview pages and quick sign-up for new users
-- **Desktop App** — Native desktop client via Electron with custom window controls
 - **Dark Theme** — Dark UI inspired by modern chat platforms
 
 ## Tech Stack
@@ -27,7 +26,6 @@ A Discord-inspired chat platform built with React, featuring real-time messaging
 | Forms             | React Hook Form                              |
 | Rich Text         | Lexical                                      |
 | Drag & Drop       | dnd-kit                                      |
-| Desktop           | Electron (via Electron Forge)                |
 | Routing           | React Router v6                              |
 
 ## Getting Started
