@@ -1,10 +1,10 @@
 import { useState, useCallback } from 'react';
-import { NotePencil, Trash, Smiley } from '@phosphor-icons/react';
+import { NotePencil, Trash, Smiley, ArrowBendUpLeft } from '@phosphor-icons/react';
 import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover';
 import { EmojiPicker, EmojiPickerSearch, EmojiPickerContent, EmojiPickerFooter } from '../ui/emoji-picker';
 import { ChannelsService } from '@/services/channels.service';
 
-const MessageActions = ({ message, channelId, canEdit, canDelete, onEdit, onDelete }) => {
+const MessageActions = ({ message, channelId, canEdit, canDelete, onEdit, onDelete, onReply }) => {
     const [emojiPickerOpen, setEmojiPickerOpen] = useState(false);
 
     const handleAddReaction = useCallback((selectedEmoji) => {
@@ -14,6 +14,10 @@ const MessageActions = ({ message, channelId, canEdit, canDelete, onEdit, onDele
 
     return (
         <div className={`absolute -top-4 right-4 rounded-md border border-gray-800 bg-gray-700 z-40 ${emojiPickerOpen ? 'flex' : 'hidden group-hover:flex'}`}>
+            <button type="button" onClick={onReply} className="rounded-md p-2 text-sm text-white/90 hover:bg-primary/10 hover:text-primary">
+                <ArrowBendUpLeft className="size-5" />
+            </button>
+
             <Popover open={emojiPickerOpen} onOpenChange={setEmojiPickerOpen}>
                 <PopoverTrigger asChild>
                     <button type="button" className="rounded-md p-2 text-sm text-white/90 hover:bg-primary/10 hover:text-primary">

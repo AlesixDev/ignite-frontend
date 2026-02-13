@@ -1,7 +1,7 @@
 import { toast } from 'sonner';
 import { ContextMenuContent, ContextMenuItem, ContextMenuSeparator } from '../ui/context-menu';
 
-const MessageContextMenu = ({ message, canEdit, canDelete, onEdit, onDelete }) => {
+const MessageContextMenu = ({ message, canEdit, canDelete, onEdit, onDelete, onReply }) => {
     const handleCopyText = () => {
         navigator.clipboard.writeText(message.content);
         toast.success('Message text copied to clipboard.');
@@ -14,6 +14,10 @@ const MessageContextMenu = ({ message, canEdit, canDelete, onEdit, onDelete }) =
 
     return (
         <ContextMenuContent className="w-52">
+            <ContextMenuItem onSelect={onReply}>
+                Reply
+            </ContextMenuItem>
+            <ContextMenuSeparator />
             {canEdit && (
                 <>
                     <ContextMenuItem onSelect={onEdit}>

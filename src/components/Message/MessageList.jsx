@@ -50,6 +50,7 @@ const MessageList = ({
                         <ChannelMessage
                             message={message}
                             prevMessage={prevMessage}
+                            allMessages={messages}
                             isEditing={editingId === message.id}
                             setEditingId={setEditingId}
                             guildId={guildId}
@@ -65,6 +66,7 @@ const MessageList = ({
                         key={message.nonce}
                         message={message}
                         prevMessage={prevMessage}
+                        allMessages={messages}
                         pending={true}
                         isEditing={false}
                         setEditingId={setEditingId}

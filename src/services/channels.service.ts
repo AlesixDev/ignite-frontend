@@ -116,7 +116,7 @@ export const ChannelsService = {
         }
     },
 
-    async sendChannelMessage(channelId: string, content: string) {
+    async sendChannelMessage(channelId: string, content: string, replyTo: string | null = null) {
         const { setChannelPendingMessages, channelPendingMessages } = useChannelsStore.getState();
 
         const generatedNonce = Date.now().toString() + Math.floor(Math.random() * 1000).toString();
@@ -130,6 +130,7 @@ export const ChannelsService = {
                 username: useStore.getState().user.username,
             },
             created_at: new Date().toISOString(),
+            message_references: replyTo ? [{ message_id: replyTo, channel_id: channelId }] : [],
         };
 
         setChannelPendingMessages(channelId, [...(channelPendingMessages[channelId] || []), pendingMessage]);
@@ -151,7 +152,8 @@ export const ChannelsService = {
         try {
             await api.post(`/channels/${channelId}/messages`, {
                 content: content,
-                nonce: generatedNonce
+                nonce: generatedNonce,
+                ...(replyTo ? { message_reference: { message_id: replyTo } } : {}),
             });
         } catch {
             // Remove from pending messages

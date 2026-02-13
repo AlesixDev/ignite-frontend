@@ -14,20 +14,27 @@ import MessageEditor from './MessageEditor';
 import MessageReactions from './MessageReactions';
 import MessageActions from './MessageActions';
 import MessageContextMenu from './MessageContextMenu';
+import MessageReplyBar from './MessageReplyBar';
 import { PermissionsService } from '@/services/permissions.service';
 import { Permissions } from '@/enums/Permissions';
+import { useChannelContext } from '../../contexts/ChannelContext.jsx';
 
-const ChannelMessage = memo(({ message, prevMessage, pending, isEditing, setEditingId, guildId }) => {
+const ChannelMessage = memo(({ message, prevMessage, allMessages, pending, isEditing, setEditingId, guildId }) => {
     const store = useStore();
+    const { setReplyingId } = useChannelContext();
     const channelId = message.channel_id;
 
+    const hasReply = message.message_references?.length > 0;
+    const replyMessageId = hasReply ? message.message_references[0].message_id : null;
+
     const shouldStack = useMemo(() => {
+        if (hasReply) return false;
         if (!prevMessage) return false;
         const sameAuthor = prevMessage.author.id === message.author.id;
         const sameName = prevMessage.author.name === message.author.name;
         const sentWithinMinute = (new Date(message.created_at) - new Date(prevMessage.created_at)) / 1000 < 60;
         return sameAuthor && sameName && sentWithinMinute;
-    }, [prevMessage, message]);
+    }, [prevMessage, message, hasReply]);
 
     const canEdit = useMemo(() =>
         message.author.id === store.user.id,
@@ -80,9 +87,39 @@ const ChannelMessage = memo(({ message, prevMessage, pending, isEditing, setEdit
         <Popover>
             <ContextMenu>
                 <ContextMenuTrigger className={messageClasses}>
-                    <div className="flex items-start px-4 gap-4">
+                    {hasReply && (
+                        <div className="flex items-start px-4 gap-2">
+                            <div className="flex w-10 mt-2">
+                                <svg width="33" height="20" viewBox="0 0 33 20" fill="none" className="text-gray-500">
+                                    <path
+                                        d="M17 15V10C17 5.58172 20.5817 2 25 2H33"
+                                        stroke="currentColor"
+                                        strokeWidth="2"
+                                        strokeLinecap="round"
+                                        fill="none"
+                                    />
+                                </svg>
+                            </div>
+                            <MessageReplyBar
+                                referenceMessageId={replyMessageId}
+                                messages={allMessages}
+                            />
+                        </div>
+                    )}
+                    <div className="flex items-center px-4 gap-4">
                         {shouldStack ? (
                             <div className="w-10" />
+                        ) : hasReply ? (
+                            <ContextMenu>
+                                <PopoverTrigger>
+                                    <ContextMenuTrigger>
+                                        <Avatar user={message.author} className="size-10 -mt-2" />
+                                    </ContextMenuTrigger>
+                                    <ContextMenuContent>
+                                        <GuildMemberContextMenu user={message.author} />
+                                    </ContextMenuContent>
+                                </PopoverTrigger>
+                            </ContextMenu>
                         ) : (
                             <ContextMenu>
                                 <PopoverTrigger>
@@ -126,6 +163,7 @@ const ChannelMessage = memo(({ message, prevMessage, pending, isEditing, setEdit
                             canDelete={canDelete}
                             onEdit={() => setEditingId(message.id)}
                             onDelete={handleDelete}
+                            onReply={() => setReplyingId(message.id)}
                         />
                     )}
                 </ContextMenuTrigger>
@@ -136,6 +174,7 @@ const ChannelMessage = memo(({ message, prevMessage, pending, isEditing, setEdit
                     canDelete={canDelete}
                     onEdit={() => setEditingId(message.id)}
                     onDelete={handleDelete}
+                    onReply={() => setReplyingId(message.id)}
                 />
             </ContextMenu>
 

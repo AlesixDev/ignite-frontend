@@ -1,7 +1,9 @@
 import * as Popover from '@radix-ui/react-popover';
 import { InputGroup } from '../ui/input-group';
 import { EmojiPicker, EmojiPickerContent, EmojiPickerFooter, EmojiPickerSearch } from '../ui/emoji-picker';
-import { useChannelInputContext } from '../../contexts/ChannelContext.jsx';
+import { useChannelInputContext, useChannelContext } from '../../contexts/ChannelContext.jsx';
+import { useChannelsStore } from '../../store/channels.store';
+import { X } from '@phosphor-icons/react';
 import { useGuildsStore } from '../../store/guilds.store';
 import { useGuildContext } from '../../contexts/GuildContext';
 import { ChannelType } from '../../enums/ChannelType';
@@ -190,6 +192,7 @@ const convertSerializedMentions = (root, members, resolveUser) => {
 
 const ChannelInput = ({ channel }) => {
   const { inputMessage, setInputMessage } = useChannelInputContext();
+  const { replyingId, setReplyingId } = useChannelContext();
   const editorRef = useRef(null);
   const savedSelectionRef = useRef(null);
 
@@ -197,6 +200,12 @@ const ChannelInput = ({ channel }) => {
   const guildsStore = useGuildsStore();
   const currentUser = useStore((s) => s.user);
   const members = guildsStore.guildMembers[guildId] || [];
+  const channelMessages = useChannelsStore(s => s.channelMessages);
+
+  const replyingMessage = useMemo(() => {
+    if (!replyingId || !channel?.channel_id) return null;
+    return (channelMessages[channel.channel_id] || []).find(m => m.id === replyingId);
+  }, [replyingId, channel?.channel_id, channelMessages]);
 
   // Check if user can send messages in this channel
   // const canSendMessages = useMemo(() => {
@@ -376,8 +385,9 @@ const ChannelInput = ({ channel }) => {
     if (!channel?.channel_id || !inputMessage.trim()) return;
     if (inputMessage.length > MAX_MESSAGE_LENGTH) return;
 
-    ChannelsService.sendChannelMessage(channel.channel_id, inputMessage);
+    ChannelsService.sendChannelMessage(channel.channel_id, inputMessage, replyingId || null);
     setInputMessage('');
+    setReplyingId(null);
     editorRef.current.innerHTML = '';
   };
 
@@ -387,6 +397,24 @@ const ChannelInput = ({ channel }) => {
 
   return (
     <div className="bg-gray-700/95 px-2 pt-2 pb-2">
+      {replyingMessage && (
+        <div className="flex items-center gap-2 rounded-t-md bg-gray-800 px-3 py-2 text-sm text-gray-300">
+          <span className="text-gray-400 shrink-0">Replying to</span>
+          <span className="font-semibold text-white shrink-0">
+            {replyingMessage.author.name || replyingMessage.author.username}
+          </span>
+          <span className="truncate text-gray-400">
+            {replyingMessage.content}
+          </span>
+          <button
+            type="button"
+            onClick={() => setReplyingId(null)}
+            className="ml-auto rounded p-0.5 text-gray-400 hover:bg-gray-700 hover:text-gray-200"
+          >
+            <X size={16} />
+          </button>
+        </div>
+      )}
       <style>{`
         [contenteditable][data-placeholder]:empty:before {
           content: attr(data-placeholder);
