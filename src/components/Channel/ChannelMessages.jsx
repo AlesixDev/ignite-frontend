@@ -81,7 +81,14 @@ const ChannelMessages = ({ channel }) => {
             messagesRef.current.scrollTop = messagesRef.current.scrollHeight;
             if (forceScrollDown) setForceScrollDown(false);
         }
-    }, [channelPendingMessages, messages, forceScrollDown]);
+    }, [messages, forceScrollDown]);
+
+    // Always scroll to bottom when the current user sends a message (pending messages added)
+    // FIXME: This breaks with multiple pending messages, pass messagesRef to ChannelInput instead
+    useEffect(() => {
+        if (!messagesRef.current || !pendingMessages.length) return;
+        messagesRef.current.scrollTop = messagesRef.current.scrollHeight;
+    }, [pendingMessages]);
 
     // Handle escape key
     useEffect(() => {
