@@ -63,6 +63,8 @@ const AuthRoute = ({ children }) => {
       } catch (error) {
         console.error('Failed to initialize', error);
         setFailed(true);
+      } finally {
+        setInitialized(true);
       }
     };
 
@@ -173,6 +175,10 @@ const AuthRoute = ({ children }) => {
         <div className="size-16 animate-spin rounded-full border-4 border-solid border-primary border-t-transparent"></div>
       </div>
     );
+  }
+
+  if (!store.user) {
+    return <Navigate to="/login" replace />;
   }
 
   return children ? children : <Outlet />;

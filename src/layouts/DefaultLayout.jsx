@@ -1,6 +1,21 @@
 import { useMemo, useState, useEffect, useCallback } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { Fire, Plus } from '@phosphor-icons/react';
+import {
+  DndContext,
+  DragOverlay,
+  closestCenter,
+  PointerSensor,
+  useSensor,
+  useSensors,
+} from '@dnd-kit/core';
+import {
+  SortableContext,
+  verticalListSortingStrategy,
+  useSortable,
+} from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
+import { restrictToVerticalAxis } from '@dnd-kit/modifiers';
 import { useGuildsStore } from '../store/guilds.store';
 import GuildDialog from '../components/GuildDialog';
 import UserBar from '../components/UserBar';
@@ -11,6 +26,7 @@ import Avatar from '../components/Avatar';
 import { GuildContextProvider } from '@/contexts/GuildContext';
 import { useFriendsStore } from '../store/friends.store';
 import { ChannelsService } from '../services/channels.service';
+import { useGuildOrder } from '../hooks/useGuildOrder';
 
 const SidebarIcon = ({ icon = '', iconUrl = '', isActive = false, isServerIcon = false, text = 'tooltip', isUnread = false, mentionCount = 0 }) => (
   <div className="group relative mb-2 min-w-min px-3">
@@ -50,6 +66,40 @@ const SidebarIcon = ({ icon = '', iconUrl = '', isActive = false, isServerIcon =
   </div>
 );
 
+const SortableGuildIcon = ({ guild, isActive, isUnread, mentionCount, isDragging: globalDragging }) => {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: String(guild.id) });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.3 : 1,
+    position: 'relative',
+    zIndex: isDragging ? 0 : 'auto',
+  };
+
+  return (
+    <div ref={setNodeRef} style={style} {...attributes} {...listeners}>
+      <Link to={`/channels/${guild.id}`} draggable="false" style={{ pointerEvents: isDragging ? 'none' : 'auto' }}>
+        <SidebarIcon
+          iconUrl={guild.icon || ''}
+          text={guild.name}
+          isServerIcon={true}
+          isActive={isActive}
+          isUnread={isUnread}
+          mentionCount={mentionCount}
+        />
+      </Link>
+    </div>
+  );
+};
+
 const Sidebar = () => {
   const { guildId, channelId } = useParams();
   const { user } = useStore();
@@ -58,6 +108,37 @@ const Sidebar = () => {
   const { channels, channelMessages } = useChannelsStore();
   const { requests } = useFriendsStore();
   const [isGuildDialogOpen, setIsGuildDialogOpen] = useState(false);
+  const [activeId, setActiveId] = useState(null);
+
+  const { orderedGuilds, reorder } = useGuildOrder(guilds);
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: {
+        distance: 8,
+      },
+    })
+  );
+
+  const activeGuild = useMemo(() => {
+    if (!activeId) return null;
+    return guilds.find((g) => String(g.id) === String(activeId));
+  }, [activeId, guilds]);
+
+  const handleDragStart = (event) => {
+    setActiveId(event.active.id);
+  };
+
+  const handleDragEnd = (event) => {
+    setActiveId(null);
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
+    reorder(active.id, over.id);
+  };
+
+  const handleDragCancel = () => {
+    setActiveId(null);
+  };
 
   const isChannelUnread = useCallback((channel) => {
     if (!channel || !channelUnreadsLoaded || !channel.last_message_id) return false;
@@ -193,19 +274,45 @@ const Sidebar = () => {
           <hr className="mx-auto mb-2 w-8 rounded-full border-2 border-gray-800 bg-gray-800" />
         )}
 
-        {/* Guilds List */}
-        {guilds.map((guild) => (
-          <Link key={guild.id} to={`/channels/${guild.id}`}>
-            <SidebarIcon
-              iconUrl={guild.icon || ''}
-              text={guild.name}
-              isServerIcon={true}
-              isActive={guildId === guild.id}
-              isUnread={isGuildUnread(guild)}
-              mentionCount={getGuildMentionCount(guild)}
-            />
-          </Link>
-        ))}
+        {/* Guilds List — Draggable */}
+        <DndContext
+          sensors={sensors}
+          collisionDetection={closestCenter}
+          onDragStart={handleDragStart}
+          onDragEnd={handleDragEnd}
+          onDragCancel={handleDragCancel}
+          modifiers={[restrictToVerticalAxis]}
+        >
+          <SortableContext
+            items={orderedGuilds.map((g) => String(g.id))}
+            strategy={verticalListSortingStrategy}
+          >
+            {orderedGuilds.map((guild) => (
+              <SortableGuildIcon
+                key={guild.id}
+                guild={guild}
+                isActive={guildId === guild.id}
+                isUnread={isGuildUnread(guild)}
+                mentionCount={getGuildMentionCount(guild)}
+                isDragging={!!activeId}
+              />
+            ))}
+          </SortableContext>
+
+          <DragOverlay dropAnimation={{ duration: 150, easing: 'ease' }}>
+            {activeGuild ? (
+              <div style={{ pointerEvents: 'none' }}>
+                <SidebarIcon
+                  iconUrl={activeGuild.icon || ''}
+                  text={activeGuild.name}
+                  isServerIcon={true}
+                  isActive={false}
+                  isUnread={false}
+                />
+              </div>
+            ) : null}
+          </DragOverlay>
+        </DndContext>
 
         <button type="button" onClick={() => setIsGuildDialogOpen(true)}>
           <SidebarIcon icon={<Plus className="size-6" />} text="Add a Server" />
